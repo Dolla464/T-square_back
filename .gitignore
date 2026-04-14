@@ -1,0 +1,51 @@
+# Logs
+*.log
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Laravel specific
+/vendor
+/node_modules
+
+/public/build
+/public/hot
+/public/storage
+
+/storage/*.key
+/storage/app/public
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/logs/*
+
+# IDE / Editors
+/.idea
+/.vscode
+/.fleet
+/.zed
+
+# PHP tools
+.phpactor.json
+.phpunit.result.cache
+.phpunit.cache
+_ide_helper.php
+
+# Laravel / Dev tools
+Homestead.json
+Homestead.yaml
+auth.json
+
+# Misc
+/.nova
