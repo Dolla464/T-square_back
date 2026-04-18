@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,10 +16,10 @@ use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'password', 'role', 'last_login_at'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens,HasFactory, Notifiable, SoftDeletes, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles;
 
     /**
      * Get the attributes that should be cast.
@@ -32,5 +33,49 @@ class User extends Authenticatable
             'password' => 'hashed',
             'last_login_at' => 'datetime',
         ];
+    }
+
+    public function getRoleAttribute()
+    {
+        if ($this->admin()->exists()) return 'admin';
+        if ($this->instructor()->exists()) return 'instructor';
+        return 'student';
+    }
+
+    public function instructor()
+    {
+        return $this->hasOne(Instructor::class);
+    }
+    public function admin()
+    {
+        return $this->hasOne(Admin::class);
+    }
+    public function student()
+    {
+        return $this->hasOne(Student::class);
+    }
+
+    // علاقة تجيب الكورسات الخاصة بمدرب معين 
+    public function courses()
+    {
+        return $this->hasManyThrough(Course::class, Instructor::class);
+    }
+
+    // علاقة الوصول للمجموعة (عن طريق جدول الطلاب)
+    public function learningGroup()
+    {
+        // بنقول للارافيل: هات المجموعة اللي تخص الطالب اللي مربوط باليوزر ده
+        return $this->hasOneThrough(LearningGroup::class, Student::class, 'user_id', 'id', 'id', 'group_id');
+    }
+
+    // الوصول للمجموعات من خلال ملف المدرب
+    public function instructorGroups()
+    {
+        return $this->hasManyThrough(
+            LearningGroup::class,
+            Instructor::class,
+            'user_id',
+            'instructor_id'
+        );
     }
 }

@@ -1,0 +1,77 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class CourseReview extends Model
+{
+    protected $fillable = [
+        'course_id',
+        'student_id',
+        'instructor_id',
+        'content_rating',
+        'instructor_rating',
+        'center_rating',
+        'rating',
+        'overall_comment'
+    ];
+
+    /**
+     * الـ Boot Method: هو المحرك اللي بيراقب الأحداث في الموديل
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // ١. قبل إنشاء التقييم أو تحديثه: احسب المتوسط الكلي
+        static::saving(function ($review) {
+            $review->rating = ($review->content_rating + $review->instructor_rating + $review->center_rating) / 3;
+        });
+
+        // ٢. بعد الحفظ (إنشاء أو تعديل): حدث إحصائيات الكورس والمحاضر
+        static::saved(function ($review) {
+            $review->updateAggregatedStats();
+        });
+
+        // ٣. بعد المسح: حدث الإحصائيات أيضاً
+        static::deleted(function ($review) {
+            $review->updateAggregatedStats();
+        });
+    }
+
+    /**
+     * دالة مركزية لتحديث إحصائيات الكورس والمحاضر
+     */
+    public function updateAggregatedStats()
+    {
+        // تحديث إحصائيات الكورس المرتبط
+        if ($this->course) {
+            $this->course->updateRatingStats();
+        }
+
+        // تحديث إحصائيات المحاضر المرتبط
+        if ($this->instructor) {
+            $this->instructor->updateRatingStats();
+        }
+    }
+
+    // العلاقات
+    // التقييم يخص كورس معين
+    public function course()
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    // التقييم كتبه طالب معين
+    public function student()
+    {
+        return $this->belongsTo(Student::class);
+    }
+
+    // التقييم موجه لمدرب معين (عشان تحسب متوسط تقييم المدرب نفسه)
+    public function instructor()
+    {
+        return $this->belongsTo(Instructor::class);
+    }
+}

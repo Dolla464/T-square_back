@@ -15,10 +15,11 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
         "spatie/laravel-medialibrary": "^11.21",
-        "spatie/laravel-permission": "^7.2.2",
+        "spatie/laravel-permission": "^7.3",
         "spatie/laravel-query-builder": "^7.1"
     },
     "require-dev": {
+        "barryvdh/laravel-ide-helper": "^3.7",
         "fakerphp/faker": "^1.23",
         "laravel/breeze": "^2.4.1",
         "laravel/pail": "^1.2.5",

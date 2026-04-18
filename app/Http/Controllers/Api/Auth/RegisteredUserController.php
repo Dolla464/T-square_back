@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Auth;
+namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -43,10 +43,13 @@ class RegisteredUserController extends Controller
         // generate a Sanctum token for the newly registered user
         $token = $user->createToken('T-Square-Access-Token')->plainTextToken;
 
-        return response()->json([
-            'message' => 'User registered successfully',
-            'token' => $token,
-            'user' => $user,
-        ]);
+        return $this->successResponse(
+            [
+                'token' => $token,
+                'user'  => $user->load('roles'), // عشان الـ Front يعرف هو طالب ولا مدرس فوراً
+            ], 
+            'User registered successfully', 
+            201
+        );
     }
 }
