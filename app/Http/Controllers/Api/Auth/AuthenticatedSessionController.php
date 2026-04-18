@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Auth;
+namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
@@ -25,11 +25,13 @@ class AuthenticatedSessionController extends Controller
 
         //$request->session()->regenerate();
 
-        return response()->json([
-            'message' => 'Success',
-            'token' => $token,
-            'user' => $request->user(),
-        ]);
+        return $this->successResponse(
+            [
+                'token' => $token,
+                'user'  => $request->user()->load('roles'), // تحميل الرولز مهم للـ Frontend
+            ],
+            'Success'
+        );
     }
 
     /**
@@ -42,14 +44,10 @@ class AuthenticatedSessionController extends Controller
             // مسح التوكن الحالي
             $request->user()->currentAccessToken()->delete();
 
-            return response()->json([
-                'message' => 'Logged out successfully'
-            ]);
+            return $this->successResponse(null, 'Logged out successfully');
         }
 
         // لو مفيش يوزر (يعني الـ Token غلط أو مش مبعوت)
-        return response()->json([
-            'message' => 'User not found or already logged out'
-        ], 401);
+        return $this->errorResponse('User not found or already logged out', 401);
     }
 }
