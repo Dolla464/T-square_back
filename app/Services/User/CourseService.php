@@ -13,19 +13,21 @@ class CourseService
     {
         $perPage = $filters['per_page'] ?? 12;
 
-        return Course::active() // Scope اللي عملناه (published)
+        return Course::active()
             ->with(['category:id,name,slug', 'instructor:id,user_id,avatar', 'instructor.user:id,name'])
             ->when(isset($filters['category_id']), function ($query) use ($filters) {
-                // الفلترة بالقسم الرئيسي أو الفرعي
                 $query->whereHas('category', function ($q) use ($filters) {
-                    $q->where('id', $filters['category_id'])
-                        ->orWhere('parent_id', $filters['category_id']);
+                    $q->where(function ($subQ) use ($filters) {
+                        $subQ->where('id', $filters['category_id'])
+                            ->orWhere('parent_id', $filters['category_id']);
+                    });
                 });
             })
             ->when(isset($filters['level']), fn($q) => $q->where('level', $filters['level']))
             ->when(isset($filters['search']), fn($q) => $q->where('title', 'like', '%' . $filters['search'] . '%'))
             ->latest()
-            ->paginate($perPage);
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     /**
@@ -33,9 +35,24 @@ class CourseService
      */
     public function getCourseDetails($slug)
     {
-        return Course::active()
-            ->with(['category', 'instructor.user', 'learnings', 'previews'])
+        $course = Course::active()
+            ->with(['category', 'instructor.user', 'learnings', 'previews', 'tags:id,name,slug'])
             ->where('slug', $slug)
             ->firstOrFail();
+
+        // جلب 3 كورسات مشابهة من نفس القسم (بعيداً عن الكورس الحالي)
+        $relatedCourses = Course::active()
+            ->select(['id', 'title', 'slug', 'thumbnail', 'duration_hours', 'duration_weeks', 'short_description', 'price_before', 'discount_price', 'price', 'category_id', 'attendance_type'])
+            ->with(['category:id,name,slug', 'instructor:id,user_id,avatar', 'instructor.user:id,name', 'tags:id,name,slug'])
+            ->where('category_id', $course->category_id)
+            ->where('id', '!=', $course->id)
+            ->inRandomOrder()
+            ->limit(3)
+            ->get();
+
+        return [
+            'course' => $course,
+            'related' => $relatedCourses
+        ];
     }
 }
