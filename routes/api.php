@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\User\CategoryController;
 use App\Http\Controllers\Api\User\CourseController;
+use App\Http\Controllers\Api\User\InstructorController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -16,4 +17,5 @@ Route::group(['prefix' => 'student', 'namespace' => 'App\Http\Controllers\Api\Us
     Route::get('/categories', [CategoryController::class, 'index']); // للأقسام
     Route::get('/courses', [CourseController::class, 'index']);      // للكورسات
     Route::get('/courses/{slug}', [CourseController::class, 'show']);
+    Route::get('/instructors', [InstructorController::class, 'index']); // عرض ال instructors
 });
