@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\Api\Public\InstructorController;
 use App\Http\Controllers\Api\User\CategoryController;
 use App\Http\Controllers\Api\User\CourseController;
+use App\Http\Controllers\Api\User\InstructorController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
