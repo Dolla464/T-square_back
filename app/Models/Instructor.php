@@ -15,6 +15,7 @@ class Instructor extends Model
         'full_name',
         'phone',
         'avatar',
+        'field',
         'bio',
         'gender',
         'insta_url',
