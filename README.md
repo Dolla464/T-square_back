@@ -1,6 +1,6 @@
 # 🎓 T-Square LMS - Backend API
 
-T-Square هو منصة لإدارة التعلم (Learning Management System) مبنية باستخدام **Laravel 11**. تم تصميم النظام ليكون مرناً وقابلاً للتوسع باستخدام الـ **Service Pattern**، مع دعم كامل للـ Multi-language والـ Roles.
+T-Square هو منصة لإدارة التعلم (Learning Management System) مبنية باستخدام **Laravel 13**. تم تصميم النظام ليكون مرناً وقابلاً للتوسع باستخدام الـ **Service Pattern**، مع دعم كامل للـ Multi-language والـ Roles.
 
 ## 🚀 التقنيات المستخدمة (Tech Stack)
 
