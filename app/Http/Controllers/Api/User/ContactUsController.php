@@ -20,10 +20,10 @@ class ContactUsController extends Controller
     public function store(ContactUsRequest $request): JsonResponse
     {
         try {
-            $contact = $this->contactUsService->store($request->validated());
+            $message = $this->contactUsService->store($request->validated());
 
             return $this->successResponse(
-                data: $contact,
+                data: $message,
                 message: 'Your message has been received. We will get back to you soon.'
             );
         } catch (Throwable $e) {
