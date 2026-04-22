@@ -3,18 +3,18 @@
 namespace App\Services\User;
 
 use App\Http\Resources\User\ContactUs\ContactUsResource;
-use App\Models\ContactUs;
+use App\Models\Message;
 
 class ContactUsService
 {
     public function __construct(
-        private readonly ContactUs $contactUs
+        private readonly Message $message
     ) {}
 
     public function store(array $data): ContactUsResource
     {
-        $contact = $this->contactUs->create($data);
+        $message = $this->message->create($data);
 
-        return new ContactUsResource($contact);
+        return new ContactUsResource($message);
     }
 }

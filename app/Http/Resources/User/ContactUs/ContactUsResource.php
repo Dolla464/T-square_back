@@ -19,9 +19,8 @@ class ContactUsResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'phone' => $this->phone,
-            'learning_track' => $this->learning_track,
-            'message' => $this->message,
-            'submitted_at' => $this->created_at->toDateTimeString(),
+            'learning_track' => $this->title,
+            'message' => $this->content,
         ];
     }
 }

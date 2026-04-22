@@ -24,10 +24,10 @@ class ContactUsRequest extends FormRequest
     {
         return [
             'name'           => ['required', 'string', 'max:255'],
-            'email'          => ['required', 'email', 'max:255', 'unique:contact_us,email'],
-            'phone'          => ['required', 'string', 'max:20', 'unique:contact_us,phone'],
-            'learning_track' => ['required', 'string', 'max:255'],
-            'message'        => ['required', 'string', 'max:500'],
+            'email'          => ['required', 'email', 'max:255',],
+            'phone'          => ['required', 'string', 'max:20'],
+            'title'          => ['required', 'string', 'max:255'],
+            'content'        => ['required', 'string', 'max:500'],
         ];
     }
  
@@ -37,12 +37,10 @@ class ContactUsRequest extends FormRequest
             'name.required'           => 'The name field is required.',
             'email.required'          => 'The email field is required.',
             'email.email'             => 'Please provide a valid email address.',
-            'email.unique'            => 'This email has already been submitted.',
             'phone.required'          => 'The phone field is required.',
-            'phone.unique'            => 'This phone number has already been submitted.',
-            'learning_track.required' => 'Please select a learning track.',
-            'message.required'        => 'The message field is required.',
-            'message.max'             => 'The message may not be greater than 500 characters.',
+            'title.required'          => 'The title field is required.',
+            'content.required'        => 'Please enter your message.',
+            'content.max'             => 'Your message must be less than 500 characters.',
         ];
     }
 }
