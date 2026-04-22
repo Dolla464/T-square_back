@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Resources;
+namespace App\Http\Resources\User\Solution;
 
+use App\Http\Resources\User\TagResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,7 +17,7 @@ class SolutionResource extends JsonResource
     {
         return [
         'id'          => $this->id,
-        'name'        => $this->title,
+        'title'        => $this->title,
         'description' => $this->description,
         'tags'        => TagResource::collection($this->whenLoaded('tags')),
     ];

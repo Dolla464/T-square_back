@@ -22,13 +22,10 @@ class CourseDetailsResource extends JsonResource
             'short_description' => $this->short_description,
             'image' => $this->thumbnail,
             'level' => $this->level,
-            'language' => $this->language,
-            'duration' => $this->duration, // مثلاً بالساعات
-            
+            'duration_hours' => $this->duration_hours,
+            'duration_weeks' => $this->duration_weeks,
             'price' => [
-                'original' => (float) $this->price_before,
-                'discount' => (float) $this->discount_price,
-                'final' => (float) ($this->price_before - $this->discount_price),
+                'final' => (int) ($this->price),
                 'currency' => 'EGP',
             ],
 
@@ -41,8 +38,6 @@ class CourseDetailsResource extends JsonResource
             'instructor' => [
                 'id' => $this->instructor->id ?? null,
                 'name' => $this->instructor->user->name ?? null,
-                'bio' => $this->instructor->bio ?? null,
-                'avatar' => $this->instructor->avatar ? asset('storage/' . $this->instructor->avatar) : null,
             ],
 
             // مصفوفة "ماذا ستتعلم"
@@ -57,16 +52,6 @@ class CourseDetailsResource extends JsonResource
                     'is_free' => (bool) $preview->is_free,
                 ];
             }),
-
-            // التاجز
-            'tags' => $this->tags->map(function($tag) {
-                return [
-                    'id' => $tag->id,
-                    'name' => $tag->name,
-                ];
-            }),
-
-            'created_at' => $this->created_at->format('Y-m-d'),
         ];
     }
 }
