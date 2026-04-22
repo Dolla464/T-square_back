@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\User;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\SolutionResource;
+use App\Http\Resources\User\Solution\SolutionResource;
 use App\Models\Solution;
 use App\Services\User\SolutionService;
 use App\Traits\ApiResponseTrait;
