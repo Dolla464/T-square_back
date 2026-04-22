@@ -15,16 +15,10 @@ class SolutionResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'name' => $this->title,
-            'description' => $this->description,
-            'tags' => $this->tags->map(function ($tag) {
-                return [
-                    'tag_id' => $tag->id,
-                    'tag_name' => $tag->name,
-                ];
-                
-            })->values(),
-        ];
+        'id'          => $this->id,
+        'name'        => $this->title,
+        'description' => $this->description,
+        'tags'        => TagResource::collection($this->whenLoaded('tags')),
+    ];
     }
 }
