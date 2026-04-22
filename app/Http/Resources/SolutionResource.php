@@ -23,7 +23,6 @@ class SolutionResource extends JsonResource
                     'tag_id' => $tag->id,
                     'tag_name' => $tag->name,
                 ];
-                
             })->values(),
         ];
     }

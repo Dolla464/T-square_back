@@ -19,6 +19,6 @@ Route::group(['prefix' => 'student', 'namespace' => 'App\Http\Controllers\Api\Us
     Route::get('/courses', [CourseController::class, 'index']);      // للكورسات
     Route::get('/courses/{slug}', [CourseController::class, 'show']);
     Route::get('/solutions', [SolutionsController::class, 'index']);     // جميع الحلول
-    Route::get('/solutions/{solution}', [SolutionsController::class, 'show']);
+    Route::get('/solutions/{solution}', [SolutionsController::class, 'show']); // حل معين
     Route::get('/instructors', [InstructorController::class, 'index']); // عرض ال instructors
 });
