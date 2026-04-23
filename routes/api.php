@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\User\CategoryController;
 use App\Http\Controllers\Api\User\ContactUsController;
 use App\Http\Controllers\Api\User\CourseController;
+use App\Http\Controllers\Api\User\CourseReviewController;
 use App\Http\Controllers\Api\User\InstructorController;
 use App\Http\Controllers\Api\User\SolutionsController;
 use Illuminate\Http\Request;
@@ -22,5 +23,6 @@ Route::group(['prefix' => 'student', 'namespace' => 'App\Http\Controllers\Api\Us
     Route::get('/solutions', [SolutionsController::class, 'index']);     // جميع الحلول
     Route::get('/solutions/{solution}', [SolutionsController::class, 'show']);
     Route::get('/instructors', [InstructorController::class, 'index']); // عرض ال instructors
-    Route::post('/contact-us', [ContactUsController::class, 'store'])->name('contact-us.store');
+    Route::post('/contact-us', [ContactUsController::class, 'store'])->name('contact-us.store'); // تواصل معنا
+    Route::get('/reviews/latest', [CourseReviewController::class, 'latest']);; // يعرض اخر 5 reviews بس
 });
