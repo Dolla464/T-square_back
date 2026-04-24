@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Admin\AdminSolutionController;
 use App\Http\Controllers\Api\User\CategoryController;
+use App\Http\Controllers\Api\User\ContactUsController;
 use App\Http\Controllers\Api\User\CourseController;
 use App\Http\Controllers\Api\User\InstructorController;
 use App\Http\Controllers\Api\User\SolutionsController;
@@ -22,6 +23,7 @@ Route::group(['prefix' => 'student', 'namespace' => 'App\Http\Controllers\Api\Us
     Route::get('/solutions', [SolutionsController::class, 'index']);     // جميع الحلول
     Route::get('/solutions/{solution}', [SolutionsController::class, 'show']); // حل معين
     Route::get('/instructors', [InstructorController::class, 'index']); // عرض ال instructors
+    Route::post('/contact-us', [ContactUsController::class, 'store'])->name('contact-us.store');
 });
 
 // Admin Routes - Test without auth
