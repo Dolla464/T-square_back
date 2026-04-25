@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminSolutionController;
+use App\Http\Controllers\Api\Admin\AdminTagController;
 use App\Http\Controllers\Api\User\CategoryController;
 use App\Http\Controllers\Api\User\ContactUsController;
 use App\Http\Controllers\Api\User\CourseController;
@@ -25,4 +27,10 @@ Route::group(['prefix' => 'student', 'namespace' => 'App\Http\Controllers\Api\Us
     Route::get('/instructors', [InstructorController::class, 'index']); // عرض ال instructors
     Route::post('/contact-us', [ContactUsController::class, 'store'])->name('contact-us.store'); // تواصل معنا
     Route::get('/reviews/latest', [CourseReviewController::class, 'latest']);; // يعرض اخر 5 reviews بس
+});
+
+Route::group(['prefix' => 'admin', 'namespace' => 'App\Http\Controllers\Api\Admin'], function () {
+    Route::get('/tags', [AdminTagController::class, 'index']);
+    // Solutions Management
+    Route::apiResource('solutions', AdminSolutionController::class);
 });
