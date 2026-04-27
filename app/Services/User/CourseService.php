@@ -38,7 +38,14 @@ class CourseService
         $course = Course::active()
             ->with(['category', 'instructor.user', 'learnings', 'previews', 'tags:id,name,slug'])
             ->where('slug', $slug)
-            ->firstOrFail();
+            ->first();
+
+        if (!$course) {
+            abort(response()->json([
+                'status' => 'error',
+                'message' => 'Course not found'
+            ], 404));
+        }
 
         // جلب 3 كورسات مشابهة من نفس القسم (بعيداً عن الكورس الحالي)
         $relatedCourses = Course::active()

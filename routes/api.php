@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\AdminTagController;
 use App\Http\Controllers\Api\User\CategoryController;
 use App\Http\Controllers\Api\User\ContactUsController;
 use App\Http\Controllers\Api\User\CourseController;
+use App\Http\Controllers\Api\User\CourseDashboardController;
 use App\Http\Controllers\Api\User\CourseReviewController;
 use App\Http\Controllers\Api\User\InstructorController;
 use App\Http\Controllers\Api\User\SolutionsController;
@@ -25,12 +26,15 @@ Route::get('/settings/{key}', [SettingController::class, 'getSettingByKey']);
 Route::group(['prefix' => 'student', 'namespace' => 'App\Http\Controllers\Api\User'], function () {
     Route::get('/categories', [CategoryController::class, 'index']); // للأقسام
     Route::get('/courses', [CourseController::class, 'index']);      // للكورسات
+    Route::get('/courses/dashboard', CourseDashboardController::class)->middleware('auth:sanctum'); // لوحة تحكم الكورسات
     Route::get('/courses/{slug}', [CourseController::class, 'show']);
     Route::get('/solutions', [SolutionsController::class, 'index']);     // جميع الحلول
     Route::get('/solutions/{solution}', [SolutionsController::class, 'show']);
     Route::get('/instructors', [InstructorController::class, 'index']); // عرض ال instructors
     Route::post('/contact-us', [ContactUsController::class, 'store'])->name('contact-us.store'); // تواصل معنا
-    Route::get('/reviews/latest', [CourseReviewController::class, 'latest']);; // يعرض اخر 5 reviews بس
+    Route::get('/reviews/latest', [CourseReviewController::class, 'latest']); // يعرض اخر 5 reviews بس
+    
+
 });
 
 Route::group(['prefix' => 'admin', 'namespace' => 'App\Http\Controllers\Api\Admin'], function () {

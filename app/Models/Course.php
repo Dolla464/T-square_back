@@ -81,6 +81,14 @@ class Course extends Model
         return $query->where('is_featured', true);
     }
 
+    /**
+     * Use the slug column for route model binding instead of id.
+     */
+    public function getRouteKeyName()
+    {
+        return 'slug';
+    }
+
     protected function thumbnail(): Attribute
     {
         return Attribute::make(
