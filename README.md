@@ -36,4 +36,69 @@ php artisan migrate --seed
 
 php artisan storage:link
 
+## Student API Endpoints (Postman)
+
+Base URL (local):
+
+`http://127.0.0.1:8000/api`
+
+### 1) Get all students
+
+- **Method:** `GET`
+- **URL:** `/students`
+- **Description:** يرجع قائمة الطلاب مع بيانات `user` و `learningGroup`.
+- **Full URL Example:** `http://127.0.0.1:8000/api/students`
+
+### 2) Create new student
+
+- **Method:** `POST`
+- **URL:** `/students`
+- **Description:** ينشئ طالب جديد.
+- **Full URL Example:** `http://127.0.0.1:8000/api/students`
+- **Body (JSON) Example:**
+
+```json
+{
+  "user_id": 5,
+  "full_name": "Ahmed Ali",
+  "phone": "01012345678",
+  "enrollment_number": "TSQ-ABCD-2026",
+  "group_id": 1,
+  "avatar": "students/ahmed.png",
+  "gender": "male",
+  "status": "active"
+}
+```
+
+### 3) Get single student
+
+- **Method:** `GET`
+- **URL:** `/students/{student_id}`
+- **Description:** يرجع بيانات طالب واحد حسب `id`.
+- **Full URL Example:** `http://127.0.0.1:8000/api/students/1`
+
+### 4) Update student
+
+- **Method:** `POST`
+- **URL:** `/students/{student_id}`
+- **Description:** يحدث بيانات الطالب.
+- **Important:** حقل `phone` **غير مسموح** تعديله في التحديث.
+- **Full URL Example:** `http://127.0.0.1:8000/api/students/1`
+- **Body (JSON) Example:**
+
+```json
+{
+  "full_name": "Ahmed Ali Updated",
+  "group_id": 2,
+  "status": "inactive"
+}
+```
+
+### 5) Delete student
+
+- **Method:** `DELETE`
+- **URL:** `/students/{student_id}`
+- **Description:** يحذف الطالب.
+- **Full URL Example:** `http://127.0.0.1:8000/api/students/1`
+
 📄 License This project is private and belongs to the T-Square development team.

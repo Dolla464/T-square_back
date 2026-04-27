@@ -29,13 +29,14 @@ class ExamAttemptSeeder extends Seeder
 
                 // هنعمل محاولة امتحان واحدة لكل طالب في كل امتحان تابع لكورسه
                 $startedAt = Carbon::now()->subDays(rand(1, 30))->subMinutes(rand(60, 200));
+                $finishedAt = (clone $startedAt)->addMinutes(rand(20, 50));
 
                 ExamAttempt::create([
                     'student_id'  => $enrollment->student_id,
                     'exam_id'     => $exam->id,
-                    'started_at'  => $startedAt,
+                    'started_at'  => $startedAt->format('Y-m-d H:i:s'),
                     // بنفترض إن الامتحان مدته عشوائية بين 20 لـ 50 دقيقة
-                    'finished_at' => (clone $startedAt)->addMinutes(rand(20, 50)),
+                    'finished_at' => $finishedAt->format('Y-m-d H:i:s'),
                     // درجة عشوائية من إجمالي درجات الامتحان
                     'score'       => rand(0, (int)$exam->total_marks),
                 ]);

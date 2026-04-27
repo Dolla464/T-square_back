@@ -36,6 +36,7 @@ class UserService
 
                 $user->student()->create([
                     'full_name'         => $data['name'],
+                    'image'             => $data['image'] ?? null,
                     'phone'             => $data['phone'] ?? null,
                     'enrollment_number' => $enrollmentNumber,
                     'group_id'          => $data['group_id'] ?? null,

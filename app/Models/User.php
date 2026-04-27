@@ -14,7 +14,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'role', 'last_login_at'])]
+#[Fillable(['name', 'email', 'email_verified_at', 'password', 'role', 'last_login_at', 'remember_token'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -33,13 +33,6 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'last_login_at' => 'datetime',
         ];
-    }
-
-    public function getRoleAttribute()
-    {
-        if ($this->admin()->exists()) return 'admin';
-        if ($this->instructor()->exists()) return 'instructor';
-        return 'student';
     }
 
     public function instructor()
