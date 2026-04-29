@@ -14,12 +14,23 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'role', 'last_login_at'])]
-#[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles;
+
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'role',
+        'last_login_at',
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
 
     /**
      * Get the attributes that should be cast.
@@ -37,8 +48,10 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function getRoleAttribute()
     {
-        if ($this->admin()->exists()) return 'admin';
-        if ($this->instructor()->exists()) return 'instructor';
+        if ($this->admin()->exists())
+            return 'admin';
+        if ($this->instructor()->exists())
+            return 'instructor';
         return 'student';
     }
 

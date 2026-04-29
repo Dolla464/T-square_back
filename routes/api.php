@@ -10,8 +10,8 @@ use App\Http\Controllers\Api\User\CourseDashboardController;
 use App\Http\Controllers\Api\User\CourseReviewController;
 use App\Http\Controllers\Api\User\EnrollmentController;
 use App\Http\Controllers\Api\User\InstructorController;
+use App\Http\Controllers\Api\User\ProfileController;
 use App\Http\Controllers\Api\User\SolutionsController;
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -52,4 +52,9 @@ Route::group(['prefix' => 'admin', 'namespace' => 'App\Http\Controllers\Api\Admi
     Route::get('/tags', [AdminTagController::class, 'index']);
     // Solutions Management
     Route::apiResource('solutions', AdminSolutionController::class);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::post('/profile', [ProfileController::class, 'update']);
 });
