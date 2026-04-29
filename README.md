@@ -36,4 +36,32 @@ php artisan migrate --seed
 
 php artisan storage:link
 
+## 📋 توثيق الـ API عبر Postman
+
+### تحديث بيانات البروفيل (Update Profile)
+
+يمكنك تحديث بيانات المستخدم والبروفيل الخاص به (مثل الطالب أو المدرس) عبر هذا الـ Endpoint.
+
+- **الرابط (URL):** `{{base_url}}/api/profile`
+- **الطريقة (Method):** `PATCH`
+- **العناوين (Headers):**
+    - `Accept`: `application/json`
+    - `Authorization`: `Bearer {your_token}`
+- **جسم الطلب (Body - JSON):**
+
+```json
+{
+    "name": "الاسم الجديد",
+    "full_name": "الاسم الكامل الجديد",
+    "email": "newemail@example.com",
+    "phone": "01000000000",
+    "gender": "male",
+    "avatar": "https://example.com/avatar.png",
+    "password": "new_password_123",
+    "password_confirmation": "new_password_123"
+}
+```
+
+> **ملاحظة:** جميع الحقول اختيارية (Optional)، يمكنك إرسال الحقول التي تريد تحديثها فقط.
+
 📄 License This project is private and belongs to the T-Square development team.

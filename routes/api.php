@@ -8,8 +8,8 @@ use App\Http\Controllers\Api\User\CourseController;
 use App\Http\Controllers\Api\User\CourseDashboardController;
 use App\Http\Controllers\Api\User\CourseReviewController;
 use App\Http\Controllers\Api\User\InstructorController;
+use App\Http\Controllers\Api\User\ProfileController;
 use App\Http\Controllers\Api\User\SolutionsController;
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -33,7 +33,7 @@ Route::group(['prefix' => 'student', 'namespace' => 'App\Http\Controllers\Api\Us
     Route::get('/instructors', [InstructorController::class, 'index']); // عرض ال instructors
     Route::post('/contact-us', [ContactUsController::class, 'store'])->name('contact-us.store'); // تواصل معنا
     Route::get('/reviews/latest', [CourseReviewController::class, 'latest']); // يعرض اخر 5 reviews بس
-    
+
 
 });
 
@@ -41,4 +41,9 @@ Route::group(['prefix' => 'admin', 'namespace' => 'App\Http\Controllers\Api\Admi
     Route::get('/tags', [AdminTagController::class, 'index']);
     // Solutions Management
     Route::apiResource('solutions', AdminSolutionController::class);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::post('/profile', [ProfileController::class, 'update']);
 });
