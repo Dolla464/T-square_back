@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use Cviebrock\EloquentSluggable\Sluggable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Course extends Model
 {
-    use SoftDeletes, HasFactory;
+    use SoftDeletes, HasFactory, Sluggable;
 
     protected $fillable = [
         'title',
@@ -34,23 +36,33 @@ class Course extends Model
         'is_free',
         'category_id',
         'instructor_id',
-        'published_at'
+        'published_at',
+        'avg_rating',
+        'total_reviews',
+        'total_students',
+        'total_revenue' // ضفت حقول الإحصائيات هنا لو هتحتاج تحدثها
     ];
+
+    public function sluggable(): array
+    {
+        return [
+            'slug' => [
+                'source' => 'title' // بنقول للحزمة تاخد الـ slug من حقل الـ title
+            ]
+        ];
+    }
 
     protected static function booted()
     {
         static::saving(function ($course) {
-            // 1. إنشاء الـ Slug أوتوماتيك
-            if (empty($course->slug)) {
-                $course->slug = Str::slug($course->title);
-            }
-
-            // 2. حساب السعر النهائي أوتوماتيك
-            // لو الكورس مجاني السعر 0، لو فيه خصم نطرحه
+            //  حساب السعر مع الحماية من القيم الفارغة والسالبة
             if ($course->is_free) {
                 $course->price = 0;
             } else {
-                $course->price = $course->price_before - $course->discount_price;
+                $priceBefore = $course->price_before ?? 0;
+                $discount = $course->discount_price ?? 0;
+                // الدالة max بتضمن إن السعر عمره ما يقل عن صفر لو الخصم أكبر من السعر الأساسي
+                $course->price = max(0, $priceBefore - $discount);
             }
         });
     }
@@ -65,9 +77,10 @@ class Course extends Model
             ->selectRaw('AVG(rating) as average, COUNT(*) as total')
             ->first();
 
+        // تم التعديل لاستخدام total_reviews بناءً على الميجريشن
         $this->update([
             'avg_rating' => round($stats->average ?? 0, 2),
-            'reviews_count' => $stats->total ?? 0
+            'total_reviews' => $stats->total ?? 0
         ]);
     }
 
@@ -92,71 +105,63 @@ class Course extends Model
     protected function thumbnail(): Attribute
     {
         return Attribute::make(
-            get: fn($value) => $value ? asset('storage/' . $value) : asset('assets/default-course.png'),
+            get: function ($value) {
+                if (!$value) {
+                    return asset('assets/default-course.png');
+                }
+                // لو الرابط متسجل كامل (مثلاً جاي من API خارجي) رجعه زي ما هو
+                if (Str::startsWith($value, ['http://', 'https://'])) {
+                    return $value;
+                }
+                return Storage::url($value);
+            }
         );
     }
 
-    // العلاقات
+    // ================= العلاقات ================= //
+
     public function category()
     {
         return $this->belongsTo(Category::class);
     }
-
     public function instructor()
     {
         return $this->belongsTo(Instructor::class);
     }
-
     public function learningGroups()
     {
         return $this->hasMany(LearningGroup::class);
     }
-
     public function learnings()
     {
         return $this->hasMany(CourseLearning::class);
     }
-
     public function previews()
     {
         return $this->hasMany(CoursePreview::class)->orderBy('sort_order');
     }
-
     public function enrollments()
     {
         return $this->hasMany(Enrollment::class);
     }
-
-    // هات الطلاب المشتركين في الكورس
     public function students()
     {
         return $this->belongsToMany(Student::class, 'enrollments');
     }
-
     public function certificates()
     {
         return $this->hasMany(Certificate::class);
     }
-
     public function exams()
     {
         return $this->hasMany(Exam::class);
     }
-
     public function tags()
     {
         return $this->belongsToMany(Tag::class, 'course_tag');
     }
-
-    // جلب كل المراجعات الخاصة بالكورس
     public function reviews()
     {
         return $this->hasMany(CourseReview::class);
-    }
-
-    // علاقة لحساب متوسط التقييم بسرعة
-    public function averageRating()
-    {
-        return $this->reviews()->avg('rating');
     }
 }

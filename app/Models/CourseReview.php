@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
+use App\Observers\CourseReviewObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 
+#[ObservedBy([CourseReviewObserver::class])]
 class CourseReview extends Model
 {
     protected $fillable = [
