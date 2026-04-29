@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Resources\User\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -28,7 +29,7 @@ class AuthenticatedSessionController extends Controller
         return $this->successResponse(
             [
                 'token' => $token,
-                'user'  => $request->user()->load('roles'), // تحميل الرولز مهم للـ Frontend
+                'user'  => new UserResource($user->load(['roles', 'student'])),
             ],
             'Success'
         );
