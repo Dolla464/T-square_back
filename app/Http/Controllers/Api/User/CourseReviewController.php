@@ -31,4 +31,20 @@ class CourseReviewController extends Controller
         );
     }
 
+    /**
+     * Reviews الخاصة بكورس معين.
+     *
+     * GET /api/student/reviews/course/{courseId}?limit=10
+     */
+    public function course(int $courseId): JsonResponse
+    {
+
+        $reviews = $this->courseReviewService->getCourseReviews($courseId);
+
+        return $this->successResponse(
+            data: CourseReviewResource::collection($reviews),
+            message: 'Course reviews retrieved successfully.',
+        );
+    }
+
 }

@@ -23,35 +23,48 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        $exceptions->render(function (Throwable $e, $request) {
-            if ($request->is('api/*')) { // لو الخطأ جاي من الـ API
-                $statusCode = 500;
-                $errors = null;
+        // 1. إنشاء كلاس وهمي (Anonymous Class) لاستخدام التريت
+        $responder = new class {
+            use App\Traits\ApiResponseTrait;
+        };
 
+        // 2. اعتراض الأخطاء لو الطلب جاي من مسار API
+        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) use ($responder){
+            
+            if ($request->is('api/*') || $request->wantsJson()) {
+
+                // خطأ 422: فشل التحقق من البيانات (Validation)
                 if ($e instanceof \Illuminate\Validation\ValidationException) {
-                    $statusCode = $e->status;
-                    $errors = $e->errors();
-                } elseif ($e instanceof \Illuminate\Auth\AuthenticationException) {
-                    $statusCode = 401;
-                } elseif ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
-                    $statusCode = $e->getStatusCode();
+                    return $responder->errorResponse('Error validating data', 422, $e->errors());
                 }
 
-                $response = [
-                    'status' => 'error',
-                    'message' => $e->getMessage(),
-                ];
-
-                if ($errors) {
-                    $response['errors'] = $errors;
+                // خطأ 404: السجل غير موجود في الداتابيز (زي لما تبحث عن كورس ممسوح)
+                if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                    // السطر ده بيجيب اسم الموديل عشان يقولك (Course غير موجود مثلاً)
+                    $modelName = class_basename($e->getModel()); 
+                    return $responder->errorResponse("Sorry, this model ($modelName) not found", 404);
                 }
 
-                // بنبعت التفاصيل دي بس في حالة الـ Debug
-                if (config('app.debug')) {
-                    $response['debug'] = $e->getTrace()[0];
+                // خطأ 404: الرابط نفسه غلط أو مش موجود
+                if ($e instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+                    return $responder->errorResponse('This route does not exist', 404);
                 }
 
-                return response()->json($response, $statusCode);
+                // خطأ 401: المستخدم مش مسجل دخول (Token غلط أو منتهي)
+                if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                    return $responder->errorResponse('Unauthenticated access', 401);
+                }
+
+                // خطأ 403: المستخدم مسجل دخول بس معندوش صلاحية للأكشن ده
+                if ($e instanceof \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException) {
+                    return $responder->errorResponse('Unauthorized access', 403);
+                }
+
+                // خطأ 500: أي خطأ برمجي تاني في السيرفر (زي نسيان حرف أو خطأ في الداتابيز)
+                // في وضع التطوير هيرجعلك رسالة الخطأ الحقيقية، في الإنتاج تقدر تخليها رسالة ثابتة
+                $message = config('app.debug') ? $e->getMessage() : 'Server error';
+                return $responder->errorResponse($message, 500);
             }
+            
         });
     })->create();

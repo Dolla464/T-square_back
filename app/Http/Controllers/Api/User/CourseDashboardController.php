@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Api\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Website\CourseDashboardRequest;
 use App\Http\Resources\User\Courses\CourseDashboardResource;
+use App\Models\User;
 use App\Services\User\CourseDashboardService;
 use Illuminate\Http\JsonResponse;
-use App\Http\Requests\Website\CourseDashboardRequest as Request;
-
+use App\Traits\ApiResponseTrait;
 
 class CourseDashboardController extends Controller
 {
+    use ApiResponseTrait;
+
     public function __construct(
         private readonly CourseDashboardService $dashboardService
     ) {}
@@ -18,14 +21,21 @@ class CourseDashboardController extends Controller
     /**
      * GET /api/student/courses/dashboard
      */
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(CourseDashboardRequest $request): JsonResponse
     {
-        // Validation
         $validated = $request->validated();
  
         // ── الطالب الحالي المسجل دخوله ───────────────────────────────────
-        /** @var \App\Models\Student $student */
-        $student = $request->user();
+        /** @var User|null $user */
+        $user = $request->user();
+        if (! $user) {
+            return $this->errorResponse('Unauthenticated', 401);
+        }
+
+        $student = $user->student;
+        if (! $student) {
+            return $this->errorResponse('Student not found', 404);
+        }
  
         // ── جلب البيانات من الـ Service ────────────────────────────────────
         $data = $this->dashboardService->getDashboardData(
@@ -37,12 +47,9 @@ class CourseDashboardController extends Controller
         );
  
         // ── تجهيز الـ Response ─────────────────────────────────────────────
-        return response()->json([
-            'success' => true,
-            'data'    => [
-                'stats'   => $data['stats'],
-                'courses' => CourseDashboardResource::collection($data['courses']),
-            ],
-        ]);
+        return $this->successResponse([
+            'stats' => $data['stats'],
+            'courses' => CourseDashboardResource::collection($data['courses']),
+        ], 'Dashboard data fetched successfully');
     }
 }

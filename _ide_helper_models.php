@@ -22,6 +22,8 @@ namespace App\Models{
  * @property string $status
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \Illuminate\Notifications\DatabaseNotificationCollection<int, \Illuminate\Notifications\DatabaseNotification> $notifications
+ * @property-read int|null $notifications_count
  * @property-read \App\Models\User|null $user
  * @method static \Database\Factories\AdminFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Admin newModelQuery()
@@ -156,6 +158,18 @@ namespace App\Models{
 
 namespace App\Models{
 /**
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ContactUs newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ContactUs newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ContactUs onlyTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ContactUs query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ContactUs withTrashed(bool $withTrashed = true)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ContactUs withoutTrashed()
+ */
+	class ContactUs extends \Eloquent {}
+}
+
+namespace App\Models{
+/**
  * @property int $id
  * @property string $title
  * @property string $slug
@@ -166,9 +180,9 @@ namespace App\Models{
  * @property string|null $preview_video
  * @property string|null $google_drive_link
  * @property string $attendance_type
- * @property numeric $price_before
+ * @property numeric|null $price_before
  * @property numeric $discount_price
- * @property numeric|null $price
+ * @property numeric $price
  * @property string $level
  * @property string $language
  * @property int $duration_weeks
@@ -179,7 +193,6 @@ namespace App\Models{
  * @property int $category_id
  * @property int $instructor_id
  * @property numeric $avg_rating
- * @property-read int|null $reviews_count
  * @property int $total_reviews
  * @property int $total_students
  * @property numeric $total_revenue
@@ -202,6 +215,7 @@ namespace App\Models{
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\CoursePreview> $previews
  * @property-read int|null $previews_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\CourseReview> $reviews
+ * @property-read int|null $reviews_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Student> $students
  * @property-read int|null $students_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Tag> $tags
@@ -209,6 +223,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Course active()
  * @method static \Database\Factories\CourseFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Course featured()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course findSimilarSlugs(string $attribute, array $config, string $slug)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Course newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Course newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Course onlyTrashed()
@@ -234,7 +249,6 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Course wherePrice($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Course wherePriceBefore($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Course wherePublishedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereReviewsCount($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereShortDescription($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereSlug($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereStatus($value)
@@ -245,6 +259,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereTotalStudents($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Course whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Course withTrashed(bool $withTrashed = true)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Course withUniqueSlugConstraints(\Illuminate\Database\Eloquent\Model $model, string $attribute, array $config, string $slug)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Course withoutTrashed()
  */
 	class Course extends \Eloquent {}
@@ -443,6 +458,7 @@ namespace App\Models{
  * @property string $full_name
  * @property string|null $phone
  * @property string|null $avatar
+ * @property string|null $field
  * @property string $bio
  * @property string|null $gender
  * @property string|null $insta_url
@@ -470,6 +486,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Instructor whereBio($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Instructor whereCreatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Instructor whereFacebookUrl($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Instructor whereField($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Instructor whereFullName($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Instructor whereGender($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Instructor whereId($value)
@@ -671,6 +688,8 @@ namespace App\Models{
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ExamAttempt> $examAttempts
  * @property-read int|null $exam_attempts_count
  * @property-read \App\Models\LearningGroup|null $learningGroup
+ * @property-read \Illuminate\Notifications\DatabaseNotificationCollection<int, \Illuminate\Notifications\DatabaseNotification> $notifications
+ * @property-read int|null $notifications_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Order> $orders
  * @property-read int|null $orders_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Course> $reviewedCourses
