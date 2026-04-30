@@ -73,7 +73,7 @@ class UserService
             $number = 'TSQ-' . Str::random(4) . '-' . date('Y');
 
             // التأكد أن الرقم مش موجود قبل كدة في الداتابيز (بسبب الـ unique constraint)
-            $exists = Student::where('enrollment_number', $number)->exists();
+            $exists = Student::where('enrollment_number', '=', $number, 'and')->exists();
         } while ($exists);
 
         return $number;
