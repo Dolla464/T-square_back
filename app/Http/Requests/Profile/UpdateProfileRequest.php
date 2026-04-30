@@ -18,7 +18,7 @@ class UpdateProfileRequest extends FormRequest
             'name'      => ['sometimes', 'string', 'max:255'],
             'full_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'gender'    => ['sometimes', 'nullable', Rule::in(['male', 'female'])],
-            'avatar'    => ['sometimes', 'nullable', 'string', 'max:2048'],
+            'avatar'    => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
             'password'  => ['sometimes', 'nullable', 'string', 'min:8', 'confirmed'],
 
             // حقول محظور تعديلها
@@ -30,8 +30,8 @@ class UpdateProfileRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.prohibited' => 'لا يمكن تعديل البريد الإلكتروني.',
-            'phone.prohibited' => 'لا يمكن تعديل رقم الهاتف.',
+            'email.prohibited' => 'Email can not be changed.',
+            'phone.prohibited' => 'Phone can not be changed.',
         ];
     }
 }

@@ -48,10 +48,9 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function getRoleAttribute()
     {
-        if ($this->admin()->exists())
-            return 'admin';
-        if ($this->instructor()->exists())
-            return 'instructor';
+        // بدلاً من الاستعلام عن الجداول، اسأل سباتي
+        if ($this->hasRole('admin')) return 'admin';
+        if ($this->hasRole('instructor')) return 'instructor';
         return 'student';
     }
 
