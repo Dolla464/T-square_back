@@ -21,7 +21,9 @@ class SendEnrollmentNotifications implements ShouldQueue
         $course = $event->enrollment->course;
 
         // 2. إرسال الإشعار للطالب
-        $student->notify(new CourseApprovedNotification($course));
+        if ($student->user) {
+            $student->user->notify(new CourseApprovedNotification($course));
+        }
 
         // وتقدر هنا كمان تبعت إشعار للأدمن لو حابب
         $admins = User::where('role', 'admin')->get();
