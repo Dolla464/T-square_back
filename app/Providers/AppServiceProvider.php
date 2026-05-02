@@ -30,5 +30,8 @@ class AppServiceProvider extends ServiceProvider
         ResetPassword::createUrlUsing(function (object $notifiable, string $token) {
             return config('app.frontend_url') . "/password-reset/$token?email={$notifiable->getEmailForPasswordReset()}";
         });
+
+        \App\Models\Order::observe(\App\Observers\OrderObserver::class);
+        \App\Models\CourseReview::observe(\App\Observers\CourseReviewObserver::class);
     }
 }

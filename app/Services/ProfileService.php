@@ -43,10 +43,13 @@ class ProfileService
 
             $profile = $relation ? $user->{$relation} : null;
 
-            $userData = array_filter([
-                'name' => $validated['name'] ?? null,
-                'password' => $validated['password'] ?? null,
-            ], fn($value) => !is_null($value));
+            $userData = [];
+            if (isset($validated['full_name'])) {
+                $fullName = trim($validated['full_name']);
+                $nameParts = explode(' ', $fullName);
+                $shortName = implode(' ', array_slice($nameParts, 0, 2));
+                $userData['name'] = $shortName;
+            }
 
             if (!empty($userData)) {
                 $user->update($userData);
@@ -58,12 +61,12 @@ class ProfileService
                     'gender' => $validated['gender'] ?? null,
                     // لا نضع avatar هنا مباشرة لأنه قد يكون كائن ملف (File Object)
                 ], fn($value) => !is_null($value));
-                
+
                 if (isset($validated['avatar']) && $validated['avatar'] instanceof UploadedFile) {
                     // استدعاء الـ Trait (الآن سيعمل بدون Intervention Image)
                     $profileData['avatar'] = $this->uploadImage(
-                        $validated['avatar'], 
-                        'students', 
+                        $validated['avatar'],
+                        'students',
                         $profile->avatar
                     );
                 }
@@ -73,7 +76,8 @@ class ProfileService
                 }
             }
 
-            return $this->show($user->fresh());
+            $user->refresh();
+            return $this->show($user);
         });
     }
 
