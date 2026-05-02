@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\AdminSolutionController;
 use App\Http\Controllers\Api\Admin\AdminTagController;
 use App\Http\Controllers\Api\Notification\NotificationController;
 use App\Http\Controllers\Api\User\CategoryController;
+use App\Http\Controllers\Api\User\CertificateController;
 use App\Http\Controllers\Api\User\ContactUsController;
 use App\Http\Controllers\Api\User\CourseController;
 use App\Http\Controllers\Api\User\CourseDashboardController;
@@ -47,7 +48,10 @@ Route::group(['prefix' => 'student', 'namespace' => 'App\Http\Controllers\Api\Us
     Route::post('/contact-us', [ContactUsController::class, 'store'])->name('contact-us.store'); // تواصل معنا
     Route::get('/reviews/latest', [CourseReviewController::class, 'latest']); // يعرض اخر 5 reviews بس
     Route::get('/reviews/course/{courseId}', [CourseReviewController::class, 'course']); // يعرض reviews الخاصة بكورس معين
-
+    Route::get('/enrollments/{enrollment}', [CertificateController::class, 'show'])// عرض بيانات الشهادة
+     ->name('certificate.show');
+    Route::get('/enrollments/{enrollment}/download', [CertificateController::class, 'download'])// تحميل الشهادة
+     ->name('certificate.download');
 
 });
 
