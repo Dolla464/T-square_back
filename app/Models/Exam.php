@@ -16,7 +16,8 @@ class Exam extends Model
         'description',
         'duration',
         'total_marks',
-        'is_active'
+        'is_active',
+        'passing_mark'
     ];
 
     // علاقة الامتحان بالكورس
