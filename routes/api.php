@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\User\CourseController;
 use App\Http\Controllers\Api\User\CourseDashboardController;
 use App\Http\Controllers\Api\User\CourseReviewController;
 use App\Http\Controllers\Api\User\EnrollmentController;
+use App\Http\Controllers\Api\User\ExamController;
 use App\Http\Controllers\Api\User\InstructorController;
 use App\Http\Controllers\Api\User\ProfileController;
 use App\Http\Controllers\Api\User\SolutionsController;
@@ -30,6 +31,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    // Exam routes
+    Route::prefix('exams')->group(function () {
+        Route::get('/', [ExamController::class, 'index']);
+        Route::post('/start', [ExamController::class, 'start']); // بدء الامتحان
+        Route::post('/save-answer', [ExamController::class, 'answer']); // حفظ إجابة سؤال
+        Route::post('/{id}/submit', [ExamController::class, 'submit']); // إنهاء الامتحان
+        Route::get('/my-results', [ExamController::class, 'myResults']);
+
+    });
 });
 
 
