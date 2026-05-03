@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminInstructorController;
 use App\Http\Controllers\Api\Admin\AdminSolutionController;
 use App\Http\Controllers\Api\Admin\AdminTagController;
 use App\Http\Controllers\Api\Notification\NotificationController;
@@ -69,6 +70,9 @@ Route::group(['prefix' => 'admin', 'namespace' => 'App\Http\Controllers\Api\Admi
     Route::get('/tags', [AdminTagController::class, 'index']);
     // Solutions Management
     Route::apiResource('solutions', AdminSolutionController::class);
+    // Instructors Management
+    Route::post('instructors/{instructor}', [AdminInstructorController::class, 'update']);
+    Route::apiResource('instructors', AdminInstructorController::class)->except(['store', 'update']);
 });
 
 
