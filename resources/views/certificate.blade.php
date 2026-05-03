@@ -6,7 +6,6 @@
     <style>
         @import url('https://fonts.googleapis.com/css?family=Open+Sans|Pinyon+Script|Rochester');
 
-        /* إعدادات الصفحة للطباعة */
         @page {
             size: A4 landscape;
             margin: 0;

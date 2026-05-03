@@ -35,3 +35,4 @@ class AppServiceProvider extends ServiceProvider
         Enrollment::observe(EnrollmentObserve::class);
     }
 }
+
