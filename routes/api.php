@@ -26,7 +26,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
     // profile routes
     Route::get('/profile', [ProfileController::class, 'show']);
-    Route::post('/profile', [ProfileController::class, 'update']);
+    Route::put('/profile', [ProfileController::class, 'update']);
     // مسارات الإشعارات
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
