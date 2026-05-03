@@ -16,6 +16,7 @@ class ProfileResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'role' => $this->role,
+            'is_verified' => (bool)($this->email_verified_at),
             'student' => $student ? [
                 'full_name' => $student->full_name,
                 'avatar' => $student->avatar
