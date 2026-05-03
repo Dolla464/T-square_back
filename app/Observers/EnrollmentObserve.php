@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Jobs\ProcessEnrollmentCompleted;
 use App\Models\Enrollment;
 
 class EnrollmentObserve
@@ -20,7 +21,7 @@ class EnrollmentObserve
     public function updated(Enrollment $enrollment): void
     {
         if ($enrollment->isDirty('is_completed') && $enrollment->is_completed) {
-            $enrollment->updateQuietly(['completed_at' => now()]);
+            ProcessEnrollmentCompleted::dispatch($enrollment);
         }
     }
 
