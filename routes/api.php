@@ -59,10 +59,10 @@ Route::group(['prefix' => 'student', 'namespace' => 'App\Http\Controllers\Api\Us
     Route::post('/contact-us', [ContactUsController::class, 'store'])->name('contact-us.store'); // تواصل معنا
     Route::get('/reviews/latest', [CourseReviewController::class, 'latest']); // يعرض اخر 5 reviews بس
     Route::get('/reviews/course/{courseId}', [CourseReviewController::class, 'course']); // يعرض reviews الخاصة بكورس معين
+    Route::get('/certificates', [CertificateController::class, 'index'])// قائمة شهادات الطالب
+     ->middleware('auth:sanctum')->name('certificate.index');
     Route::get('/certificates/{enrollment}/download', [CertificateController::class, 'download'])// تحميل الشهادة
      ->middleware('auth:sanctum')->name('certificate.download');
-    Route::get('/certificates/{enrollment}/download/', [CertificateController::class, 'download'])// تحميل الشهادة مع slash في الآخر
-     ->middleware('auth:sanctum');
     Route::get('/certificates/download/{enrollment}', [CertificateController::class, 'download'])// alias للاختبار في Postman
      ->middleware('auth:sanctum');
     Route::get('/certificates/{enrollment}', [CertificateController::class, 'show'])// عرض بيانات الشهادة

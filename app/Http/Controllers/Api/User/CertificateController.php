@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Certificate\CertificateResource;
 use App\Models\Enrollment;
 use App\Services\User\CertificateService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -16,6 +17,39 @@ class CertificateController extends Controller
     public function __construct(CertificateService $service)
     {
         $this->certificateService = $service;
+    }
+
+    /**
+     * List all certificates for the authenticated student.
+     */
+    public function index(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        $student = $user->student;
+
+        if (! $student) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Student profile not found.',
+            ], 404);
+        }
+
+        $enrollments = Enrollment::query()
+            ->with(['student', 'course'])
+            ->where('student_id', $student->id)
+            ->where('is_completed', true)
+            ->latest('completed_at')
+            ->get();
+
+        return CertificateResource::collection($enrollments);
     }
 
     public function show(Enrollment $enrollment)
