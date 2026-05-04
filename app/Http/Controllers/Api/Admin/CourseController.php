@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\Admin\AdminCourseService;
 use Illuminate\Http\Request;
-use App\Http\Resources\Admin\AdminCourseResource;
+use App\Http\Resources\Admin\Course\AdminCourseResource;
 
 class CourseController extends Controller
 {
@@ -49,7 +49,9 @@ class CourseController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $course = $this->courseService->show($id);
+
+        return new AdminCourseResource($course);
     }
 
     /**
