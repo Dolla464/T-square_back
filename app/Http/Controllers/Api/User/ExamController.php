@@ -61,20 +61,28 @@ class ExamController extends Controller
         return response()->json(['status' => 'saved']);
     }
 
-    public function submit(int $id)
+    public function submit(Request $request, int $id)
     {
-        $result = $this->examService->completeAttempt($id);
+        $student = $request->user()->student;
+
+        if (!$student) {
+            return response()->json(['message' => 'Student profile not found'], 404);
+        }
+
+        $result = $this->examService->completeAttempt($id, $student->id);
 
         // حماية ضد القسمة على صفر
         $totalMarks = $result['total_marks'] > 0 ? $result['total_marks'] : 1;
-        $percentage = round(($result['score'] / $totalMarks) * 100, 2);
+        $score = $result['score'];
+        $percentage = round(($score / $totalMarks) * 100, 2);
 
         return response()->json([
             'message' => 'Exam completed successfully',
             'results' => [
-                'score'        => $result['score'],
-                'total_marks'  => $result['total_marks'],
+                'score'        => $score,
+                'total_marks'  => $totalMarks,
                 'is_passed'    => $result['is_passed'],
+                'status'       => $result['status'],
                 'percentage'   => $percentage . '%',
                 'feedback'     => $result['is_passed']
                     ? 'Congratulations. You passed this exam.'
