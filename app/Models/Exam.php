@@ -17,7 +17,10 @@ class Exam extends Model
         'duration',
         'total_marks',
         'is_active',
-        'passing_mark'
+        'passing_mark',
+        'is_final',
+        'max_attempts',
+        'shuffle_questions'
     ];
 
     // علاقة الامتحان بالكورس

@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Enrollment;
 use App\Notifications\CertificateReady;
+use App\Services\User\CertificateService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -22,16 +23,19 @@ class ProcessEnrollmentCompleted implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(): void
+    public function handle(CertificateService $certificateService): void
     {
         $this->enrollment->updateQuietly([
             'completed_at' => now()
         ]);
 
+        // Issue the certificate and save it to DB
+        $certificateService->issueCertificate($this->enrollment);
+
         // نبتعت الnotification للطالب
         $student = $this->enrollment->student;
         $student->notify(new CertificateReady($this->enrollment));
 
-        Log::info("Job Processed: Certificate notification sent for Enrollment #{$this->enrollment->id}");
+        Log::info("Job Processed: Certificate issued and notification sent for Enrollment #{$this->enrollment->id}");
     }
 }

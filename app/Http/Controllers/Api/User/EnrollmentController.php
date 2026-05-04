@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\User;
 
+use App\Events\StudentEnrolled;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Student\StoreEnrollmentRequest;
 use App\Services\User\EnrollmentService;
@@ -29,10 +30,17 @@ class EnrollmentController extends Controller
         $student = $user->student;
 
         $result = $this->enrollmentService->enroll($student, $payload);
+        $enrollment = $result['enrollment']->loadMissing(['course', 'student.user']);
+
+        StudentEnrolled::dispatch(
+            student: $enrollment->student,
+            course: $enrollment->course,
+            enrollment: $enrollment,
+        );
 
         return $this->successResponse(
             data: [
-                'enrollment' => $result['enrollment'],
+                'enrollment' => $enrollment,
                 'order' => $result['order'],
                 'whatsapp_link' => $result['whatsapp_link'],
             ],

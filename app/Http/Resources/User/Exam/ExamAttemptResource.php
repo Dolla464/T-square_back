@@ -14,7 +14,14 @@ class ExamAttemptResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $questions = $this->exam->questions;
+        $questionsQuery = $this->exam->questions()->with('choices');
+
+        if ($this->exam->shuffle_questions) {
+            $questionsQuery->inRandomOrder();
+        }
+
+        $questions = $questionsQuery->get();
+
         return [
             'attempt_id' => $this->id,
             'exam_title' => $this->exam->title,
@@ -23,7 +30,8 @@ class ExamAttemptResource extends JsonResource
             'status'     => $this->status,
             'total_questions' => $questions->count(),
             'total_marks'     => $this->exam->total_marks,
-            'questions'  => QuestionResource::collection($this->exam->questions()->with('choices')->get()),
+            'user_answers'    => $this->answers->pluck('choice_id', 'question_id'),
+            'questions'  => QuestionResource::collection($questions),
         ];
     }
 }
