@@ -18,7 +18,26 @@ class AdminCourseService
      */
     public function index(int $perPage = 10): LengthAwarePaginator
     {
-    return Course::with([
+    return Course::select([
+        'id',
+        'title',
+        'short_description',
+        'thumbnail',
+        'cover_image',
+        'preview_video',
+        'google_drive_link',
+        'attendance_type',
+        'price',
+        'level',
+        'language',
+        'duration_weeks',
+        'duration_hours',
+        'status',
+        'is_featured',
+        'is_free',
+        'category_id',
+        'instructor_id',
+    ])->with([
         // include id so Eloquent can match the related model when selecting specific columns
         'instructor:id,full_name,phone,field',
         'category:id,name,icon',
