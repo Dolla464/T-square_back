@@ -75,6 +75,8 @@ class CourseController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $this->courseService->destroy($id);
+
+        return response()->json(null, 204);
     }
 }

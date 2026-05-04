@@ -51,6 +51,8 @@ class AdminCourseService
             ->findOrFail($id);
     }
 
+   
+
     // /**
     //  * Update the instructor.
     //  */
@@ -72,16 +74,21 @@ class AdminCourseService
     //     return $instructor->load('user:id,email');
     // }
 
-    // /**
-    //  * Delete the instructor.
-    //  */
-    // public function destroy(Instructor $instructor): void
-    // {
-    //     $avatar = $instructor->getRawOriginal('avatar');
-    //     if ($avatar && Storage::disk('public')->exists($avatar)) {
-    //         Storage::disk('public')->delete($avatar);
-    //     }
+    /**
+     * Delete the given course by id and remove related uploaded files from storage.
+     */
+    public function destroy($id): void
+    {
+        $course = Course::findOrFail($id);
 
-    //     $instructor->delete();
-    // }
+        // remove known uploaded files if they exist on the public disk
+        foreach (['thumbnail', 'cover_image', 'preview_video'] as $field) {
+            $path = $course->getRawOriginal($field);
+            if ($path && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+        }
+
+        $course->delete();
+    }
 }
