@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreSolutionRequest;
 use App\Http\Requests\Admin\UpdateSolutionRequest;
-use App\Http\Resources\Admin\Solution\AdminSolutionCollection;
 use App\Http\Resources\Admin\Solution\AdminSolutionResource;
 use App\Models\Solution;
 use App\Services\Admin\AdminSolutionService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class AdminSolutionController extends Controller
 {
@@ -23,14 +23,14 @@ class AdminSolutionController extends Controller
     /**
      * Display a listing of solutions
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $solutions = $this->solutionService->index();
+        $search = $request->query('search');
+        $solutions = $this->solutionService->index(15, $search);
         
-        return $this->successResponse(
-            new AdminSolutionCollection($solutions),
-            'Solutions retrieved successfully'
-        );
+        return $this->paginateResponse($solutions->through(function ($solution) {
+            return new AdminSolutionResource($solution);
+        }), 'Solutions retrieved successfully');
     }
 
     /**

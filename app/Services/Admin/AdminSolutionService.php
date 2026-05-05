@@ -11,9 +11,21 @@ class AdminSolutionService
     /**
      * Get all solutions with pagination
      */
-    public function index(int $perPage = 15)
+    public function index(int $perPage = 15, ?string $search = null)
     {
-        return Solution::with('tags')->latest()->paginate($perPage);
+        return Solution::with('tags')
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        // if you want to search by tag names also:
+                        ->orWhereHas('tags', function ($tagQuery) use ($search) {
+                            $tagQuery->where('name', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->latest()
+            ->paginate($perPage);
     }
 
     /**

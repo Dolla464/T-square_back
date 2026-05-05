@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\AdminInstructorController;
 use App\Http\Controllers\Api\Admin\AdminSolutionController;
 use App\Http\Controllers\Api\Admin\AdminStudentController;
 use App\Http\Controllers\Api\Admin\AdminTagController;
+use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\Notification\NotificationController;
 use App\Http\Controllers\Api\User\CategoryController;
 use App\Http\Controllers\Api\User\CertificateController;
@@ -73,6 +74,7 @@ Route::group(['prefix' => 'student', 'namespace' => 'App\Http\Controllers\Api\Us
 
 Route::group(['prefix' => 'admin', 'namespace' => 'App\Http\Controllers\Api\Admin'], function () {
     Route::get('/tags', [AdminTagController::class, 'index']);
+    Route::post('/users', [AdminUserController::class, 'store'])->middleware('auth:sanctum', 'role:admin');
     // Solutions Management
     Route::apiResource('solutions', AdminSolutionController::class);
     // Instructors Management

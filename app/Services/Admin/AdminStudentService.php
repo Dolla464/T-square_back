@@ -15,9 +15,22 @@ class AdminStudentService
     /**
      * Get all students paginated.
      */
-    public function index(int $perPage = 10): LengthAwarePaginator
+    public function index(int $perPage = 10, array $filters = []): LengthAwarePaginator
     {
         return Student::with('user:id,email')
+            ->when(isset($filters['search']), function ($query) use ($filters) {
+                $search = $filters['search'];
+                $query->where(function ($q) use ($search) {
+                    $q->where('full_name', 'like', "%{$search}%")
+                        ->orWhereHas('user', function ($u) use ($search) {
+                            $u->where('email', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->when(isset($filters['status']), function ($query) use ($filters) {
+                // assume that the status field is in the students table
+                $query->where('status', $filters['status']);
+            })
             ->latest()
             ->paginate($perPage);
     }
