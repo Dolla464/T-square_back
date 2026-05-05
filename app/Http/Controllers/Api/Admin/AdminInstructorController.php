@@ -24,14 +24,20 @@ class AdminInstructorController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $perPage = $request->input('per_page', 10);
-        $instructors = $this->instructorService->index($perPage);
-
-        $paginatedData = $instructors->through(function ($instructor) {
+        $filters = [
+            'search'      => $request->query('search'),
+            'status'      => $request->query('status'),      // like: active
+            'is_verified' => $request->query('is_verified'), // like: 1 or 0
+        ];
+    
+        $instructors = $this->instructorService->index(
+            $request->query('per_page', 10), 
+            $filters
+        );
+    
+        return $this->paginateResponse($instructors->through(function ($instructor) {
             return new AdminInstructorResource($instructor);
-        });
-
-        return $this->paginateResponse($paginatedData, 'Instructors retrieved successfully');
+        }), 'Instructors retrieved successfully');
     }
 
     /**
@@ -65,11 +71,15 @@ class AdminInstructorController extends Controller
      */
     public function destroy(Instructor $instructor): JsonResponse
     {
-        $this->instructorService->destroy($instructor);
+        try {
+            $this->instructorService->destroy($instructor);
 
-        return $this->successResponse(
-            null,
-            'Instructor deleted successfully'
-        );
+            return $this->successResponse(
+                null,
+                'Instructor deleted successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), 400);
+        }
     }
 }

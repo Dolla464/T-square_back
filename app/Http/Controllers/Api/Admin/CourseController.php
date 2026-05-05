@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Http\Controllers\Api\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Services\Admin\AdminCourseService;
+use Illuminate\Http\Request;
+use App\Http\Resources\Admin\Course\AdminCourseResource;
+use App\Http\Requests\Admin\CourseStoreRequest;
+use App\Http\Requests\Admin\CourseUpdateRequest;
+
+class CourseController extends Controller
+{
+    protected $courseService;
+
+    public function __construct(AdminCourseService $courseService)
+    {
+        $this->courseService = $courseService;
+    }
+
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        $perPage = request()->query('per_page', 10);
+
+        $courses = $this->courseService->index((int) $perPage);
+
+        return AdminCourseResource::collection($courses);
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        //
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(CourseStoreRequest $request)
+    {
+        $data = $request->validated();
+
+        $course = $this->courseService->create($data);
+
+        return (new AdminCourseResource($course))->response()->setStatusCode(201);
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        $course = $this->courseService->show($id);
+
+        return new AdminCourseResource($course);
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(string $id)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(CourseUpdateRequest $request, string $id)
+    {
+        $data = $request->validated();
+
+        $course = $this->courseService->update($id, $data);
+
+        return new AdminCourseResource($course);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        $this->courseService->destroy($id);
+
+        return response()->json(null, 204);
+    }
+}
