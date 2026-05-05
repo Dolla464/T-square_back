@@ -51,28 +51,75 @@ class AdminCourseService
             ->findOrFail($id);
     }
 
-   
+    /**
+     * Create a new course and handle uploaded files.
+     */
+    public function create(array $data): Course
+    {
+        // handle image uploads
+        if (!empty($data['thumbnail']) && $data['thumbnail'] instanceof UploadedFile) {
+            $data['thumbnail'] = $this->uploadImage($data['thumbnail'], 'courses/thumbnails');
+        }
 
-    // /**
-    //  * Update the instructor.
-    //  */
-    // public function update(Instructor $instructor, array $data): Instructor
-    // {
-    //     if (isset($data['avatar']) && $data['avatar'] instanceof UploadedFile) {
-    //         $data['avatar'] = $this->uploadImage(
-    //             $data['avatar'],
-    //             'instructors/avatars',
-    //             $instructor->getRawOriginal('avatar')
-    //         );
-    //     } else {
-    //         // إزالة حقل الصورة من المصفوفة لو لم يتم رفع ملف جديد حتى لا يتم تفريغ الصورة القديمة
-    //         unset($data['avatar']);
-    //     }
+        if (!empty($data['cover_image']) && $data['cover_image'] instanceof UploadedFile) {
+            $data['cover_image'] = $this->uploadImage($data['cover_image'], 'courses/covers');
+        }
 
-    //     $instructor->update($data);
+        // create course
+        $course = Course::create($data);
 
-    //     return $instructor->load('user:id,email');
-    // }
+        // return fresh instance with relations loaded to avoid N+1 later
+        return $this->freshWithRelations($course->id);
+    }
+
+    /**
+     * Update an existing course and manage uploaded file replacements.
+     */
+    public function update($id, array $data): Course
+    {
+        $course = Course::findOrFail($id);
+
+        if (array_key_exists('thumbnail', $data) && $data['thumbnail'] instanceof UploadedFile) {
+            $data['thumbnail'] = $this->uploadImage(
+                $data['thumbnail'],
+                'courses/thumbnails',
+                $course->getRawOriginal('thumbnail')
+            );
+        } else {
+            unset($data['thumbnail']);
+        }
+
+        if (array_key_exists('cover_image', $data) && $data['cover_image'] instanceof UploadedFile) {
+            $data['cover_image'] = $this->uploadImage(
+                $data['cover_image'],
+                'courses/covers',
+                $course->getRawOriginal('cover_image')
+            );
+        } else {
+            unset($data['cover_image']);
+        }
+
+        $course->update($data);
+
+        return $this->freshWithRelations($course->id);
+    }
+
+    /**
+     * Return a fresh Course with relations selected to avoid N+1 when serializing.
+     */
+    protected function freshWithRelations($id): Course
+    {
+        $fields = CourseFieldList::fieldsForDetail();
+        $fieldsForSelect = array_unique(array_merge($fields, ['category_id', 'instructor_id']));
+
+        return Course::select($fieldsForSelect)
+            ->with([
+                'instructor:id,full_name,phone,avatar,field,bio,gender,status',
+                'category:id,name,slug,description,icon,image,parent_id,sort_order,status',
+            ])
+            ->findOrFail($id);
+    }
+
 
     /**
      * Delete the given course by id and remove related uploaded files from storage.

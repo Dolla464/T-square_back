@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Services\Admin\AdminCourseService;
 use Illuminate\Http\Request;
 use App\Http\Resources\Admin\Course\AdminCourseResource;
+use App\Http\Requests\Admin\CourseStoreRequest;
+use App\Http\Requests\Admin\CourseUpdateRequest;
 
 class CourseController extends Controller
 {
@@ -39,9 +41,13 @@ class CourseController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(CourseStoreRequest $request)
     {
-        //
+        $data = $request->validated();
+
+        $course = $this->courseService->create($data);
+
+        return (new AdminCourseResource($course))->response()->setStatusCode(201);
     }
 
     /**
@@ -65,9 +71,13 @@ class CourseController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(CourseUpdateRequest $request, string $id)
     {
-        //
+        $data = $request->validated();
+
+        $course = $this->courseService->update($id, $data);
+
+        return new AdminCourseResource($course);
     }
 
     /**
