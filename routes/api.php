@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Admin\AdminInstructorController;
 use App\Http\Controllers\Api\Admin\AdminSolutionController;
+use App\Http\Controllers\Api\Admin\AdminStudentController;
 use App\Http\Controllers\Api\Admin\AdminTagController;
 use App\Http\Controllers\Api\Notification\NotificationController;
 use App\Http\Controllers\Api\User\CategoryController;
@@ -77,6 +78,10 @@ Route::group(['prefix' => 'admin', 'namespace' => 'App\Http\Controllers\Api\Admi
     // Instructors Management
     Route::post('instructors/{instructor}', [AdminInstructorController::class, 'update']);
     Route::apiResource('instructors', AdminInstructorController::class)->except(['store', 'update']);
+
+    // Students Management
+    Route::post('students/{student}', [AdminStudentController::class, 'update']);
+    Route::apiResource('students', AdminStudentController::class)->except(['store', 'update']);
 });
 
 
