@@ -41,7 +41,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
                 // خطأ 422: فشل التحقق من البيانات (Validation)
                 if ($e instanceof \Illuminate\Validation\ValidationException) {
-                    return $responder->errorResponse('Error validating data', 422, $e->errors());
+                    $errors = $e->errors();
+                    $firstError = collect($errors)->flatten()->first();
+                    return $responder->errorResponse($firstError, 422, $errors);
                 }
 
                 // خطأ 404: السجل غير موجود في الداتابيز (زي لما تبحث عن كورس ممسوح)
