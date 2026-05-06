@@ -13,7 +13,7 @@ class PaymentFieldList
         return [
             'id',
             'student.full_name',
-            'student.email',
+            'student.user.email',
             'total_amount',
             'status',
             'enrollments.course.title',
