@@ -27,11 +27,10 @@ class AdminPaymentResource extends JsonResource
                 $pathInsideEnrollment = Str::after($field, 'enrollments.');
 
                 $data[$field] = $this->whenLoaded('enrollments', function () use ($pathInsideEnrollment) {
-                    return $this->enrollments
-                        ->map(fn ($enrollment) => data_get($enrollment, $pathInsideEnrollment))
-                        ->filter(fn ($value) => $value !== null && $value !== '')
-                        ->values()
-                        ->all();
+                    $firstEnrollment = $this->enrollments->first();
+
+                    // باستخدام data_get عشان نوصل للـ title حتى لو جوا علاقات تانية
+                    return $firstEnrollment ? data_get($firstEnrollment, $pathInsideEnrollment) : null;
                 }, []);
 
                 continue;
