@@ -46,37 +46,6 @@ class AdminPaymentService
             ->findOrFail($id);
     }
 
-    public function store(array $data): Order
-    {
-        return DB::transaction(function () use ($data) {
-            $course = Course::query()->find($data['course_id']);
-            if (! $course) {
-                throw (new ModelNotFoundException())->setModel(Course::class, [$data['course_id']]);
-            }
-
-            $order = Order::query()->create([
-                'student_id' => $data['student_id'],
-                'total_amount' => $data['total_amount'] ?? (float) $course->price,
-                'status' => $data['status'] ?? 'pending',
-                'billing_name' => $data['billing_name'],
-                'billing_email' => $data['billing_email'],
-                'billing_phone' => $data['billing_phone'],
-                'notes' => $data['notes'] ?? null,
-            ]);
-
-            Enrollment::query()->create([
-                'student_id' => $data['student_id'],
-                'course_id' => $data['course_id'],
-                'order_id' => $order->id,
-                'price_paid' => $data['price_paid'] ?? $order->total_amount,
-                'is_completed' => false,
-                'completed_at' => null,
-            ]);
-
-            return $this->show($order->id);
-        });
-    }
-
     public function update(int $id, array $data): Order
     {
         return DB::transaction(function () use ($id, $data) {

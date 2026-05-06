@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\Admin\Payment\StorePaymentRequest;
 use App\Http\Requests\Api\Admin\Payment\UpdatePaymentRequest;
 use App\Http\Resources\Admin\Payment\AdminPaymentResource;
 use App\Services\Admin\AdminPaymentService;
@@ -31,16 +30,6 @@ class AdminPaymentController extends Controller
         ], $perPage);
 
         return AdminPaymentResource::collection($paginator);
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StorePaymentRequest $request): AdminPaymentResource
-    {
-        $order = $this->payments->store($request->validated());
-
-        return new AdminPaymentResource($order);
     }
 
     /**

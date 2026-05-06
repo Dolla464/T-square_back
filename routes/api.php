@@ -89,7 +89,7 @@ Route::group(['prefix' => 'admin', 'namespace' => 'App\Http\Controllers\Api\Admi
     Route::apiResource('students', AdminStudentController::class)->except(['store', 'update']);
 
     // Payments Management
-    Route::apiResource('payments', AdminPaymentController::class);
+    Route::apiResource('payments', AdminPaymentController::class)->except(['store']);
 });
 
 
