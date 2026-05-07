@@ -29,6 +29,7 @@ class CourseDashboardController extends Controller
         /** @var User|null $user */
         $user = $request->user();
         if (! $user) {
+            
             return $this->errorResponse('Unauthenticated', 401);
         }
 

@@ -2,10 +2,10 @@
 
 namespace App\Listeners;
 
-use App\Events\CoursePurchased;
+use App\Events\StudentEnrolled;
 use App\Models\User;
-use App\Notifications\CourseApprovedNotification;
-use App\Notifications\NewEnrollmentAdminNotification;
+use App\Notifications\AdminNewEnrollmentNotification;
+use App\Notifications\StudentEnrolledNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Notification;
@@ -14,19 +14,20 @@ class SendEnrollmentNotifications implements ShouldQueue
 {
     use InteractsWithQueue;
 
-    public function handle(CoursePurchased $event): void
+    public function handle(StudentEnrolled $event): void
     {
-        // 1. هنجيب الطالب من الاشتراك
-        $student = $event->enrollment->student;
-        $course = $event->enrollment->course;
+        $student = $event->student;
+        $course = $event->course;
+        $enrollment = $event->enrollment;
 
-        // 2. إرسال الإشعار للطالب
         if ($student->user) {
-            $student->user->notify(new CourseApprovedNotification($course));
+            $student->user->notify(new StudentEnrolledNotification($course, $enrollment));
         }
 
-        // وتقدر هنا كمان تبعت إشعار للأدمن لو حابب
-        $admins = User::where('role', 'admin')->get();
-        Notification::send($admins, new NewEnrollmentAdminNotification($course, $student));
+        $admins = User::query()->where('role', 'admin')->get();
+
+        if ($admins->isNotEmpty()) {
+            Notification::send($admins, new AdminNewEnrollmentNotification($course, $student, $enrollment));
+        }
     }
 }

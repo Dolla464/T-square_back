@@ -9,21 +9,12 @@ class ExamAttempt extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['student_id', 'exam_id', 'started_at', 'finished_at', 'score'];
+    protected $fillable = ['student_id', 'exam_id', 'status', 'started_at', 'finished_at', 'score'];
 
     protected $casts = [
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
     ];
-
-    public function student()
-    {
-        return $this->belongsTo(Student::class);
-    }
-    public function exam()
-    {
-        return $this->belongsTo(Exam::class);
-    }
 
     /**
      * حساب الوقت المستغرق في الامتحان
@@ -38,15 +29,25 @@ class ExamAttempt extends Model
 
     public function calculateScore()
     {
-        $totalMarks = 0;
-        // بنلف على كل إجابة ونشوف لو الـ choice المختار هو الـ correct
-        foreach ($this->answers as $answer) {
-            if ($answer->choice->is_correct) {
-                $totalMarks += $answer->question->marks;
-            }
-        }
-        $this->update(['score' => $totalMarks]);
-        return $totalMarks;
+        // بطلقة واحدة للداتابيز، هنجمع كل الدرجات المستحقة من جدول الإجابات
+        $totalScore = $this->answers()->where('is_correct', true)->sum('marks_earned');
+
+        $this->fill([
+            'score'       => $totalScore,
+            'status'      => 'completed',
+            'finished_at' => now()
+        ])->save();
+
+        return $totalScore;
+    }
+
+    public function student()
+    {
+        return $this->belongsTo(Student::class);
+    }
+    public function exam()
+    {
+        return $this->belongsTo(Exam::class);
     }
 
     public function answers()

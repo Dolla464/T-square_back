@@ -16,7 +16,9 @@
         "laravel/framework": "^13.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
+        "spatie/browsershot": "^5.3",
         "spatie/laravel-medialibrary": "^11.21",
+        "spatie/laravel-pdf": "^2.8",
         "spatie/laravel-permission": "^7.3",
         "spatie/laravel-query-builder": "^7.1"
     },
@@ -91,6 +93,9 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "platform": {
+            "php": "8.3.30"
         }
     },
     "minimum-stability": "stable",

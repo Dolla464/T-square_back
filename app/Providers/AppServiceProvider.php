@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Enrollment;
+use App\Observers\EnrollmentObserve;
 use Carbon\Carbon;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -33,6 +35,9 @@ class AppServiceProvider extends ServiceProvider
         ResetPassword::createUrlUsing(function (object $notifiable, string $token) {
             return config('app.frontend_url') . "/password-reset/$token?email={$notifiable->getEmailForPasswordReset()}";
         });
+      
+        // مراقبت جدول الenrollment       
+        Enrollment::observe(EnrollmentObserve::class);
 
         // vervification route
         VerifyEmail::createUrlUsing(function ($notifiable) {
@@ -55,3 +60,4 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\CourseReview::observe(\App\Observers\CourseReviewObserver::class);
     }
 }
+

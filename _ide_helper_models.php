@@ -48,6 +48,8 @@ namespace App\Models{
  * @property int $attempt_id
  * @property int $question_id
  * @property int $choice_id
+ * @property bool $is_correct
+ * @property numeric $marks_earned
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \App\Models\ExamAttempt $attempt
@@ -60,6 +62,8 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Answer whereChoiceId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Answer whereCreatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Answer whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Answer whereIsCorrect($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Answer whereMarksEarned($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Answer whereQuestionId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Answer whereUpdatedAt($value)
  */
@@ -389,7 +393,11 @@ namespace App\Models{
  * @property string $title
  * @property string|null $description
  * @property int $duration Duration in minutes
+ * @property int $max_attempts
+ * @property int $shuffle_questions
+ * @property int $is_final
  * @property numeric $total_marks
+ * @property numeric $passing_mark
  * @property int $is_active
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property \Illuminate\Support\Carbon|null $created_at
@@ -411,6 +419,10 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam whereDuration($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam whereIsActive($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam whereIsFinal($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam whereMaxAttempts($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam wherePassingMark($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam whereShuffleQuestions($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam whereTitle($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam whereTotalMarks($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam whereUpdatedAt($value)
@@ -425,6 +437,7 @@ namespace App\Models{
  * @property int $id
  * @property int $student_id
  * @property int $exam_id
+ * @property string $status
  * @property \Illuminate\Support\Carbon|null $started_at
  * @property \Illuminate\Support\Carbon|null $finished_at
  * @property numeric $score Final Result
@@ -445,6 +458,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ExamAttempt whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ExamAttempt whereScore($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ExamAttempt whereStartedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ExamAttempt whereStatus($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ExamAttempt whereStudentId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ExamAttempt whereUpdatedAt($value)
  */
@@ -767,6 +781,8 @@ namespace App\Models{
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \Spatie\Permission\Models\Role> $roles
  * @property-read int|null $roles_count
  * @property-read \App\Models\Student|null $student
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \Spatie\Permission\Models\Permission> $teams
+ * @property-read int|null $teams_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \Laravel\Sanctum\PersonalAccessToken> $tokens
  * @property-read int|null $tokens_count
  * @method static \Database\Factories\UserFactory factory($count = null, $state = [])
@@ -776,6 +792,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User permission($permissions, bool $without = false)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User query()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User role($roles, ?string $guard = null, bool $without = false)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User team($teams, bool $without = false)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereCreatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereDeletedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereEmail($value)
@@ -790,6 +807,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User withoutPermission($permissions)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User withoutRole($roles, ?string $guard = null)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User withoutTeam($teams)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User withoutTrashed()
  */
 	class User extends \Eloquent implements \Illuminate\Contracts\Auth\MustVerifyEmail {}
