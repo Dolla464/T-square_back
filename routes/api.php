@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\AdminInstructorController;
+use App\Http\Controllers\Api\Admin\AdminReviewController;
 use App\Http\Controllers\Api\Admin\AdminPaymentController;
 use App\Http\Controllers\Api\Admin\AdminSolutionController;
 use App\Http\Controllers\Api\Admin\AdminStudentController;
@@ -88,6 +89,9 @@ Route::group(['prefix' => 'admin', 'namespace' => 'App\Http\Controllers\Api\Admi
     Route::post('students/{student}', [AdminStudentController::class, 'update']);
     Route::apiResource('students', AdminStudentController::class)->except(['store', 'update']);
 
+    // Reviews Management
+    Route::post('reviews/{review}', [AdminReviewController::class, 'update']);
+    Route::apiResource('reviews', AdminReviewController::class)->except(['store' , 'update']);
     // Payments Management
     Route::apiResource('payments', AdminPaymentController::class)->except(['store']);
 });
