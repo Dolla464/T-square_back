@@ -32,16 +32,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // profile routes
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
-    // مسارات الإشعارات
+    // notifications routes
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     // Exam routes
     Route::prefix('exams')->group(function () {
         Route::get('/', [ExamController::class, 'index']);
-        Route::post('/start', [ExamController::class, 'start']); // بدء الامتحان
-        Route::post('/save-answer', [ExamController::class, 'answer']); // حفظ إجابة سؤال
-        Route::post('/{id}/submit', [ExamController::class, 'submit']); // إنهاء الامتحان
+        Route::post('/start', [ExamController::class, 'start']); // start exam
+        Route::post('/save-answer', [ExamController::class, 'answer']); // save one question answer
+        Route::post('/{id}/submit', [ExamController::class, 'submit']); // submit exam
         Route::get('/my-results', [ExamController::class, 'myResults']);
 
     });
@@ -51,37 +51,37 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::get('/settings/{key}', [SettingController::class, 'getSettingByKey']);
 
 Route::group(['prefix' => 'student', 'namespace' => 'App\Http\Controllers\Api\User'], function () {
-    Route::get('/categories', [CategoryController::class, 'index']); // للأقسام
-    Route::get('/courses', [CourseController::class, 'index']);      // للكورسات
-    Route::get('/courses/dashboard', CourseDashboardController::class)->middleware('auth:sanctum'); // لوحة تحكم الكورسات
+    Route::get('/categories', [CategoryController::class, 'index']); // categories
+    Route::get('/courses', [CourseController::class, 'index']);      // courses
+    Route::get('/courses/dashboard', CourseDashboardController::class)->middleware('auth:sanctum'); // courses dashboard
     Route::get('/courses/{slug}', [CourseController::class, 'show']);
     Route::post('/enrollments', [EnrollmentController::class, 'store'])->middleware('auth:sanctum');
-    Route::get('/solutions', [SolutionsController::class, 'index']);     // جميع الحلول
+    Route::get('/solutions', [SolutionsController::class, 'index']);     // all solutions
     Route::get('/solutions/{solution}', [SolutionsController::class, 'show']);
-    Route::get('/instructors', [InstructorController::class, 'index']); // عرض ال instructors
-    Route::post('/contact-us', [ContactUsController::class, 'store'])->name('contact-us.store'); // تواصل معنا
-    Route::get('/reviews/latest', [CourseReviewController::class, 'latest']); // يعرض اخر 5 reviews بس
-    Route::get('/reviews/course/{courseId}', [CourseReviewController::class, 'course']); // يعرض reviews الخاصة بكورس معين
-    Route::get('/certificates', [CertificateController::class, 'index'])// قائمة شهادات الطالب
+    Route::get('/instructors', [InstructorController::class, 'index']); // show instructors
+    Route::post('/contact-us', [ContactUsController::class, 'store'])->name('contact-us.store'); // contact us
+    Route::get('/reviews/latest', [CourseReviewController::class, 'latest']); // latest 5 reviews
+    Route::get('/reviews/course/{courseId}', [CourseReviewController::class, 'course']); // reviews of a specific course
+    Route::get('/certificates', [CertificateController::class, 'index'])// certificates
      ->middleware('auth:sanctum')->name('certificate.index');
-    Route::get('/certificates/{enrollment}/download', [CertificateController::class, 'download'])// تحميل الشهادة
+    Route::get('/certificates/{enrollment}/download', [CertificateController::class, 'download'])// download certificate
      ->middleware('auth:sanctum')->name('certificate.download');
-    Route::get('/certificates/download/{enrollment}', [CertificateController::class, 'download'])// alias للاختبار في Postman
+    Route::get('/certificates/download/{enrollment}', [CertificateController::class, 'download'])// alias for exam in Postman
      ->middleware('auth:sanctum');
-    Route::get('/certificates/{enrollment}', [CertificateController::class, 'show'])// عرض بيانات الشهادة
+    Route::get('/certificates/{enrollment}', [CertificateController::class, 'show'])// show certificate data
      ->middleware('auth:sanctum')->name('certificate.show');
 
 });
 
 Route::group(['prefix' => 'admin', 'namespace' => 'App\Http\Controllers\Api\Admin'], function () {
-    Route::get('/tags', [AdminTagController::class, 'index']);
-    Route::post('/users', [AdminUserController::class, 'store'])->middleware('auth:sanctum', 'role:admin');
+    Route::get('/tags', [AdminTagController::class, 'index']); // tags
+    Route::post('/users', [AdminUserController::class, 'store'])->middleware('auth:sanctum', 'role:admin'); // users
     // Solutions Management
-    Route::apiResource('solutions', AdminSolutionController::class);
+    Route::apiResource('solutions', AdminSolutionController::class); // solutions
     // Instructors Management
     Route::post('instructors/{instructor}', [AdminInstructorController::class, 'update']);
     Route::apiResource('instructors', AdminInstructorController::class)->except(['store', 'update']);
-    Route::apiResource('courses', AdminCourseController::class);
+    Route::apiResource('courses', AdminCourseController::class); // admin courses
 
     // Students Management
     Route::post('students/{student}', [AdminStudentController::class, 'update']);
