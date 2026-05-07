@@ -4,46 +4,72 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use App\Models\User;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Str;
 
 class StoreUserRequest extends FormRequest
 {
-    /**
-     * تحديد هل المستخدم مصرح له بإرسال هذا الطلب
-     * (بما إن ده للأدمن، هنخليه true حالياً لو محمي بـ Middleware)
-     */
     public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * قواعد التحقق (Validation Rules)
+     * تجهيز البيانات قبل التحقق
      */
+    protected function prepareForValidation()
+    {
+        if ($this->full_name) {
+            // استخراج أول كلمتين من الاسم الكامل
+            $words = explode(' ', trim($this->full_name));
+            $firstNameTwo = implode(' ', array_slice($words, 0, 2));
+
+            $this->merge([
+                'name' => $firstNameTwo,
+                // تنظيف الإيميل لضمان عدم وجود مسافات أو حروف كبيرة
+                'email' => strtolower(trim($this->email)),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
-            // بيانات جدول users
-            'name'     => ['required', 'string', 'max:255'], // لاسم المستخدم (Username)
-            'email'    => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'min:8'],
-            'role'     => ['required', 'exists:roles,name'],
+            // حقل full_name أساسي الآن
+            'full_name' => ['required', 'string', 'max:255', 'min:10'],
 
-            // بيانات مشتركة (موجودة في الجدولين)
-            'full_name' => ['nullable', 'string', 'max:255'],
-            'phone'     => ['nullable', 'string', 'max:20'],
+            // حقل name يتم تعبئته آلياً في prepareForValidation
+            'name'      => ['required', 'string', 'max:255'],
+
+            'email'     => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password'  => ['required', Password::min(8)],
+            'phone'     => ['required', 'string', 'max:20'],
+            'role'      => ['required', Rule::in(['student', 'instructor'])],
+
+            // بيانات مشتركة اختياري حالياً (للطالب)
             'gender'    => ['nullable', Rule::in(['male', 'female'])],
-            'avatar'    => ['nullable', 'string'],
+            'avatar'    => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
 
             // بيانات الطالب فقط
-            'group_id' => ['nullable', 'exists:learning_groups,id'],
+            'group_id'  => ['nullable',  'exists:learning_groups,id'],
 
-            // بيانات المحاضر فقط
-            'bio'           => ['required_if:role,instructor','string','min:20'],
-            'insta_url'     => ['required_if:role,instructor', 'url'],
-            'linkedin_url'  => ['required_if:role,instructor', 'url'],
-            'facebook_url'  => ['required_if:role,instructor', 'url'],
+            // بيانات المحاضر فقط (إلزامية)
+            'bio'           => ['required_if:role,instructor', 'nullable', 'string', 'min:20'],
+            'field'     => ['required_if:role,instructor', 'nullable', 'string'], // المجال
+            'status'        => ['required_if:role,instructor', 'nullable', Rule::in(['active', 'inactive'])],
+            'insta_url'     => ['nullable', 'url'],
+            'linkedin_url'  => ['nullable', 'url'],
+            'facebook_url'  => ['nullable', 'url'],
+        ];
+    }
+
+    public function attributes(): array
+    {
+        return [
+            'full_name' => 'الاسم الكامل',
+            'name'      => 'اسم المستخدم',
+            'specialty' => 'التخصص/المجال',
+            'status'    => 'حالة الحساب',
         ];
     }
 }

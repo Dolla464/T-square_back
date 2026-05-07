@@ -2,22 +2,22 @@
 
 namespace App\Services\Admin;
 
-use App\Models\Instructor;
+use App\Models\Student;
 use App\Traits\HandleImageUploadTrait;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
 
-class AdminInstructorService
+class AdminStudentService
 {
     use HandleImageUploadTrait;
 
     /**
-     * Get all instructors paginated.
+     * Get all students paginated.
      */
     public function index(int $perPage = 10, array $filters = []): LengthAwarePaginator
     {
-        return Instructor::with('user:id,email')
+        return Student::with('user:id,email')
             ->when(isset($filters['search']), function ($query) use ($filters) {
                 $search = $filters['search'];
                 $query->where(function ($q) use ($search) {
@@ -28,7 +28,7 @@ class AdminInstructorService
                 });
             })
             ->when(isset($filters['status']), function ($query) use ($filters) {
-                // assume that the status field is in the instructors table
+                // assume that the status field is in the students table
                 $query->where('status', $filters['status']);
             })
             ->latest()
@@ -36,47 +36,44 @@ class AdminInstructorService
     }
 
     /**
-     * Get a single instructor.
+     * Get a single student.
      */
-    public function show(Instructor $instructor): Instructor
+    public function show(Student $student): Student
     {
-        return $instructor->load('user:id,email');
+        return $student->load('user:id,email');
     }
 
     /**
-     * Update the instructor.
+     * Update the student.
      */
-    public function update(Instructor $instructor, array $data): Instructor
+    public function update(Student $student, array $data): Student
     {
         if (isset($data['avatar']) && $data['avatar'] instanceof UploadedFile) {
             $data['avatar'] = $this->uploadImage(
                 $data['avatar'],
-                'instructors/avatars',
-                $instructor->getRawOriginal('avatar')
+                'students',
+                $student->getRawOriginal('avatar')
             );
         } else {
-            // remove the avatar field from the array if no new file is uploaded to avoid deleting the old image
+            // إزالة حقل الصورة من المصفوفة لو لم يتم رفع ملف جديد حتى لا يتم تفريغ الصورة القديمة
             unset($data['avatar']);
         }
 
-        $instructor->update($data);
-
-        return $instructor->load('user:id,email');
+        $student->update($data);
+        
+        return $student->load('user:id,email');
     }
 
     /**
-     * Delete the instructor.
+     * Delete the student.
      */
-    public function destroy(Instructor $instructor): void
+    public function destroy(Student $student): void
     {
-        if ($instructor->courses()->exists()) {
-            throw new \Exception('Instructor has active courses, cannot be deleted.Please delete the courses first.');
-        }
-        $avatar = $instructor->getRawOriginal('avatar');
+        $avatar = $student->getRawOriginal('avatar');
         if ($avatar && Storage::disk('public')->exists($avatar)) {
             Storage::disk('public')->delete($avatar);
         }
 
-        $instructor->delete();
+        $student->delete();
     }
 }
