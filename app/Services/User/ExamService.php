@@ -174,11 +174,11 @@ class ExamService
 
             $attempt->refresh()->load(['student.user', 'exam.course']);
             $certificate = $this->certificateService->issueCertificate($enrollment);
-            $pdfContent = \Illuminate\Support\Facades\Storage::disk('public')->get($certificate->certificate_url);
+            $pdfPath = $certificate->certificate_url;
             $email = $attempt->student->user?->email;
 
             if ($email) {
-                Mail::to($email)->send(new CertificateMail($attempt, $pdfContent));
+                Mail::to($email)->send(new CertificateMail($attempt, $pdfPath));
 
                 Log::info('Certificate email sent', [
                     'attempt_id' => $attempt->id,
