@@ -4,24 +4,23 @@ namespace App\Mail;
 
 use App\Models\ExamAttempt;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue; // 1. أضف هذا
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Storage; // 2. أضف هذا
 
-class CertificateMail extends Mailable
+class CertificateMail extends Mailable implements ShouldQueue // 3. طبق الواجهة هنا
 {
     use Queueable, SerializesModels;
 
     public function __construct(
         public ExamAttempt $attempt,
-        public string $pdfContent
+        public string $pdfPath // 4. نمرر المسار وليس المحتوى الخام
     ) {}
 
-    /**
-     * Get the message envelope.
-     */
     public function envelope(): Envelope
     {
         return new Envelope(
@@ -29,9 +28,6 @@ class CertificateMail extends Mailable
         );
     }
 
-    /**
-     * Get the message content definition.
-     */
     public function content(): Content
     {
         return new Content(
@@ -43,15 +39,12 @@ class CertificateMail extends Mailable
         );
     }
 
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, Attachment>
-     */
     public function attachments(): array
     {
+        // 5. نقرأ الملف من التخزين وقت إرسال الإيميل فعلياً
         return [
-            Attachment::fromData(fn () => $this->pdfContent, 'Certificate.pdf')
+            Attachment::fromStorageDisk('public', $this->pdfPath)
+                ->as('Certificate.pdf')
                 ->withMime('application/pdf'),
         ];
     }
