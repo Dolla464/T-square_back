@@ -32,14 +32,14 @@ trait HandleImageUploadTrait
 
         // 3. read the original image
         $imagePath = $file->getRealPath();
-        $info = getimagesize($imagePath);
+        $info = \getimagesize($imagePath);
         $width = $info[0];
         $height = $info[1];
 
-        $source = match($info[2]) {
-            IMAGETYPE_JPEG => imagecreatefromjpeg($imagePath),
-            IMAGETYPE_PNG  => imagecreatefrompng($imagePath),
-            IMAGETYPE_WEBP => imagecreatefromwebp($imagePath),
+        $source = match ($info[2]) {
+            IMAGETYPE_JPEG => \imagecreatefromjpeg($imagePath),
+            IMAGETYPE_PNG  => \imagecreatefrompng($imagePath),
+            IMAGETYPE_WEBP => \imagecreatefromwebp($imagePath),
             default        => throw new \Exception('Image type not supported'),
         };
 
@@ -55,25 +55,24 @@ trait HandleImageUploadTrait
             }
 
             // create an empty image with the new dimensions
-            $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
-
+            $resizedImage = \imagecreatetruecolor($newWidth, $newHeight);
             // keep the transparency (if it's a PNG)
-            imagealphablending($resizedImage, false);
-            imagesavealpha($resizedImage, true);
+            \imagealphablending($resizedImage, false);
+            \imagesavealpha($resizedImage, true);
 
             // copy and resize the image
-            imagecopyresampled($resizedImage, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-            
-            imagedestroy($source); // delete the old image from memory to free up space
+            \imagecopyresampled($resizedImage, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+            \imagedestroy($source);
             $source = $resizedImage;
         }
         // -------------------------------------------
 
         // 4. convert the image to WebP using Buffer
         ob_start();
-        imagewebp($source, null, 80); // quality 80%
+        \imagewebp($source, null, 80);
         $webpContent = ob_get_clean();
-        imagedestroy($source);
+        \imagedestroy($source);
 
         // 5. save the image
         Storage::disk('public')->put($fullPath, $webpContent);
