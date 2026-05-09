@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Admin\AdminTagController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\Admin\AdminCourseController;
 use App\Http\Controllers\Api\Admin\AdminCategoryController;
+use App\Http\Controllers\Api\Admin\AdminCertificateController;
 use App\Http\Controllers\Api\Notification\NotificationController;
 use App\Http\Controllers\Api\User\CategoryController;
 use App\Http\Controllers\Api\User\CertificateController;
@@ -96,6 +97,8 @@ Route::group(['prefix' => 'admin', 'namespace' => 'App\Http\Controllers\Api\Admi
     Route::apiResource('reviews', AdminReviewController::class)->except(['store' , 'update']);
     // Payments Management
     Route::apiResource('payments', AdminPaymentController::class)->except(['store']);
+    // Certificates Management
+    Route::apiResource('certificates', AdminCertificateController::class)->except(['store', 'create']);
 });
 
 
