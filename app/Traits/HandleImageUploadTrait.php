@@ -19,7 +19,15 @@ trait HandleImageUploadTrait
      * @param string|null $oldPath
      * @return string
      */
-    public function uploadImage(UploadedFile $file, string $folder, ?string $oldPath = null): string
+    /**
+     * Upload, resize, and convert an image to WebP format.
+     *
+     * @param  UploadedFile  $file
+     * @param  string        $folder
+     * @param  string|null   $oldPath   Path of the old file to delete.
+     * @param  int           $maxSize   Max width/height in pixels (800 for thumbnails, 1920 for covers).
+     */
+    public function uploadImage(UploadedFile $file, string $folder, ?string $oldPath = null, int $maxSize = 800): string
     {
         // ensure required GD functions are available (and WebP support)
         if (!\function_exists('imagewebp') || (!\function_exists('imagecreatefromjpeg') && !\function_exists('imagecreatefrompng') && !\function_exists('imagecreatefromwebp'))) {
@@ -48,8 +56,8 @@ trait HandleImageUploadTrait
             default        => throw new \Exception('Image type not supported'),
         };
 
-        // --- step to determine the new dimensions (Resize) ---
-        $maxSide = 800; // maximum width or height of the image
+        // --- Resize to $maxSize while maintaining aspect ratio ---
+        $maxSide = $maxSize;
         if ($width > $maxSide || $height > $maxSide) {
             if ($width > $height) {
                 $newWidth = $maxSide;

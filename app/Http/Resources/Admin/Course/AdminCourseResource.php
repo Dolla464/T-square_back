@@ -42,12 +42,6 @@ class AdminCourseResource extends JsonResource
             $data['instructor'] = $instructor ? [
                 'id' => $instructor->id ?? null,
                 'full_name' => $instructor->full_name ?? null,
-                'phone' => $instructor->phone ?? null,
-                'avatar' => $instructor->avatar ?? null,
-                'field' => $instructor->field ?? null,
-                'bio' => $instructor->bio ?? null,
-                'gender' => $instructor->gender ?? null,
-                'status' => $instructor->status ?? null,
             ] : null;
         }
 
@@ -57,13 +51,35 @@ class AdminCourseResource extends JsonResource
                 'id' => $category->id ?? null,
                 'name' => $category->name ?? null,
                 'slug' => $category->slug ?? null,
-                'description' => $category->description ?? null,
-                'icon' => $category->icon ?? null,
-                'image' => $category->image ?? null,
                 'parent_id' => $category->parent_id ?? null,
-                'sort_order' => $category->sort_order ?? null,
-                'status' => $category->status ?? null,
             ] : null;
+        }
+
+        if ($this->relationLoaded('tags')) {
+            $data['tags'] = $this->tags->map(fn ($tag) => [
+                'id' => $tag->id,
+                'name' => $tag->name,
+                'slug' => $tag->slug,
+            ])->values();
+        }
+
+        if ($this->relationLoaded('previews')) {
+            $data['previews'] = $this->previews->map(fn ($preview) => [
+                'id'               => $preview->id,
+                'title'            => $preview->title,
+                'video_url'        => $preview->video_url,
+                'description'      => $preview->description,
+                'video_provider'   => $preview->video_provider,
+                'duration_seconds' => $preview->duration_seconds,
+                'sort_order'       => $preview->sort_order,
+            ])->values();
+        }
+
+        if ($this->relationLoaded('learnings')) {
+            $data['learnings'] = $this->learnings->map(fn ($learning) => [
+                'id' => $learning->id,
+                'title' => $learning->title,
+            ])->values();
         }
 
         return $data;

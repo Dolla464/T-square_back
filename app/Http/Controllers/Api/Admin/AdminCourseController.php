@@ -9,7 +9,7 @@ use App\Http\Resources\Admin\Course\AdminCourseResource;
 use App\Http\Requests\Admin\CourseStoreRequest;
 use App\Http\Requests\Admin\CourseUpdateRequest;
 
-class CourseController extends Controller
+class AdminCourseController extends Controller
 {
     protected $courseService;
 
@@ -21,11 +21,13 @@ class CourseController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $perPage = request()->query('per_page', 10);
+        $perPage = $request->query('per_page', 10);
 
-        $courses = $this->courseService->index((int) $perPage);
+        $filters = $request->only(['search', 'status', 'category_id']);
+
+        $courses = $this->courseService->index($filters, (int) $perPage);
 
         return AdminCourseResource::collection($courses);
     }

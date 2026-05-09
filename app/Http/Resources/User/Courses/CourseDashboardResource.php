@@ -30,6 +30,22 @@ class CourseDashboardResource extends JsonResource
                 'field'     => $this->instructor->field,
             ]),
 
+            'tags' => $this->whenLoaded('tags', fn () => $this->tags->map(fn ($tag) => [
+                'id' => $tag->id,
+                'name' => $tag->name,
+                'slug' => $tag->slug,
+            ])->values(), []),
+
+            'previews' => $this->whenLoaded('previews', fn () => $this->previews->map(fn ($preview) => [
+                'id' => $preview->id,
+                'title' => $preview->title,
+                'video_url' => $preview->video_url,
+                'description' => $preview->description,
+                'video_provider' => $preview->video_provider,
+                'duration_seconds' => $preview->duration_seconds,
+                'sort_order' => $preview->sort_order,
+            ])->values(), []),
+
             // ── حالة الـ Enrollment ─────────────────────────────────────────
             'enrollment' => $enrollment ? [
                 'status'       => $enrollment->is_completed ? 'completed' : 'in_progress',
