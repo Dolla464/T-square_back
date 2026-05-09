@@ -13,6 +13,7 @@
         "cviebrock/eloquent-sluggable": "^13.0",
         "dedoc/scramble": "^0.13.17",
         "doctrine/dbal": "^4.4",
+        "james-heinrich/getid3": "^1.9",
         "laravel/framework": "^13.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",

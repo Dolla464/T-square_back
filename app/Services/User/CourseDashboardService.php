@@ -74,6 +74,8 @@ class CourseDashboardService
         $query = Course::active()
             ->with([
                 'instructor:id,full_name,field',
+                'tags:id,name,slug',
+                'previews:id,course_id,title,video_url,description,video_provider,duration_seconds,sort_order',
             ])
 
             // ── Enrollment بتاعت بالطالب الحالي فقط (Constrained Eager Load) ──

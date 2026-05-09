@@ -14,7 +14,13 @@ class CourseService
         $perPage = $filters['per_page'] ?? 12;
 
         return Course::active()
-            ->with(['category:id,name,slug', 'instructor:id,user_id,avatar', 'instructor.user:id,name'])
+            ->with([
+                'category:id,name,slug',
+                'instructor:id,user_id,avatar',
+                'instructor.user:id,name',
+                'tags:id,name,slug',
+                'previews:id,course_id,title,video_url,description,video_provider,duration_seconds,sort_order',
+            ])
             ->when(isset($filters['category_id']), function ($query) use ($filters) {
                 $query->whereHas('category', function ($q) use ($filters) {
                     $q->where(function ($subQ) use ($filters) {
@@ -50,7 +56,13 @@ class CourseService
         // جلب 3 كورسات مشابهة من نفس القسم (بعيداً عن الكورس الحالي)
         $relatedCourses = Course::active()
             ->select(['id', 'title', 'slug', 'thumbnail', 'duration_hours', 'duration_weeks', 'short_description', 'price_before', 'discount_price', 'price', 'category_id', 'attendance_type'])
-            ->with(['category:id,name,slug', 'instructor:id,user_id,avatar', 'instructor.user:id,name', 'tags:id,name,slug'])
+            ->with([
+                'category:id,name,slug',
+                'instructor:id,user_id,avatar',
+                'instructor.user:id,name',
+                'tags:id,name,slug',
+                'previews:id,course_id,title,video_url,description,video_provider,duration_seconds,sort_order',
+            ])
             ->where('category_id', $course->category_id)
             ->where('id', '!=', $course->id)
             ->inRandomOrder()

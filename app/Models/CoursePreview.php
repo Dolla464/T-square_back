@@ -16,7 +16,7 @@ class CoursePreview extends Model
         'description',
         'video_provider',
         'duration_seconds',
-        'sort_order'
+        'sort_order',
     ];
 
     public function course()

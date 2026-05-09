@@ -29,12 +29,24 @@ class CourseListResource extends JsonResource
                 'final' => (int)$this->price,
             ],
             'category' => $this->category->name ?? null,
-            'tags' => $this->tags->take(4)->map(function ($tag) {
+            'tags' => $this->whenLoaded('tags', fn () => $this->tags->take(4)->map(function ($tag) {
                 return [
                     'id' => $tag->id,
                     'name' => $tag->name,
+                    'slug' => $tag->slug,
                 ];
-            }),
+            })->values(), []),
+            'previews' => $this->whenLoaded('previews', fn () => $this->previews->map(function ($preview) {
+                return [
+                    'id' => $preview->id,
+                    'title' => $preview->title,
+                    'video_url' => $preview->video_url,
+                    'description' => $preview->description,
+                    'video_provider' => $preview->video_provider,
+                    'duration_seconds' => $preview->duration_seconds,
+                    'sort_order' => $preview->sort_order,
+                ];
+            })->values(), []),
         ];
     }
 }
