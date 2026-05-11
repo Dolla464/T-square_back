@@ -41,17 +41,28 @@ class CourseDetailsResource extends JsonResource
             ],
 
             // مصفوفة "ماذا ستتعلم"
-            'learnings' => $this->learnings->pluck('content'), 
+            'learnings' => $this->whenLoaded('learnings', fn () => $this->learnings->pluck('title'), []), 
+
+            'tags' => $this->whenLoaded('tags', fn () => $this->tags->map(function ($tag) {
+                return [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'slug' => $tag->slug,
+                ];
+            })->values(), []),
 
             // مصفوفة الفيديوهات أو الملفات التجريبية
-            'previews' => $this->previews->map(function($preview) {
+            'previews' => $this->whenLoaded('previews', fn () => $this->previews->map(function ($preview) {
                 return [
                     'id' => $preview->id,
                     'title' => $preview->title,
-                    'url' => $preview->video_url,
-                    'is_free' => (bool) $preview->is_free,
+                    'video_url' => $preview->video_url,
+                    'description' => $preview->description,
+                    'video_provider' => $preview->video_provider,
+                    'duration_seconds' => $preview->duration_seconds,
+                    'sort_order' => $preview->sort_order,
                 ];
-            }),
+            })->values(), []),
         ];
     }
 }

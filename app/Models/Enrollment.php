@@ -38,6 +38,14 @@ class Enrollment extends Model
     }
 
     /**
+     * Helper Function: الحصول على الشهادة الخاصة بالتسجيل
+     */
+    public function certificate()
+    {
+        return $this->hasOne(Certificate::class, 'enrollment_id');
+    }
+
+    /**
      * Helper Function: تحديد الكورس كمكتمل
      */
     public function markAsCompleted()
