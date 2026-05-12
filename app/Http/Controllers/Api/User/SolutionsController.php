@@ -26,7 +26,7 @@ class SolutionsController extends Controller
     public function index(Request $request)
     {
         $solutions = $this->solutionService->getAllSolutions($request->all());
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'Solutions fetched successfully',
@@ -47,6 +47,7 @@ class SolutionsController extends Controller
     public function show(Solution $solution)
     {
         $solution = $this->solutionService->getSolutionById($solution);
+
         return $this->successResponse(new SolutionResource($solution), 'Solution fetched successfully');
     }
 }

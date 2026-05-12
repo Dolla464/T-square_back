@@ -7,8 +7,6 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Resources\User\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Auth;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -24,12 +22,12 @@ class AuthenticatedSessionController extends Controller
 
         $token = $request->user()->createToken('T-Square-Access-Token')->plainTextToken;
 
-        //$request->session()->regenerate();
+        // $request->session()->regenerate();
 
         return $this->successResponse(
             [
                 'token' => $token,
-                'user'  => new UserResource($user->load(['roles', 'student'])),
+                'user' => new UserResource($user->load(['roles', 'student'])),
             ],
             'Success'
         );

@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Category extends Model
 {
-
     use HasFactory;
 
     protected $fillable = [
@@ -18,12 +17,12 @@ class Category extends Model
         'image',
         'parent_id',
         'sort_order',
-        'status'
+        'status',
     ];
 
     protected static function booted()
     {
-        static::saving(fn($category) => $category->slug = str()->slug($category->name));
+        static::saving(fn ($category) => $category->slug = str()->slug($category->name));
     }
 
     // علاقة القسم بالأب (القسم الرئيسي)

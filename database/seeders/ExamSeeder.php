@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Course;
 use App\Models\Exam;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class ExamSeeder extends Seeder
@@ -18,7 +17,7 @@ class ExamSeeder extends Seeder
         Course::all()->each(function ($course) {
             Exam::factory()->create([
                 'course_id' => $course->id,
-                'title' => 'Final Exam for ' . $course->title
+                'title' => 'Final Exam for '.$course->title,
             ]);
         });
     }

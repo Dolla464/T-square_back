@@ -17,7 +17,7 @@ class CourseReview extends Model
         'instructor_rating',
         'center_rating',
         'rating',
-        'overall_comment'
+        'overall_comment',
     ];
 
     /**

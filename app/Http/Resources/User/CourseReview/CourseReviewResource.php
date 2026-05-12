@@ -15,19 +15,19 @@ class CourseReviewResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'              => $this->id,
-            'rating'          => $this->rating,
+            'id' => $this->id,
+            'rating' => $this->rating,
             'overall_comment' => $this->overall_comment,
- 
+
             'student' => [
                 'full_name' => $this->student?->full_name,
-                'avatar'    => $this->student?->avatar,
+                'avatar' => $this->student?->avatar,
             ],
- 
+
             'course' => [
                 'title' => $this->course?->title,
             ],
- 
+
             'instructor' => [
                 'full_name' => $this->instructor?->full_name,
             ],

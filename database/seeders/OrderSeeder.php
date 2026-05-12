@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Order;
 use App\Models\Student;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class OrderSeeder extends Seeder
@@ -18,6 +17,7 @@ class OrderSeeder extends Seeder
 
         if ($students->isEmpty()) {
             $this->command->info('لازم تشغل StudentSeeder الأول يا عادل!');
+
             return;
         }
 

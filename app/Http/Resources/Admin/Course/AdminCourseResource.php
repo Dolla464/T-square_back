@@ -4,7 +4,6 @@ namespace App\Http\Resources\Admin\Course;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Http\Resources\Admin\Course\CourseFieldList;
 
 class AdminCourseResource extends JsonResource
 {
@@ -16,8 +15,8 @@ class AdminCourseResource extends JsonResource
     public function toArray(Request $request): array
     {
         // determine which fields should be considered for listing vs detail
-        $fields = $request->routeIs('*show*') 
-                ? CourseFieldList::fieldsForDetail() 
+        $fields = $request->routeIs('*show*')
+                ? CourseFieldList::fieldsForDetail()
                 : CourseFieldList::fieldsForList();
 
         $data = [];
@@ -65,13 +64,13 @@ class AdminCourseResource extends JsonResource
 
         if ($this->relationLoaded('previews')) {
             $data['previews'] = $this->previews->map(fn ($preview) => [
-                'id'               => $preview->id,
-                'title'            => $preview->title,
-                'video_url'        => $preview->video_url,
-                'description'      => $preview->description,
-                'video_provider'   => $preview->video_provider,
+                'id' => $preview->id,
+                'title' => $preview->title,
+                'video_url' => $preview->video_url,
+                'description' => $preview->description,
+                'video_provider' => $preview->video_provider,
                 'duration_seconds' => $preview->duration_seconds,
-                'sort_order'       => $preview->sort_order,
+                'sort_order' => $preview->sort_order,
             ])->values();
         }
 

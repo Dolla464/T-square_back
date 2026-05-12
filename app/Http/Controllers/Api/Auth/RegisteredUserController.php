@@ -7,7 +7,6 @@ use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
@@ -20,11 +19,11 @@ class RegisteredUserController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request): JsonResponse 
+    public function store(Request $request): JsonResponse
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -46,9 +45,9 @@ class RegisteredUserController extends Controller
         return $this->successResponse(
             [
                 'token' => $token,
-                'user'  => $user->load('roles'), // عشان الـ Front يعرف هو طالب ولا مدرس فوراً
-            ], 
-            'User registered successfully', 
+                'user' => $user->load('roles'), // عشان الـ Front يعرف هو طالب ولا مدرس فوراً
+            ],
+            'User registered successfully',
             201
         );
     }

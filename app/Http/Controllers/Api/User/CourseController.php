@@ -23,20 +23,22 @@ class CourseController extends Controller
     public function index(Request $request)
     {
         $courses = $this->courseService->getActiveCourses($request->all());
-        //return $this->successResponse($courses, 'Courses fetched successfully');
+
+        // return $this->successResponse($courses, 'Courses fetched successfully');
         return CourseListResource::collection($courses)->response()->getData(true);
     }
 
     public function show($slug)
     {
         $course = $this->courseService->getCourseDetails($slug);
-        //return $this->successResponse($course);
+
+        // return $this->successResponse($course);
         return response()->json([
             'status' => 'success',
             'data' => [
                 'course' => new CourseDetailsResource($course['course']),
-                'related' => CourseListResource::collection($course['related'])
-            ]
+                'related' => CourseListResource::collection($course['related']),
+            ],
         ]);
     }
 }

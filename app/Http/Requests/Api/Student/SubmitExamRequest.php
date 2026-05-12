@@ -15,7 +15,7 @@ class SubmitExamRequest extends FormRequest
         // بنجيب الطالب المرتبط باليوزر، وبعدين نشوف محاولاته
         $student = $this->user()->student;
 
-        if (!$student) {
+        if (! $student) {
             return false;
         }
 

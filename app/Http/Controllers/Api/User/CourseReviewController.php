@@ -15,7 +15,7 @@ class CourseReviewController extends Controller
     public function __construct(
         private readonly CourseReviewService $courseReviewService,
     ) {}
- 
+
     /**
      * اخر 5 reviews عموما.
      *
@@ -24,7 +24,7 @@ class CourseReviewController extends Controller
     public function latest(): JsonResponse
     {
         $reviews = $this->courseReviewService->getLatestReviews();
- 
+
         return $this->successResponse(
             data: CourseReviewResource::collection($reviews),
             message: 'Latest reviews retrieved successfully.',
@@ -46,5 +46,4 @@ class CourseReviewController extends Controller
             message: 'Course reviews retrieved successfully.',
         );
     }
-
 }

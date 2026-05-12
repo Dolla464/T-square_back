@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Choice;
 use App\Models\Question;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class ChoiceSeeder extends Seeder
@@ -17,7 +16,7 @@ class ChoiceSeeder extends Seeder
         Question::all()->each(function ($question) {
             // إنشاء 4 اختيارات لكل سؤال
             $choices = Choice::factory(4)->create([
-                'question_id' => $question->id
+                'question_id' => $question->id,
             ]);
 
             // اختيار واحد عشوائي ليكون هو الإجابة الصحيحة

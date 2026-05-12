@@ -6,14 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\NotificationResource;
 use App\Services\Notification\NotificationService;
 use App\Traits\ApiResponseTrait;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class NotificationController extends Controller
 {
     // تعريف الـ Service
     protected NotificationService $notificationService;
+
     use ApiResponseTrait;
 
     // حقن الـ Service داخل الـ Controller
@@ -35,11 +36,11 @@ class NotificationController extends Controller
 
         // 2. إرجاع الـ Resource للفرونت إند
         return NotificationResource::collection($notifications)->additional([
-            'status'  => 'success',
+            'status' => 'success',
             'message' => 'Notifications retrieved successfully',
-            'meta'    => [
+            'meta' => [
                 'unread_count' => $unreadCount,
-            ]
+            ],
         ]);
     }
 
@@ -53,7 +54,7 @@ class NotificationController extends Controller
         // الـ Service هترجع true لو لقت الإشعار وحددته، و false لو مش موجود
         $isMarked = $this->notificationService->markAsRead($user, $id);
 
-        if (!$isMarked) {
+        if (! $isMarked) {
 
             return $this->errorResponse('Notification not found', 404);
         }
@@ -61,8 +62,6 @@ class NotificationController extends Controller
         // 4. استخدام دالة النجاح من الـ Trait (البيانات null لأن مفيش داتا هترجع)
         return $this->successResponse(null, 'Notification marked as read');
     }
-
-
 
     /**
      * تحديد جميع الإشعارات كمقروءة

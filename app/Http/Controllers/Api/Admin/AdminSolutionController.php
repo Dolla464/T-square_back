@@ -27,7 +27,7 @@ class AdminSolutionController extends Controller
     {
         $search = $request->query('search');
         $solutions = $this->solutionService->index(15, $search);
-        
+
         return $this->paginateResponse($solutions->through(function ($solution) {
             return new AdminSolutionResource($solution);
         }), 'Solutions retrieved successfully');
@@ -40,7 +40,7 @@ class AdminSolutionController extends Controller
     {
         $data = $request->validated();
         $solution = $this->solutionService->store($data);
-        
+
         return $this->successResponse(
             new AdminSolutionResource($solution),
             'Solution created successfully',
@@ -54,7 +54,7 @@ class AdminSolutionController extends Controller
     public function show(Solution $solution): JsonResponse
     {
         $solution = $this->solutionService->show($solution);
-        
+
         return $this->successResponse(
             new AdminSolutionResource($solution),
             'Solution retrieved successfully'
@@ -68,7 +68,7 @@ class AdminSolutionController extends Controller
     {
         $data = $request->validated();
         $solution = $this->solutionService->update($solution, $data);
-        
+
         return $this->successResponse(
             new AdminSolutionResource($solution),
             'Solution updated successfully'
@@ -81,7 +81,7 @@ class AdminSolutionController extends Controller
     public function destroy(Solution $solution): JsonResponse
     {
         $this->solutionService->destroy($solution);
-        
+
         return $this->successResponse(
             null,
             'Solution deleted successfully'

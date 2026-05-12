@@ -31,6 +31,7 @@ class NotificationService
 
         if ($notification) {
             $notification->markAsRead();
+
             return true;
         }
 

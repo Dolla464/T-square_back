@@ -12,9 +12,7 @@ use Illuminate\Http\Response;
 
 class AdminPaymentController extends Controller
 {
-    public function __construct(private readonly AdminPaymentService $payments)
-    {
-    }
+    public function __construct(private readonly AdminPaymentService $payments) {}
 
     /**
      * Display a listing of the resource.

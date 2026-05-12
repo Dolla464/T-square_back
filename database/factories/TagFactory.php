@@ -18,6 +18,7 @@ class TagFactory extends Factory
     public function definition(): array
     {
         $name = $this->faker->unique()->word(); // كلمة واحدة فريدة
+
         return [
             'name' => $name,
             'slug' => str()->slug($name),

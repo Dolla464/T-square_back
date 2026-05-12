@@ -13,24 +13,17 @@ trait HandleImageUploadTrait
 {
     /**
      * Upload an image to the public disk.
-     *
-     * @param UploadedFile $file
-     * @param string $folder
-     * @param string|null $oldPath
-     * @return string
      */
     /**
      * Upload, resize, and convert an image to WebP format.
      *
-     * @param  UploadedFile  $file
-     * @param  string        $folder
-     * @param  string|null   $oldPath   Path of the old file to delete.
-     * @param  int           $maxSize   Max width/height in pixels (800 for thumbnails, 1920 for covers).
+     * @param  string|null  $oldPath  Path of the old file to delete.
+     * @param  int  $maxSize  Max width/height in pixels (800 for thumbnails, 1920 for covers).
      */
     public function uploadImage(UploadedFile $file, string $folder, ?string $oldPath = null, int $maxSize = 800): string
     {
         // ensure required GD functions are available (and WebP support)
-        if (!\function_exists('imagewebp') || (!\function_exists('imagecreatefromjpeg') && !\function_exists('imagecreatefrompng') && !\function_exists('imagecreatefromwebp'))) {
+        if (! \function_exists('imagewebp') || (! \function_exists('imagecreatefromjpeg') && ! \function_exists('imagecreatefrompng') && ! \function_exists('imagecreatefromwebp'))) {
             throw new \Exception('GD extension with image and WebP support is required. Please enable the gd extension and ensure WebP support is available in your PHP build.');
         }
 
@@ -40,7 +33,7 @@ trait HandleImageUploadTrait
         }
 
         // 2. prepare the name and path
-        $generatedName = $folder . '_' . time() . '_' . Str::random(5) . '.webp';
+        $generatedName = $folder.'_'.time().'_'.Str::random(5).'.webp';
         $fullPath = "{$folder}/{$generatedName}";
 
         // 3. read the original image
@@ -49,11 +42,11 @@ trait HandleImageUploadTrait
         $width = $info[0];
         $height = $info[1];
 
-        $source = match($info[2]) {
+        $source = match ($info[2]) {
             IMAGETYPE_JPEG => \imagecreatefromjpeg($imagePath),
-            IMAGETYPE_PNG  => \imagecreatefrompng($imagePath),
+            IMAGETYPE_PNG => \imagecreatefrompng($imagePath),
             IMAGETYPE_WEBP => \imagecreatefromwebp($imagePath),
-            default        => throw new \Exception('Image type not supported'),
+            default => throw new \Exception('Image type not supported'),
         };
 
         // --- Resize to $maxSize while maintaining aspect ratio ---
@@ -61,10 +54,10 @@ trait HandleImageUploadTrait
         if ($width > $maxSide || $height > $maxSide) {
             if ($width > $height) {
                 $newWidth = $maxSide;
-                $newHeight = (int)($height * ($maxSide / $width));
+                $newHeight = (int) ($height * ($maxSide / $width));
             } else {
                 $newHeight = $maxSide;
-                $newWidth = (int)($width * ($maxSide / $height));
+                $newWidth = (int) ($width * ($maxSide / $height));
             }
 
             // create an empty image with the new dimensions
@@ -83,10 +76,10 @@ trait HandleImageUploadTrait
         // -------------------------------------------
 
         // 4. convert the image to WebP using Buffer
-    ob_start();
-    \imagewebp($source, null, 80); // quality 80%
-    $webpContent = ob_get_clean();
-    \imagedestroy($source);
+        ob_start();
+        \imagewebp($source, null, 80); // quality 80%
+        $webpContent = ob_get_clean();
+        \imagedestroy($source);
 
         // 5. save the image
         Storage::disk('public')->put($fullPath, $webpContent);

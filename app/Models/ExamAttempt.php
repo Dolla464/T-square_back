@@ -22,8 +22,9 @@ class ExamAttempt extends Model
     public function getDurationAttribute()
     {
         if ($this->started_at && $this->finished_at) {
-            return $this->started_at->diffInMinutes($this->finished_at) . ' Minutes';
+            return $this->started_at->diffInMinutes($this->finished_at).' Minutes';
         }
+
         return 'Not finished';
     }
 
@@ -33,9 +34,9 @@ class ExamAttempt extends Model
         $totalScore = $this->answers()->where('is_correct', true)->sum('marks_earned');
 
         $this->fill([
-            'score'       => $totalScore,
-            'status'      => 'completed',
-            'finished_at' => now()
+            'score' => $totalScore,
+            'status' => 'completed',
+            'finished_at' => now(),
         ])->save();
 
         return $totalScore;
@@ -45,6 +46,7 @@ class ExamAttempt extends Model
     {
         return $this->belongsTo(Student::class);
     }
+
     public function exam()
     {
         return $this->belongsTo(Exam::class);

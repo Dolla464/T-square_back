@@ -20,7 +20,7 @@ class LearningGroupFactory extends Factory
     public function definition(): array
     {
         return [
-            'group_name' => 'Batch #' . $this->faker->numberBetween(1, 10),
+            'group_name' => 'Batch #'.$this->faker->numberBetween(1, 10),
             'course_id' => Course::inRandomOrder()->first()->id ?? Course::factory(),
             'instructor_id' => Instructor::inRandomOrder()->first()->id ?? Instructor::factory(),
         ];

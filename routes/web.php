@@ -7,7 +7,6 @@ Route::get('/', function () {
     return ['Laravel' => app()->version()];
 });
 
-
 Route::get('/test-pdf', function () {
     return Pdf::view('certificate', ['name' => 'Anas Aln3san', 'course' => 'Laravel Backend'])
         ->format('a4')
@@ -15,4 +14,4 @@ Route::get('/test-pdf', function () {
         ->name('test-certificate.pdf');
 });
 
-//require __DIR__.'/auth.php';
+// require __DIR__.'/auth.php';

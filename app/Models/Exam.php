@@ -20,7 +20,7 @@ class Exam extends Model
         'passing_mark',
         'is_final',
         'max_attempts',
-        'shuffle_questions'
+        'shuffle_questions',
     ];
 
     // علاقة الامتحان بالكورس

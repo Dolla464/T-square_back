@@ -56,7 +56,7 @@ class CertificateController extends Controller
     {
         $user = auth('sanctum')->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Unauthenticated.',
@@ -65,7 +65,7 @@ class CertificateController extends Controller
 
         $user->loadMissing('student');
 
-        if (!$user->student || $enrollment->student_id !== $user->student->id) {
+        if (! $user->student || $enrollment->student_id !== $user->student->id) {
             $payload = [
                 'status' => 'error',
                 'message' => 'Forbidden: This user is not the owner of this certificate.',
@@ -101,7 +101,7 @@ class CertificateController extends Controller
 
         $user = auth('sanctum')->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Unauthenticated.',
@@ -110,7 +110,7 @@ class CertificateController extends Controller
 
         $student = $user?->student;
 
-        if (!$student || $enrollment->student_id !== $student->id) {
+        if (! $student || $enrollment->student_id !== $student->id) {
             $payload = [
                 'status' => 'error',
                 'message' => 'عذراً، لا تملك صلاحية تحميل هذه الشهادة.',
@@ -125,7 +125,7 @@ class CertificateController extends Controller
             return response()->json($payload, 403);
         }
 
-        if (!$enrollment->is_completed) {
+        if (! $enrollment->is_completed) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'عذراً، الشهادة غير متاحة لأن الكورس لم يكتمل بعد.',
@@ -136,7 +136,7 @@ class CertificateController extends Controller
         $certificate = $this->certificateService->issueCertificate($enrollment);
 
         // Download the file from storage
-        if (!Storage::disk('public')->exists($certificate->certificate_url)) {
+        if (! Storage::disk('public')->exists($certificate->certificate_url)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'ملف الشهادة غير موجود.',

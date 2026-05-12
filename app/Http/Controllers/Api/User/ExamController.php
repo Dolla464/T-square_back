@@ -25,7 +25,7 @@ class ExamController extends Controller
     {
         $student = $request->user()->student;
 
-        if (!$student) {
+        if (! $student) {
             return response()->json(['message' => 'Student profile not found'], 404);
         }
 
@@ -39,7 +39,7 @@ class ExamController extends Controller
         // بنوصل للطالب من خلال علاقة الـ User
         $student = $request->user()->student;
 
-        if (!$student) {
+        if (! $student) {
             return response()->json(['message' => 'Student profile not found'], 404);
         }
 
@@ -58,6 +58,7 @@ class ExamController extends Controller
             $request->question_id,
             $request->choice_id
         );
+
         return response()->json(['status' => 'saved']);
     }
 
@@ -65,7 +66,7 @@ class ExamController extends Controller
     {
         $student = $request->user()->student;
 
-        if (!$student) {
+        if (! $student) {
             return response()->json(['message' => 'Student profile not found'], 404);
         }
 
@@ -79,15 +80,15 @@ class ExamController extends Controller
         return response()->json([
             'message' => 'Exam completed successfully',
             'results' => [
-                'score'        => $score,
-                'total_marks'  => $totalMarks,
-                'is_passed'    => $result['is_passed'],
-                'status'       => $result['status'],
-                'percentage'   => $percentage . '%',
-                'feedback'     => $result['is_passed']
+                'score' => $score,
+                'total_marks' => $totalMarks,
+                'is_passed' => $result['is_passed'],
+                'status' => $result['status'],
+                'percentage' => $percentage.'%',
+                'feedback' => $result['is_passed']
                     ? 'Congratulations. You passed this exam.'
-                    : 'Sorry. You failed this exam. Try again.'
-            ]
+                    : 'Sorry. You failed this exam. Try again.',
+            ],
         ]);
     }
 
@@ -95,7 +96,7 @@ class ExamController extends Controller
     {
         $student = $request->user()->student;
 
-        if (!$student) {
+        if (! $student) {
             return response()->json(['message' => 'Student not found'], 404);
         }
 

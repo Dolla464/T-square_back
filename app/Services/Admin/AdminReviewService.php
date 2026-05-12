@@ -14,7 +14,7 @@ class AdminReviewService
     {
         $query = CourseReview::with(['course', 'student', 'instructor']);
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->whereHas('course', function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%");
@@ -40,6 +40,7 @@ class AdminReviewService
     public function update(CourseReview $review, array $data): CourseReview
     {
         $review->update($data);
+
         return $review->load(['course', 'student', 'instructor']);
     }
 

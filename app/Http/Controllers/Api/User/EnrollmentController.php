@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\User;
 use App\Events\StudentEnrolled;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Student\StoreEnrollmentRequest;
+use App\Models\User;
 use App\Services\User\EnrollmentService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
@@ -24,7 +25,7 @@ class EnrollmentController extends Controller
     {
         $payload = $request->validated();
 
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = $request->user();
 
         $student = $user->student;
@@ -49,4 +50,3 @@ class EnrollmentController extends Controller
         );
     }
 }
-

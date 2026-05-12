@@ -29,8 +29,8 @@ class CourseService
                     });
                 });
             })
-            ->when(isset($filters['level']), fn($q) => $q->where('level', $filters['level']))
-            ->when(isset($filters['search']), fn($q) => $q->where('title', 'like', '%' . $filters['search'] . '%'))
+            ->when(isset($filters['level']), fn ($q) => $q->where('level', $filters['level']))
+            ->when(isset($filters['search']), fn ($q) => $q->where('title', 'like', '%'.$filters['search'].'%'))
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
@@ -46,10 +46,10 @@ class CourseService
             ->where('slug', $slug)
             ->first();
 
-        if (!$course) {
+        if (! $course) {
             abort(response()->json([
                 'status' => 'error',
-                'message' => 'Course not found'
+                'message' => 'Course not found',
             ], 404));
         }
 
@@ -71,7 +71,7 @@ class CourseService
 
         return [
             'course' => $course,
-            'related' => $relatedCourses
+            'related' => $relatedCourses,
         ];
     }
 }

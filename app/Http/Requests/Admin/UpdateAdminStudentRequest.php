@@ -21,13 +21,13 @@ class UpdateAdminStudentRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('students', 'enrollment_number')->ignore($this->route('student'))
+                Rule::unique('students', 'enrollment_number')->ignore($this->route('student')),
             ],
             'group_id' => ['sometimes', 'required', 'nullable', 'exists:learning_groups,id'],
             'gender' => ['sometimes', 'required', Rule::in(['male', 'female'])],
             'status' => ['sometimes', 'required', Rule::in(['active', 'inactive'])],
             'avatar' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
-            
+
             // حقل الهاتف ممنوع تعديله
             'phone' => ['prohibited'],
         ];

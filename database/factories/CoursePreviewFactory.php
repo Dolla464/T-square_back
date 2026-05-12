@@ -20,7 +20,7 @@ class CoursePreviewFactory extends Factory
     {
         return [
             'course_id' => Course::inRandomOrder()->first()->id ?? Course::factory(),
-            'title' => 'Intro: ' . $this->faker->sentence(3),
+            'title' => 'Intro: '.$this->faker->sentence(3),
             'video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // مثال
             'video_provider' => 'youtube',
             'duration_seconds' => $this->faker->numberBetween(60, 300),

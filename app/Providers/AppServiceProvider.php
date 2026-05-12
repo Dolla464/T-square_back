@@ -2,8 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\Course;
+use App\Models\CourseReview;
 use App\Models\Enrollment;
+use App\Models\Order;
+use App\Observers\CourseObserver;
+use App\Observers\CourseReviewObserver;
 use App\Observers\EnrollmentObserve;
+use App\Observers\OrderObserver;
 use Carbon\Carbon;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -33,10 +39,10 @@ class AppServiceProvider extends ServiceProvider
 
         // Reset Password route
         ResetPassword::createUrlUsing(function (object $notifiable, string $token) {
-            return config('app.frontend_url') . "/password-reset/$token?email={$notifiable->getEmailForPasswordReset()}";
+            return config('app.frontend_url')."/password-reset/$token?email={$notifiable->getEmailForPasswordReset()}";
         });
-      
-        // مراقبت جدول الenrollment       
+
+        // مراقبت جدول الenrollment
         Enrollment::observe(EnrollmentObserve::class);
 
         // vervification route
@@ -48,16 +54,16 @@ class AppServiceProvider extends ServiceProvider
                     'id' => $notifiable->getKey(),
                     'hash' => sha1($notifiable->getEmailForVerification()),
                 ]
-                );
+            );
 
-                $query = parse_url($temporarySignedUrl, PHP_URL_QUERY);
+            $query = parse_url($temporarySignedUrl, PHP_URL_QUERY);
 
-                return config('app.frontend_url') . "/verify-email?" . $query . "&id=" . $notifiable->getKey() . "&hash=" . sha1($notifiable->getEmailForVerification());
+            return config('app.frontend_url').'/verify-email?'.$query.'&id='.$notifiable->getKey().'&hash='.sha1($notifiable->getEmailForVerification());
         });
 
         // Observers
-        \App\Models\Order::observe(\App\Observers\OrderObserver::class);
-        \App\Models\CourseReview::observe(\App\Observers\CourseReviewObserver::class);
+        Course::observe(CourseObserver::class);
+        Order::observe(OrderObserver::class);
+        CourseReview::observe(CourseReviewObserver::class);
     }
 }
-

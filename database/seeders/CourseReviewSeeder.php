@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\CourseReview;
 use App\Models\Enrollment;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class CourseReviewSeeder extends Seeder
@@ -26,7 +25,7 @@ class CourseReviewSeeder extends Seeder
                 'instructor_rating' => rand(4, 5),
                 'center_rating' => rand(3, 5),
                 'rating' => rand(3, 5),
-                'overall_comment' => 'تجربة ممتازة جداً في كورس ' . $enrollment->course->title,
+                'overall_comment' => 'تجربة ممتازة جداً في كورس '.$enrollment->course->title,
             ]);
         }
     }
