@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\AdminCategoryController;
+use App\Http\Controllers\Api\Admin\AdminCertificateController;
 use App\Http\Controllers\Api\Admin\AdminCourseController;
 use App\Http\Controllers\Api\Admin\AdminInstructorController;
 use App\Http\Controllers\Api\Admin\AdminPaymentController;
