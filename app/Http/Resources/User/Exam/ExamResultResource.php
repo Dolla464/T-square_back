@@ -23,19 +23,19 @@ class ExamResultResource extends JsonResource
                 ->where('course_id', '=', $this->exam->course_id, 'and')
                 ->value('id')
             : null;
-    
+
         return [
-            'attempt_id'   => $this->id,
-            'exam_title'   => $this->exam->title,
-            'course_name'  => $this->exam->course->title,
-            'score'        => $studentScore,
-            'total_marks'  => $this->exam->total_marks,
+            'attempt_id' => $this->id,
+            'exam_title' => $this->exam->title,
+            'course_name' => $this->exam->course->title,
+            'score' => $studentScore,
+            'total_marks' => $this->exam->total_marks,
             'passing_mark' => $passingMark,
-            'status'       => $this->status, // completed / timed_out
-            'is_passed'    => $studentScore >= $passingMark, // المنطق هنا
+            'status' => $this->status, // completed / timed_out
+            'is_passed' => $studentScore >= $passingMark, // المنطق هنا
             'can_download_certificate' => $canDownloadCertificate,
             'enrollment_id' => $enrollmentId,
-            'finished_at'  => $this->finished_at?->format('Y-m-d H:i'),
+            'finished_at' => $this->finished_at?->format('Y-m-d H:i'),
         ];
     }
 }

@@ -41,7 +41,7 @@ class CourseDetailsResource extends JsonResource
             ],
 
             // مصفوفة "ماذا ستتعلم"
-            'learnings' => $this->whenLoaded('learnings', fn () => $this->learnings->pluck('title'), []), 
+            'learnings' => $this->whenLoaded('learnings', fn () => $this->learnings->pluck('title'), []),
 
             'tags' => $this->whenLoaded('tags', fn () => $this->tags->map(function ($tag) {
                 return [

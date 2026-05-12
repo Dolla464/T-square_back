@@ -9,6 +9,7 @@ use Illuminate\Queue\InteractsWithQueue;
 class UpdateCourseFinancialStats implements ShouldQueue
 {
     use InteractsWithQueue;
+
     /**
      * Create the event listener.
      */

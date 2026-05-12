@@ -2,8 +2,8 @@
 
 namespace App\Observers;
 
-use App\Models\CourseReview;
 use App\Events\ReviewSubmitted;
+use App\Models\CourseReview;
 
 class CourseReviewObserver
 {
@@ -23,7 +23,7 @@ class CourseReviewObserver
      */
     public function updated(CourseReview $review): void
     {
-        // خطوة احترافية: نتأكد إنه غير عدد النجوم فعلاً 
+        // خطوة احترافية: نتأكد إنه غير عدد النجوم فعلاً
         // عشان لو عدل نص الكومنت بس، منعملش لود على الداتابيز على الفاضي
         if ($review->wasChanged('rating')) {
             event(new ReviewSubmitted($review));

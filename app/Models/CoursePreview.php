@@ -19,6 +19,22 @@ class CoursePreview extends Model
         'sort_order',
     ];
 
+    public function getVideoUrlAttribute($value)
+    {
+        if (! $value) {
+            return null;
+        }
+
+        // إذا كان الرابط خارجياً بالفعل (YouTube / Drive)
+        if (filter_var($value, FILTER_VALIDATE_URL)) {
+            return $value;
+        }
+
+        // إذا كان المرفوع محلياً، أضف رابط التخزين الكامل
+        // تأكد من أن APP_URL في ملف .env مضبوط بشكل صحيح
+        return asset('storage/'.$value);
+    }
+
     public function course()
     {
         return $this->belongsTo(Course::class);

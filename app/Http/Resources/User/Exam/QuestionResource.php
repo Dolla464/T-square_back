@@ -15,13 +15,13 @@ class QuestionResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'            => $this->id,
+            'id' => $this->id,
             'question_text' => $this->question_text,
-            'marks'         => $this->marks,
+            'marks' => $this->marks,
             // بنبعت الاختيارات بس بنشيل منها عمود is_correct للأمان
-            'choices'       => $this->choices->map(function ($choice) {
+            'choices' => $this->choices->map(function ($choice) {
                 return [
-                    'id'          => $choice->id,
+                    'id' => $choice->id,
                     'choice_text' => $choice->choice_text,
                 ];
             }),

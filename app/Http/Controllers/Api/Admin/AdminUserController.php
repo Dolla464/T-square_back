@@ -7,11 +7,9 @@ use App\Http\Requests\Admin\StoreUserRequest;
 use App\Services\UserService;
 use App\Traits\HandleImageUploadTrait;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Support\Facades\Auth;
 
 class AdminUserController extends Controller
 {
-
     use HandleImageUploadTrait;
 
     public function store(StoreUserRequest $request, UserService $userService)
@@ -40,7 +38,7 @@ class AdminUserController extends Controller
         $user->load($user->role === 'student' ? 'student' : 'instructor');
 
         // --- the first case: external registration (Student Self-Register) ---
-        if (!$isAdmin) {
+        if (! $isAdmin) {
             // trigger the registration event (to send the verification email)
             event(new Registered($user));
 
@@ -50,7 +48,7 @@ class AdminUserController extends Controller
             return $this->successResponse(
                 [
                     'user' => $user,
-                    'token' => $token
+                    'token' => $token,
                 ],
                 'Registered successfully. Please verify your email.',
                 201

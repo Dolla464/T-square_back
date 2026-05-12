@@ -18,14 +18,14 @@ class StoreEnrollmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'course_id'      => ['required', 'integer', 'exists:courses,id'],
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
 
             // Required only when course is paid (validated in withValidator()).
-            'billing_name'   => ['nullable', 'string', 'max:255'],
-            'billing_email'  => ['nullable', 'string', 'email', 'max:255'],
-            'billing_phone'  => ['nullable', 'string', 'max:20'],
+            'billing_name' => ['nullable', 'string', 'max:255'],
+            'billing_email' => ['nullable', 'string', 'email', 'max:255'],
+            'billing_phone' => ['nullable', 'string', 'max:20'],
 
-            'notes'          => ['nullable', 'string'],
+            'notes' => ['nullable', 'string'],
         ];
     }
 
@@ -59,4 +59,3 @@ class StoreEnrollmentRequest extends FormRequest
         });
     }
 }
-

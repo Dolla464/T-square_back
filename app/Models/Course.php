@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 
 class Course extends Model
 {
-    use SoftDeletes, HasFactory, Sluggable;
+    use HasFactory, Sluggable, SoftDeletes;
 
     protected $fillable = [
         'title',
@@ -40,15 +40,21 @@ class Course extends Model
         'avg_rating',
         'total_reviews',
         'total_students',
-        'total_revenue' // ضفت حقول الإحصائيات هنا لو هتحتاج تحدثها
+        'total_revenue', // ضفت حقول الإحصائيات هنا لو هتحتاج تحدثها
+    ];
+
+    protected $casts = [
+        'published_at' => 'datetime',
+        'is_featured' => 'boolean',
+        'is_free' => 'boolean',
     ];
 
     public function sluggable(): array
     {
         return [
             'slug' => [
-                'source' => 'title' // بنقول للحزمة تاخد الـ slug من حقل الـ title
-            ]
+                'source' => 'title', // بنقول للحزمة تاخد الـ slug من حقل الـ title
+            ],
         ];
     }
 
@@ -80,7 +86,7 @@ class Course extends Model
         // تم التعديل لاستخدام total_reviews بناءً على الميجريشن
         $this->update([
             'avg_rating' => round($stats->average ?? 0, 2),
-            'total_reviews' => $stats->total ?? 0
+            'total_reviews' => $stats->total ?? 0,
         ]);
     }
 
@@ -102,20 +108,39 @@ class Course extends Model
         return 'slug';
     }
 
+    /**
+     * Accessor لضمان عودة رابط صورة الغلاف كاملاً
+     */
+    protected function coverImage(): Attribute
+    {
+        return Attribute::get(function ($value) {
+            if (! $value) {
+                return null; // أو يمكنك وضع رابط صورة افتراضية هنا
+            }
+
+            // إذا كان الرابط يبدأ بـ http (مثل صور Faker) يرجعه كما هو
+            if (filter_var($value, FILTER_VALIDATE_URL)) {
+                return $value;
+            }
+
+            // يضيف رابط الـ Storage كاملاً للمسار المخزن
+            return asset('storage/'.$value);
+        });
+    }
+
     protected function thumbnail(): Attribute
     {
-        return Attribute::make(
-            get: function ($value) {
-                if (!$value) {
-                    return asset('assets/default-course.png');
-                }
-                // لو الرابط متسجل كامل (مثلاً جاي من API خارجي) رجعه زي ما هو
-                if (Str::startsWith($value, ['http://', 'https://'])) {
-                    return $value;
-                }
-                return Storage::url($value);
+        return Attribute::get(function ($value) {
+            if (! $value) {
+                return asset('assets/default-course.png');
             }
-        );
+
+            if (filter_var($value, FILTER_VALIDATE_URL) || Str::startsWith($value, ['http://', 'https://'])) {
+                return $value;
+            }
+
+            return asset('storage/'.$value);
+        });
     }
 
     // ================= العلاقات ================= //
@@ -124,42 +149,52 @@ class Course extends Model
     {
         return $this->belongsTo(Category::class);
     }
+
     public function instructor()
     {
         return $this->belongsTo(Instructor::class);
     }
+
     public function learningGroups()
     {
         return $this->hasMany(LearningGroup::class);
     }
+
     public function learnings()
     {
         return $this->hasMany(CourseLearning::class);
     }
+
     public function previews()
     {
         return $this->hasMany(CoursePreview::class)->orderBy('sort_order');
     }
+
     public function enrollments()
     {
         return $this->hasMany(Enrollment::class);
     }
+
     public function students()
     {
         return $this->belongsToMany(Student::class, 'enrollments');
     }
+
     public function certificates()
     {
         return $this->hasMany(Certificate::class);
     }
+
     public function exams()
     {
         return $this->hasMany(Exam::class);
     }
+
     public function tags()
     {
         return $this->belongsToMany(Tag::class, 'course_tag');
     }
+
     public function reviews()
     {
         return $this->hasMany(CourseReview::class);

@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Admin;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class AdminSeeder extends Seeder
@@ -16,7 +16,7 @@ class AdminSeeder extends Seeder
         // تكريت أدمن واحد أساسي ليك للتجربة
         Admin::factory()->create([
             'full_name' => 'Adel Admin',
-            'user_id' => \App\Models\User::where('email', 'adel@example.com')->first()->id ?? \App\Models\User::factory()
+            'user_id' => User::where('email', 'adel@example.com')->first()->id ?? User::factory(),
         ]);
 
         // وتكريت 2 أدمن كمان عشوائيين

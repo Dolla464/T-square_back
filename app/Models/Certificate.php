@@ -14,7 +14,7 @@ class Certificate extends Model
         'course_id',
         'certificate_url',
         'certificate_num',
-        'issued_at'
+        'issued_at',
     ];
 
     // الشهادة تخص طالب واحد

@@ -16,11 +16,11 @@ class ProfileResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'role' => $this->role,
-            'is_verified' => (bool)($this->email_verified_at),
+            'is_verified' => (bool) ($this->email_verified_at),
             'student' => $student ? [
                 'full_name' => $student->full_name,
                 'avatar' => $student->avatar
-                    ? asset('storage/' . $student->avatar)
+                    ? asset('storage/'.$student->avatar)
                     : asset('assets/default-student.png'),
                 'gender' => $student->gender ?? 'not_set',
                 'phone' => $student->phone ?? '',

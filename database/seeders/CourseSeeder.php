@@ -8,9 +8,7 @@ use App\Models\CourseLearning;
 use App\Models\CoursePreview;
 use App\Models\Instructor;
 use App\Models\Tag;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 
 class CourseSeeder extends Seeder
 {
@@ -26,6 +24,7 @@ class CourseSeeder extends Seeder
 
         if ($categories->isEmpty() || $instructors->isEmpty()) {
             $this->command->info('من فضلك شغل الـ Seeders بتاعة الـ Category والـ Instructor الأول!');
+
             return;
         }
 
@@ -47,16 +46,14 @@ class CourseSeeder extends Seeder
         // لكل كورس موجود، كريت له من 4 لـ 6 نقاط تعلم
         Course::all()->each(function ($course) {
             CourseLearning::factory(rand(4, 6))->create([
-                'course_id' => $course->id
+                'course_id' => $course->id,
             ]);
         });
 
         Course::all()->each(function ($course) {
             CoursePreview::factory(rand(1, 3))->create([
-                'course_id' => $course->id
+                'course_id' => $course->id,
             ]);
         });
     }
 }
-    
-

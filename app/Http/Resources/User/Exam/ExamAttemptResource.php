@@ -25,13 +25,13 @@ class ExamAttemptResource extends JsonResource
         return [
             'attempt_id' => $this->id,
             'exam_title' => $this->exam->title,
-            'duration'   => $this->exam->duration,
+            'duration' => $this->exam->duration,
             'started_at' => $this->started_at->toDateTimeString(),
-            'status'     => $this->status,
+            'status' => $this->status,
             'total_questions' => $questions->count(),
-            'total_marks'     => $this->exam->total_marks,
-            'user_answers'    => $this->answers->pluck('choice_id', 'question_id'),
-            'questions'  => QuestionResource::collection($questions),
+            'total_marks' => $this->exam->total_marks,
+            'user_answers' => $this->answers->pluck('choice_id', 'question_id'),
+            'questions' => QuestionResource::collection($questions),
         ];
     }
 }

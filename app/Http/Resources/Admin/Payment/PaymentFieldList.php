@@ -20,17 +20,17 @@ class PaymentFieldList
             'billing_name',
         ];
     }
-    
+
     /**
      * Fields used for a detailed resource (show).
      * You can include more fields here if you need them in the detail response.
-    */
+     */
     public static function fieldsForDetail(): array
     {
         return array_merge(self::fieldsForList(), [
             'notes',
             'billing_email',
-            'billing_phone'
+            'billing_phone',
         ]);
     }
 }

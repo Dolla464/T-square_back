@@ -21,7 +21,7 @@ class EnrollmentService
         $course = Course::query()->find($payload['course_id']);
 
         if (! $course) {
-            throw (new ModelNotFoundException())->setModel(Course::class, [$payload['course_id']]);
+            throw (new ModelNotFoundException)->setModel(Course::class, [$payload['course_id']]);
         }
 
         $isPaidCourse = ! (bool) $course->is_free && (float) $course->price > 0;
@@ -30,7 +30,7 @@ class EnrollmentService
         $studentName = $student->user->name;
         $whatsappNumber = Setting::query()->where('key', 'whatsapp')->value('value');
         $message = "أهلاً، أنا {$studentName}، لقد قمت بالتسجيل للتو في كورس '{$course->title}' وأرغب في استكمال التفاصيل.";
-        $whatsappLink = "https://wa.me/{$whatsappNumber}?text=" . urlencode($message);
+        $whatsappLink = "https://wa.me/{$whatsappNumber}?text=".urlencode($message);
 
         return DB::transaction(function () use ($student, $payload, $course, $isPaidCourse, $whatsappLink) {
 
@@ -46,10 +46,10 @@ class EnrollmentService
             }
             if (! $isPaidCourse) {
                 $enrollment = Enrollment::query()->create([
-                    'student_id'  => $student->id,
-                    'course_id'   => $course->id,
-                    'order_id'    => null,
-                    'price_paid'  => 0,
+                    'student_id' => $student->id,
+                    'course_id' => $course->id,
+                    'order_id' => null,
+                    'price_paid' => 0,
                     'is_completed' => false,
                     'completed_at' => null,
                 ]);
@@ -62,20 +62,20 @@ class EnrollmentService
             }
 
             $order = Order::query()->create([
-                'student_id'    => $student->id,
-                'total_amount'  => (float) $course->price,
-                'status'        => 'pending',
-                'billing_name'  => $payload['billing_name'],
+                'student_id' => $student->id,
+                'total_amount' => (float) $course->price,
+                'status' => 'pending',
+                'billing_name' => $payload['billing_name'],
                 'billing_email' => $payload['billing_email'],
                 'billing_phone' => $payload['billing_phone'],
-                'notes'         => $payload['notes'] ?? null,
+                'notes' => $payload['notes'] ?? null,
             ]);
 
             $enrollment = Enrollment::query()->create([
-                'student_id'   => $student->id,
-                'course_id'    => $course->id,
-                'order_id'     => $order->id,
-                'price_paid'   => (float) $course->price,
+                'student_id' => $student->id,
+                'course_id' => $course->id,
+                'order_id' => $order->id,
+                'price_paid' => (float) $course->price,
                 'is_completed' => false,
                 'completed_at' => null,
             ]);

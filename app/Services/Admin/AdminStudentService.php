@@ -60,7 +60,7 @@ class AdminStudentService
         }
 
         $student->update($data);
-        
+
         return $student->load('user:id,email');
     }
 

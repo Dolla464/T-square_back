@@ -32,15 +32,15 @@ class StudentExamAttemptStatusNotification extends Notification implements Shoul
             : 'Your exam attempt result is failed. Keep going and try again.';
 
         $mail = (new MailMessage)
-            ->subject('Exam Attempt Result: ' . ($isPassed ? 'Passed' : 'Failed'))
-            ->greeting('Hello ' . ($notifiable->name ?? 'Student') . ',')
+            ->subject('Exam Attempt Result: '.($isPassed ? 'Passed' : 'Failed'))
+            ->greeting('Hello '.($notifiable->name ?? 'Student').',')
             ->line($message)
-            ->line('Exam: ' . $examTitle)
-            ->line('Status: ' . strtoupper($this->attempt->status))
-            ->line('Score: ' . $this->attempt->score);
+            ->line('Exam: '.$examTitle)
+            ->line('Status: '.strtoupper($this->attempt->status))
+            ->line('Score: '.$this->attempt->score);
 
         if ($courseTitle) {
-            $mail->line('Course: ' . $courseTitle);
+            $mail->line('Course: '.$courseTitle);
         }
 
         return $mail->action('View My Results', url('/exams/my-results'));

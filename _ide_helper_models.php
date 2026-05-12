@@ -192,15 +192,15 @@ namespace App\Models{
  * @property int $duration_weeks
  * @property int $duration_hours
  * @property string $status
- * @property int $is_featured
- * @property int $is_free
+ * @property bool $is_featured
+ * @property bool $is_free
  * @property int $category_id
  * @property int $instructor_id
  * @property numeric $avg_rating
  * @property int $total_reviews
  * @property int $total_students
  * @property numeric $total_revenue
- * @property string|null $published_at
+ * @property \Illuminate\Support\Carbon|null $published_at
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at

@@ -22,6 +22,6 @@ class SettingFactory extends Factory
             'value' => $this->faker->sentence(),
             'type' => 'string',
             'group_name' => 'general',
-        ];;
+        ];
     }
 }

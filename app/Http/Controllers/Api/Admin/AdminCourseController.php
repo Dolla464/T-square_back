@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Services\Admin\AdminCourseService;
-use Illuminate\Http\Request;
-use App\Http\Resources\Admin\Course\AdminCourseResource;
 use App\Http\Requests\Admin\CourseStoreRequest;
 use App\Http\Requests\Admin\CourseUpdateRequest;
+use App\Http\Resources\Admin\Course\AdminCourseResource;
+use App\Services\Admin\AdminCourseService;
+use Illuminate\Http\Request;
 
 class AdminCourseController extends Controller
 {

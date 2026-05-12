@@ -13,15 +13,15 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
-            
+
             // هنجيب أول رول لليوزر من Spatie (عشان نسهلها على الفرونت إند)
             'role' => $this->roles->first()->name ?? null,
-            
-            // هنا هنجيب رقم التليفون من جدول الـ Student المرتبط باليوزر ده
-            'phone' => $this->student->phone ?? null, 
 
-            'is_verified' => !is_null($this->email_verified_at),
-            
+            // هنا هنجيب رقم التليفون من جدول الـ Student المرتبط باليوزر ده
+            'phone' => $this->student->phone ?? null,
+
+            'is_verified' => ! is_null($this->email_verified_at),
+
             // لو عايز ترجع الرولز كلها كمصفوفة بدل رول واحد:
             // 'roles' => $this->roles->pluck('name'),
         ];

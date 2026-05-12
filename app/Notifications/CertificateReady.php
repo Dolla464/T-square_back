@@ -4,8 +4,6 @@ namespace App\Notifications;
 
 use App\Models\Enrollment;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class CertificateReady extends Notification
@@ -34,9 +32,9 @@ class CertificateReady extends Notification
     {
         return [
             'enrollment_id' => $this->enrollment->id,
-            'course_title'  => $this->enrollment->course->title,
-            'message'       => 'تهانينا! شهادتك لدورة ' . $this->enrollment->course->title . ' متاحة الآن للتحميل.',
-            'action_link'   => route('certificate.download', ['enrollment' => $this->enrollment->id]),
+            'course_title' => $this->enrollment->course->title,
+            'message' => 'تهانينا! شهادتك لدورة '.$this->enrollment->course->title.' متاحة الآن للتحميل.',
+            'action_link' => route('certificate.download', ['enrollment' => $this->enrollment->id]),
         ];
     }
 

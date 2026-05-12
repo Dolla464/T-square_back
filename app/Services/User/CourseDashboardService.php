@@ -10,20 +10,23 @@ use Illuminate\Database\Eloquent\Collection;
 class CourseDashboardService
 {
     private const LATEST_LIMIT = 10;
+
     private const STATUS_ALL = 'all';
+
     private const STATUS_IN_PROGRESS = 'in_progress';
+
     private const STATUS_COMPLETED = 'completed';
 
     /**
      * جلب كل بيانات الداشبورد: الإحصائيات + قائمة الكورسات
      *
-     * @param int   $studentId  معرّف الطالب الحالي
-     * @param array $filters    ['search' => string|null, 'status' => 'all'|'in_progress'|'completed']
+     * @param  int  $studentId  معرّف الطالب الحالي
+     * @param  array  $filters  ['search' => string|null, 'status' => 'all'|'in_progress'|'completed']
      */
     public function getDashboardData(int $studentId, array $filters): array
     {
         return [
-            'stats'   => $this->getStats($studentId),
+            'stats' => $this->getStats($studentId),
             'courses' => $this->getCourses($studentId, $filters),
         ];
     }
@@ -33,7 +36,7 @@ class CourseDashboardService
     // -------------------------------------------------------------------------
 
     /**
-     * حساب الإحصائيات عبر queries 
+     * حساب الإحصائيات عبر queries
      */
     private function getStats(int $studentId): array
     {
@@ -53,9 +56,9 @@ class CourseDashboardService
 
         return [
             'total_platform_courses' => $totalPlatformCourses,
-            'total_enrolled'         => (int) ($enrollmentStats->total_enrolled ?? 0),
-            'in_progress'            => (int) ($enrollmentStats->in_progress ?? 0),
-            'completed'              => (int) ($enrollmentStats->completed ?? 0),
+            'total_enrolled' => (int) ($enrollmentStats->total_enrolled ?? 0),
+            'in_progress' => (int) ($enrollmentStats->in_progress ?? 0),
+            'completed' => (int) ($enrollmentStats->completed ?? 0),
         ];
     }
 
@@ -112,21 +115,19 @@ class CourseDashboardService
     {
         // ── فلتر البحث بالعنوان ────────────────────────────────────────────
         if ($search !== null) {
-            $query->where('title', 'like', '%' . $search . '%');
+            $query->where('title', 'like', '%'.$search.'%');
         }
 
         // ── فلتر الحالة (all / in_progress / completed) ────────────────────
         if ($status === self::STATUS_IN_PROGRESS) {
             // الكورسات اللي اشترك فيها الطالب مخلصهاش بعد
-            $query->whereHas('enrollments', fn ($q) =>
-                $q->where('student_id', $studentId)
-                  ->where('is_completed', false)
+            $query->whereHas('enrollments', fn ($q) => $q->where('student_id', $studentId)
+                ->where('is_completed', false)
             );
         } elseif ($status === self::STATUS_COMPLETED) {
             // الكورسات اللي  الطالب خلصها
-            $query->whereHas('enrollments', fn ($q) =>
-                $q->where('student_id', $studentId)
-                  ->where('is_completed', true)
+            $query->whereHas('enrollments', fn ($q) => $q->where('student_id', $studentId)
+                ->where('is_completed', true)
             );
         }
 
@@ -138,7 +139,7 @@ class CourseDashboardService
      */
     private function normalizeSearch(mixed $search): ?string
     {
-        if (!is_string($search)) {
+        if (! is_string($search)) {
             return null;
         }
 
@@ -152,7 +153,7 @@ class CourseDashboardService
      */
     private function normalizeStatus(mixed $status): string
     {
-        if (!is_string($status)) {
+        if (! is_string($status)) {
             return self::STATUS_ALL;
         }
 

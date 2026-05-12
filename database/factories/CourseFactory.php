@@ -22,6 +22,7 @@ class CourseFactory extends Factory
     {
         $title = $this->faker->sentence(4);
         $priceBefore = $this->faker->randomFloat(2, 50, 500);
+
         return [
             'title' => $title,
             'slug' => Str::slug($title),

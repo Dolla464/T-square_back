@@ -39,10 +39,10 @@ class CourseApprovedNotification extends Notification implements ShouldQueue
     {
         return [
             'title' => 'Your course has been approved!🎉',
-            'message' => 'You can now start learning from this course: ' . $this->course->title,
+            'message' => 'You can now start learning from this course: '.$this->course->title,
             'course_id' => $this->course->id,
-            'url' => '/courses/' . $this->course->id,
-            'icon' => 'check-circle' // لو بتستخدم أيقونات في الفرونت إند
+            'url' => '/courses/'.$this->course->id,
+            'icon' => 'check-circle', // لو بتستخدم أيقونات في الفرونت إند
         ];
     }
 }

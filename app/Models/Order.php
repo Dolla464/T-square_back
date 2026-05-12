@@ -19,7 +19,7 @@ class Order extends Model
         'billing_name',
         'billing_email',
         'billing_phone',
-        'notes'
+        'notes',
     ];
 
     // العلاقة مع الطالب

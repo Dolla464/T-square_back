@@ -2,8 +2,8 @@
 
 namespace App\Observers;
 
-use App\Models\Order;
 use App\Events\CoursePurchased;
+use App\Models\Order;
 
 class OrderObserver
 {
@@ -14,7 +14,7 @@ class OrderObserver
     {
         // 1. نتأكد إن الحالة اتغيرت لـ completed
         if ($order->wasChanged('status') && $order->status === 'completed') {
-            
+
             // 2. نجيب كل الاشتراكات اللي جوه الطلب ده (لأن ممكن الطلب يكون فيه أكتر من كورس)
             $enrollments = $order->enrollments()->with(['course', 'student'])->get();
 

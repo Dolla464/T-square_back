@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Answer;
 use App\Models\ExamAttempt;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class AnswerSeeder extends Seeder

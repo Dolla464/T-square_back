@@ -13,9 +13,10 @@ class SolutionService
     public function getAllSolutions(array $filters = []): LengthAwarePaginator
     {
         $perPage = $filters['per_page'] ?? 15;
-        return Solution::with('tags') 
-        ->latest()       
-        ->paginate($perPage);
+
+        return Solution::with('tags')
+            ->latest()
+            ->paginate($perPage);
 
     }
 

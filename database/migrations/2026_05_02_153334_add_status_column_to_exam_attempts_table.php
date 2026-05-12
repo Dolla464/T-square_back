@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::table('exam_attempts', function (Blueprint $table) {
             $table->enum('status', ['ongoing', 'completed', 'timed_out'])
-                  ->default('ongoing')
-                  ->after('exam_id'); // عشان يكون الترتيب منطقي بعد الـ IDs
+                ->default('ongoing')
+                ->after('exam_id'); // عشان يكون الترتيب منطقي بعد الـ IDs
 
             // إضافة Index للـ status لأنه هيستخدم كتير في الـ Filtering
             $table->index('status');

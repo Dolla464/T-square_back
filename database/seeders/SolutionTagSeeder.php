@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Solution;
 use App\Models\Tag;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class SolutionTagSeeder extends Seeder
@@ -19,6 +18,7 @@ class SolutionTagSeeder extends Seeder
 
         if ($tags->isEmpty() || $solutions->isEmpty()) {
             $this->command->warn('تأكد من وجود بيانات في جداول tags و solutions أولاً!');
+
             return;
         }
 

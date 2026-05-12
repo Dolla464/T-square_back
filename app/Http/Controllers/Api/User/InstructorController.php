@@ -26,7 +26,7 @@ class InstructorController extends Controller
         $instructors = $this->instructorService->getActiveInstructors(10);
 
         return $this->paginateResponse(
-            InstructorResource::collection($instructors), 
+            InstructorResource::collection($instructors),
             'Instructors fetched successfully'
         );
     }

@@ -8,14 +8,14 @@ use Illuminate\Database\Eloquent\Model;
 class Enrollment extends Model
 {
     use HasFactory;
-    
+
     protected $fillable = [
         'student_id',
         'course_id',
         'order_id',
         'price_paid',
         'is_completed',
-        'completed_at'
+        'completed_at',
     ];
 
     protected $casts = [
@@ -28,10 +28,12 @@ class Enrollment extends Model
     {
         return $this->belongsTo(Student::class);
     }
+
     public function course()
     {
         return $this->belongsTo(Course::class);
     }
+
     public function order()
     {
         return $this->belongsTo(Order::class, 'order_id');
@@ -52,7 +54,7 @@ class Enrollment extends Model
     {
         return $this->update([
             'is_completed' => true,
-            'completed_at' => now()
+            'completed_at' => now(),
         ]);
     }
 }

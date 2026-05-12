@@ -18,7 +18,7 @@ class Student extends Model
         'group_id',
         'avatar',
         'gender',
-        'status'
+        'status',
     ];
 
     public function user()

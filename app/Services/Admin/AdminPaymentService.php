@@ -68,10 +68,10 @@ class AdminPaymentService
                 $courseId = $data['course_id'] ?? null;
 
                 if ($courseId) {
-                    
+
                     $course = Course::query()->find($courseId);
                     if (! $course) {
-                        throw (new ModelNotFoundException())->setModel(Course::class, [$courseId]);
+                        throw (new ModelNotFoundException)->setModel(Course::class, [$courseId]);
                     }
                 }
 
@@ -143,4 +143,3 @@ class AdminPaymentService
         return array_values(array_unique($with));
     }
 }
-

@@ -26,11 +26,11 @@ class StudentEnrolledNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Enrollment Confirmed: ' . $this->course->title)
-            ->greeting('Hello ' . ($notifiable->name ?? 'Student') . ',')
+            ->subject('Enrollment Confirmed: '.$this->course->title)
+            ->greeting('Hello '.($notifiable->name ?? 'Student').',')
             ->line('Your enrollment has been confirmed successfully.')
-            ->line('Course: ' . $this->course->title)
-            ->action('Go to Course', url('/courses/' . $this->course->id))
+            ->line('Course: '.$this->course->title)
+            ->action('Go to Course', url('/courses/'.$this->course->id))
             ->line('Thank you for learning with us.');
     }
 
@@ -38,10 +38,10 @@ class StudentEnrolledNotification extends Notification implements ShouldQueue
     {
         return [
             'title' => 'Enrollment Confirmed',
-            'message' => 'You have successfully enrolled in "' . $this->course->title . '".',
+            'message' => 'You have successfully enrolled in "'.$this->course->title.'".',
             'course_id' => $this->course->id,
             'enrollment_id' => $this->enrollment->id,
-            'url' => '/courses/' . $this->course->id,
+            'url' => '/courses/'.$this->course->id,
             'icon' => 'book-open',
         ];
     }

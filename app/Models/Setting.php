@@ -14,6 +14,7 @@ class Setting extends Model
             Cache::forget('app_settings');
         });
     }
+
     protected $fillable = ['key', 'value', 'type', 'group_name'];
 
     /**
@@ -23,13 +24,15 @@ class Setting extends Model
     public static function get($key, $default = null)
     {
         $setting = self::where('key', $key)->first();
-        if (!$setting) return $default;
+        if (! $setting) {
+            return $default;
+        }
 
         // تحويل القيمة بناءً على النوع
         return match ($setting->type) {
             'boolean' => filter_var($setting->value, FILTER_VALIDATE_BOOLEAN),
-            'json'    => json_decode($setting->value, true),
-            default   => $setting->value,
+            'json' => json_decode($setting->value, true),
+            default => $setting->value,
         };
     }
 }

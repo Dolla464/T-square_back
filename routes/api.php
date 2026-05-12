@@ -1,15 +1,15 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminCategoryController;
+use App\Http\Controllers\Api\Admin\AdminCertificateController;
+use App\Http\Controllers\Api\Admin\AdminCourseController;
 use App\Http\Controllers\Api\Admin\AdminInstructorController;
-use App\Http\Controllers\Api\Admin\AdminReviewController;
 use App\Http\Controllers\Api\Admin\AdminPaymentController;
+use App\Http\Controllers\Api\Admin\AdminReviewController;
 use App\Http\Controllers\Api\Admin\AdminSolutionController;
 use App\Http\Controllers\Api\Admin\AdminStudentController;
 use App\Http\Controllers\Api\Admin\AdminTagController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
-use App\Http\Controllers\Api\Admin\AdminCourseController;
-use App\Http\Controllers\Api\Admin\AdminCategoryController;
-use App\Http\Controllers\Api\Admin\AdminCertificateController;
 use App\Http\Controllers\Api\Notification\NotificationController;
 use App\Http\Controllers\Api\User\CategoryController;
 use App\Http\Controllers\Api\User\CertificateController;
@@ -26,8 +26,7 @@ use App\Http\Controllers\SettingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', function (Request $request) {
@@ -51,7 +50,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 });
 
-
 Route::get('/settings/{key}', [SettingController::class, 'getSettingByKey']);
 
 Route::group(['prefix' => 'student', 'namespace' => 'App\Http\Controllers\Api\User'], function () {
@@ -67,13 +65,13 @@ Route::group(['prefix' => 'student', 'namespace' => 'App\Http\Controllers\Api\Us
     Route::get('/reviews/latest', [CourseReviewController::class, 'latest']); // latest 5 reviews
     Route::get('/reviews/course/{courseId}', [CourseReviewController::class, 'course']); // reviews of a specific course
     Route::get('/certificates', [CertificateController::class, 'index'])// certificates
-     ->middleware('auth:sanctum')->name('certificate.index');
+        ->middleware('auth:sanctum')->name('certificate.index');
     Route::get('/certificates/{enrollment}/download', [CertificateController::class, 'download'])// download certificate
-     ->middleware('auth:sanctum')->name('certificate.download');
+        ->middleware('auth:sanctum')->name('certificate.download');
     Route::get('/certificates/download/{enrollment}', [CertificateController::class, 'download'])// alias for exam in Postman
-     ->middleware('auth:sanctum');
+        ->middleware('auth:sanctum');
     Route::get('/certificates/{enrollment}', [CertificateController::class, 'show'])// show certificate data
-     ->middleware('auth:sanctum')->name('certificate.show');
+        ->middleware('auth:sanctum')->name('certificate.show');
 
 });
 
@@ -94,11 +92,9 @@ Route::group(['prefix' => 'admin', 'namespace' => 'App\Http\Controllers\Api\Admi
 
     // Reviews Management
     Route::post('reviews/{review}', [AdminReviewController::class, 'update']);
-    Route::apiResource('reviews', AdminReviewController::class)->except(['store' , 'update']);
+    Route::apiResource('reviews', AdminReviewController::class)->except(['store', 'update']);
     // Payments Management
     Route::apiResource('payments', AdminPaymentController::class)->except(['store']);
     // Certificates Management
     Route::apiResource('certificates', AdminCertificateController::class)->except(['store', 'create']);
 });
-
-

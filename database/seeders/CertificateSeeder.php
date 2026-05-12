@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Certificate;
 use App\Models\Enrollment;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -20,16 +19,17 @@ class CertificateSeeder extends Seeder
 
         if ($completedEnrollments->isEmpty()) {
             $this->command->info('مفيش طلاب خلصوا كورسات لسه ، شغل الـ EnrollmentSeeder بحالات مكتملة الأول!');
+
             return;
         }
 
         foreach ($completedEnrollments as $enrollment) {
             Certificate::create([
-                'student_id'      => $enrollment->student_id,
-                'course_id'       => $enrollment->course_id,
-                'certificate_url' => 'certificates/CERT_' . Str::random(10) . '.pdf',
-                'certificate_num' => 'TSQ-' . date('Y') . '-' . strtoupper(Str::random(8)),
-                'issued_at'       => $enrollment->completed_at ?? now(),
+                'student_id' => $enrollment->student_id,
+                'course_id' => $enrollment->course_id,
+                'certificate_url' => 'certificates/CERT_'.Str::random(10).'.pdf',
+                'certificate_num' => 'TSQ-'.date('Y').'-'.strtoupper(Str::random(8)),
+                'issued_at' => $enrollment->completed_at ?? now(),
             ]);
         }
 

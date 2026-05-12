@@ -5,8 +5,6 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -17,7 +15,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -50,8 +48,13 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getRoleAttribute()
     {
         // بدلاً من الاستعلام عن الجداول، اسأل سباتي
-        if ($this->hasRole('admin')) return 'admin';
-        if ($this->hasRole('instructor')) return 'instructor';
+        if ($this->hasRole('admin')) {
+            return 'admin';
+        }
+        if ($this->hasRole('instructor')) {
+            return 'instructor';
+        }
+
         return 'student';
     }
 
@@ -59,16 +62,18 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasOne(Instructor::class);
     }
+
     public function admin()
     {
         return $this->hasOne(Admin::class);
     }
+
     public function student()
     {
         return $this->hasOne(Student::class);
     }
 
-    // علاقة تجيب الكورسات الخاصة بمدرب معين 
+    // علاقة تجيب الكورسات الخاصة بمدرب معين
     public function courses()
     {
         return $this->hasManyThrough(Course::class, Instructor::class);

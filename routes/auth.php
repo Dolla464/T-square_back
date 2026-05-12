@@ -6,8 +6,8 @@ use App\Http\Controllers\Api\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Api\Auth\NewPasswordController;
 use App\Http\Controllers\Api\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Api\Auth\VerifyEmailController;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 // 1. رووتس للضيوف فقط (Guest) - مش محتاجين توكن
 Route::middleware('guest')->group(function () {
