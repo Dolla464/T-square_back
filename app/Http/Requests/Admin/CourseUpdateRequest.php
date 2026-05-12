@@ -61,8 +61,8 @@ class CourseUpdateRequest extends FormRequest
     protected function prepareForValidation()
     {
         $this->merge([
-            'is_featured' => $this->has('is_featured') ? $this->boolean('is_featured') : null,
-            'is_free'     => $this->has('is_free') ? $this->boolean('is_free') : null,
+            'is_featured' => filter_var($this->is_featured, FILTER_VALIDATE_BOOLEAN),
+            'is_free'     => filter_var($this->is_free, FILTER_VALIDATE_BOOLEAN),
         ]);
         
         // تنظيف القيم التي قد تُرسل كنصوص "null" أو "undefined" من React

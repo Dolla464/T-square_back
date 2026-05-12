@@ -75,7 +75,8 @@ class AdminCourseResource extends JsonResource
         }
 
         if ($this->relationLoaded('learnings')) {
-            $data['learnings'] = $this->learnings->map(fn ($learning) => [
+            // نستخدم ?? [] للتأكد أنه في حالة كان null يتم التعامل معه كمصفوفة فارغة
+            $data['learnings'] = collect($this->learnings ?? [])->map(fn ($learning) => [
                 'id' => $learning->id,
                 'title' => $learning->title,
             ])->values();

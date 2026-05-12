@@ -40,6 +40,10 @@ class CourseStoreRequest extends FormRequest
             'tags' => ['sometimes', 'nullable', 'array'],
             'tags.*' => ['integer', 'exists:tags,id'],
 
+            // Learnings (what the student will learn)
+            'learnings' => ['sometimes', 'nullable', 'array'],
+            'learnings.*' => ['nullable', 'string', 'max:500'],
+
             // Previews: array of preview objects
             'previews' => ['sometimes', 'nullable', 'array'],
             'previews.*.id' => ['sometimes', 'nullable', 'integer', 'exists:course_previews,id'],
