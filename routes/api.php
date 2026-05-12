@@ -94,4 +94,6 @@ Route::group(['prefix' => 'admin', 'namespace' => 'App\Http\Controllers\Api\Admi
     Route::apiResource('reviews', AdminReviewController::class)->except(['store', 'update']);
     // Payments Management
     Route::apiResource('payments', AdminPaymentController::class)->except(['store']);
+    // Certificates Management
+    Route::apiResource('certificates', AdminCertificateController::class)->except(['store', 'create']);
 });
