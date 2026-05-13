@@ -50,19 +50,19 @@ class AdminCourseService
                         ->orWhere('slug', 'like', "%{$term}%")
                         ->orWhereHas(
                             'instructor',
-                            fn ($q) => $q->where('full_name', 'like', "%{$term}%")
+                            fn($q) => $q->where('full_name', 'like', "%{$term}%")
                         );
                 });
             })
             ->when(
                 ! empty($filters['status']),
-                fn ($q) => $q->where('status', $filters['status'])
+                fn($q) => $q->where('status', $filters['status'])
             )
             ->when(! empty($filters['category_id']), function ($query) use ($filters) {
                 $parentId = (int) $filters['category_id'];
                 $query->whereHas(
                     'category',
-                    fn ($q) => $q->where('id', $parentId)
+                    fn($q) => $q->where('id', $parentId)
                         ->orWhere('parent_id', $parentId)
                 );
             })
@@ -183,28 +183,28 @@ class AdminCourseService
                 // تحويل التاريخ لـ Carbon لضمان التنسيق الصحيح لـ MySQL
                 $data['published_at'] = Carbon::parse($data['published_at'])->toDateTimeString();
             } catch (\Exception $e) {
-                // إذا كان التاريخ غير صالح أو بتنسيق غريب، يفضل حذفه أو ضبطه كـ null
+                // If the date is invalid or in a weird format, it's better to delete it or set it to null
                 unset($data['published_at']);
             }
         }
 
-        // 4. تحديث الجدول الأساسي (courses)
+        // 4. Update the main table (courses)
         $course->update($data);
 
-        // 5. مزامنة الـ Tags
+        // 5. Sync Tags
         if ($tags !== false) {
             $course->tags()->sync($tags);
         }
 
-        // 6. مزامنة الـ Learnings (حل مشكلة عدم الحفظ)
+        // 6. Sync Learnings (fix save issue)
         if ($learnings !== null) {
-            // حذف الأهداف القديمة المرتبطة بهذا الكورس
+            // Delete old goals associated with this course
             $course->learnings()->delete();
 
             foreach ($learnings as $text) {
                 if (! empty(trim($text))) {
                     $course->learnings()->create([
-                        'title' => $text, // تأكد أن الموديل CourseLearning يحتوي على 'title' في الـ fillable
+                        'title' => $text, // Ensure the CourseLearning model contains 'title' in the fillable
                     ]);
                 }
             }
@@ -269,10 +269,10 @@ class AdminCourseService
             }
 
             $attributes = array_filter([
-                'title' => $item['title'] ?? 'Preview '.($index + 1),
+                'title' => $item['title'] ?? 'Preview ' . ($index + 1),
                 'description' => $item['description'] ?? null,
                 'sort_order' => $item['sort_order'] ?? $index,
-            ], fn ($v) => $v !== null);
+            ], fn($v) => $v !== null);
 
             $attributes = array_merge($attributes, $videoPayload);
 
@@ -316,5 +316,69 @@ class AdminCourseService
                 'learnings:id,course_id,title',
             ])
             ->findOrFail($id);
+    }
+
+    /**
+     * Get trashed courses
+     */
+    public function getTrashedCourses($perPage = 10)
+    {
+        $query = Course::onlyTrashed()
+            ->with(['category', 'instructor'])
+            ->latest('deleted_at');
+
+        // Filter by the selected period from the frontend
+        if (request()->has('period')) {
+            $period = request('period');
+
+            $date = match ($period) {
+                'today' => now()->startOfDay(),
+                'month' => now()->subMonth(),
+                'year'  => now()->subYear(),
+                default => null
+            };
+
+            if ($date) {
+                $query->where('deleted_at', '>=', $date);
+            }
+        }
+
+        // Support search by name inside the trash
+        if (request()->has('search')) {
+            $query->where('title', 'like', '%' . request('search') . '%');
+        }
+
+        return $query->paginate($perPage);
+    }
+
+    /**
+     * Restore trashed course
+     */
+    public function restoreCourse($id)
+    {
+        $course = Course::onlyTrashed()->findOrFail($id);
+        $course->restore();
+        return $course;
+    }
+
+    /**
+     * Force delete course
+     */
+    public function forceDeleteCourse($id)
+    {
+        $course = Course::onlyTrashed()->findOrFail($id);
+
+        // 1. Delete images from storage before final deletion
+        if ($course->thumbnail) {
+            Storage::disk('public')->delete($course->thumbnail);
+        }
+        if ($course->cover_image) {
+            Storage::disk('public')->delete($course->cover_image);
+        }
+
+        // 2. You can also delete preview videos here
+        $course->previews()->each(fn($p) => Storage::disk('public')->delete($p->video_url));
+
+        return $course->forceDelete();
     }
 }
