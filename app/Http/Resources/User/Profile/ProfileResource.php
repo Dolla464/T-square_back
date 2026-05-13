@@ -4,6 +4,7 @@ namespace App\Http\Resources\User\Profile;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\MissingValue;
 
 class ProfileResource extends JsonResource
 {
@@ -17,14 +18,16 @@ class ProfileResource extends JsonResource
             'email' => $this->email,
             'role' => $this->role,
             'is_verified' => (bool) ($this->email_verified_at),
-            'student' => $student ? [
-                'full_name' => $student->full_name,
-                'avatar' => $student->avatar
-                    ? asset('storage/'.$student->avatar)
-                    : asset('assets/default-student.png'),
-                'gender' => $student->gender ?? 'not_set',
-                'phone' => $student->phone ?? '',
-            ] : null,
+            'student'     => $this->whenLoaded('student', function () {
+                return [
+                    'full_name' => $this->student->full_name ?? $this->name,
+                    'avatar'    => $this->student->avatar
+                        ? asset('storage/' . $this->student->avatar)
+                        : asset('assets/default-student.png'),
+                    'gender'    => $this->student->gender ?? 'not_set',
+                    'phone'     => $this->student->phone ?? '',
+                ];
+            }),
         ];
     }
 }

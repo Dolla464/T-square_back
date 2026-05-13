@@ -35,6 +35,9 @@ class AdminCourseResource extends JsonResource
             }
         }
 
+        $data['is_trashed'] = $this->trashed(); // Returns true if in the trash
+        $data['deleted_at'] = $this->deleted_at ? $this->deleted_at->format('Y-m-d H:i:s') : null;
+
         // include relations only when loaded
         if ($this->relationLoaded('instructor')) {
             $instructor = $this->instructor;
@@ -75,7 +78,7 @@ class AdminCourseResource extends JsonResource
         }
 
         if ($this->relationLoaded('learnings')) {
-            // نستخدم ?? [] للتأكد أنه في حالة كان null يتم التعامل معه كمصفوفة فارغة
+            // Use ?? [] to ensure that in case it is null, it is treated as an empty array
             $data['learnings'] = collect($this->learnings ?? [])->map(fn ($learning) => [
                 'id' => $learning->id,
                 'title' => $learning->title,

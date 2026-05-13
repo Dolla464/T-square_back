@@ -8,65 +8,69 @@ use Illuminate\Support\Facades\Storage;
 class CourseObserver
 {
     /**
-     * Handle the Course "created" event.
-     */
-    public function created(Course $course): void
-    {
-        //
-    }
-
-    /**
-     * Handle the Course "updated" event.
-     */
-    public function updated(Course $course): void
-    {
-        //
-    }
-
-    /**
-     * Handle the Course "deleted" event.
+     * Before deletion (soft or hard)
      */
     public function deleting(Course $course): void
     {
-        if ($course->isForceDeleting()) {
-            $this->deleteFiles($course);
-            $course->previews()->forceDelete(); // حذف نهائي للعلاقات
-        } else {
-            $course->previews()->delete(); // حذف مؤقت للعلاقات
+        if (! $course->isForceDeleting()) {
+            // Soft delete state:
+            // 1. Convert the status to draft
+            $course->status = 'draft';
+            $course->save();
+
+            // 2. Delete the relationships temporarily (if other tables also use SoftDeletes)
+            $course->previews()->delete();
+            // Note: If the learnings table also uses SoftDeletes, the line below will be for ForceDelete only
         }
     }
 
+    /**
+     * After final deletion
+     */
+    public function forceDeleted(Course $course): void
+    {
+        // 1. Delete the physical files
+        $this->deleteFiles($course);
+
+        // 2. Delete all the relationships finally from the database
+        $course->previews()->forceDelete();
+        
+        // ✅ Delete the learnings finally
+        $course->learnings()->delete(); 
+    }
+
+    /**
+     * When restoring from the trash
+     */
+    public function restored(Course $course): void
+    {
+        $course->status = 'draft';
+        $course->save();
+
+        // Restore the relationships that support Soft Delete
+        $course->previews()->restore();
+    }
+
+    /**
+     * Clean up images and videos
+     */
     protected function deleteFiles(Course $course): void
     {
-        // حذف صور الكورس
+        // The main images
         foreach (['thumbnail', 'cover_image', 'preview_video'] as $field) {
             $path = $course->getRawOriginal($field);
-            if ($path) {
+            if ($path && Storage::disk('public')->exists($path)) {
                 Storage::disk('public')->delete($path);
             }
         }
 
-        // حذف فيديوهات المعاينة
+        // Uploaded course/preview videos
         $course->previews()->each(function ($preview) {
-            if ($preview->video_provider === 'local' && $preview->video_url) {
-                Storage::disk('public')->delete($preview->video_url);
+            if ($preview->video_provider === 'upload' && $preview->video_url) {
+                if (Storage::disk('public')->exists($preview->video_url)) {
+                    Storage::disk('public')->delete($preview->video_url);
+                }
             }
         });
-    }
-
-    /**
-     * Handle the Course "restored" event.
-     */
-    public function restored(Course $course): void
-    {
-        //
-    }
-
-    /**
-     * Handle the Course "force deleted" event.
-     */
-    public function forceDeleted(Course $course): void
-    {
-        //
     }
 }

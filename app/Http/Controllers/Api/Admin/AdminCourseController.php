@@ -33,14 +33,6 @@ class AdminCourseController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
      * Store a newly created resource in storage.
      */
     public function store(CourseStoreRequest $request)
@@ -63,14 +55,6 @@ class AdminCourseController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
      * Update the specified resource in storage.
      */
     public function update(CourseUpdateRequest $request, string $id)
@@ -90,5 +74,33 @@ class AdminCourseController extends Controller
         $this->courseService->destroy($id);
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Display a listing of the trashed resources.
+     */
+    public function trash(Request $request)
+    {
+        $trashedCourses = $this->courseService->getTrashedCourses($request->get('per_page', 10));
+
+        return AdminCourseResource::collection($trashedCourses);
+    }
+
+    /**
+     * Restore the specified resource from storage.
+     */
+    public function restore($id)
+    {
+        $this->courseService->restoreCourse($id);
+        return $this->successResponse(null, 'Course restored successfully');
+    }
+
+    /**
+     * Force delete the specified resource from storage.
+     */
+    public function forceDelete($id)
+    {
+        $this->courseService->forceDeleteCourse($id);
+        return $this->successResponse(null, 'Course deleted permanently');
     }
 }
