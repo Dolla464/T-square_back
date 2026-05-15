@@ -1,15 +1,15 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminCategoryController;
+use App\Http\Controllers\Api\Admin\AdminCertificateController;
+use App\Http\Controllers\Api\Admin\AdminCourseController;
 use App\Http\Controllers\Api\Admin\AdminInstructorController;
-use App\Http\Controllers\Api\Admin\AdminReviewController;
 use App\Http\Controllers\Api\Admin\AdminPaymentController;
+use App\Http\Controllers\Api\Admin\AdminReviewController;
 use App\Http\Controllers\Api\Admin\AdminSolutionController;
 use App\Http\Controllers\Api\Admin\AdminStudentController;
 use App\Http\Controllers\Api\Admin\AdminTagController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
-use App\Http\Controllers\Api\Admin\AdminCourseController;
-use App\Http\Controllers\Api\Admin\AdminCategoryController;
-use App\Http\Controllers\Api\Admin\AdminCertificateController;
 use App\Http\Controllers\Api\Notification\NotificationController;
 use App\Http\Controllers\Api\User\CategoryController;
 use App\Http\Controllers\Api\User\CertificateController;
@@ -26,79 +26,181 @@ use App\Http\Controllers\SettingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+/*
+|--------------------------------------------------------------------------
+| Authentication Routes
+|--------------------------------------------------------------------------
+*/
+require __DIR__.'/auth.php';
 
-require __DIR__ . '/auth.php';
+/*
+|--------------------------------------------------------------------------
+| Public Routes (No Authentication Required)
+|--------------------------------------------------------------------------
+*/
 
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/user', function (Request $request) {
-        return $request->user();
+Route::get('/settings/{key}', [SettingController::class, 'getSettingByKey'])
+    ->name('settings.show');
+
+// ── Student public browsing routes ────────────────────────────────────────
+Route::prefix('student')->name('student.')->group(function () {
+
+    Route::get('categories', [CategoryController::class, 'index'])
+        ->name('categories.index');
+
+    Route::get('instructors', [InstructorController::class, 'index'])
+        ->name('instructors.index');
+
+    Route::post('contact-us', [ContactUsController::class, 'store'])
+        ->name('contact-us.store');
+
+    // Solutions
+    Route::controller(SolutionsController::class)
+        ->prefix('solutions')
+        ->name('solutions.')
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('{solution}', 'show')->name('show');
+        });
+
+    // Reviews
+    Route::controller(CourseReviewController::class)
+        ->prefix('reviews')
+        ->name('reviews.')
+        ->group(function () {
+            Route::get('latest', 'latest')->name('latest');
+            Route::get('course/{courseId}', 'course')->name('course');
+        });
+
+    // Courses — generic {slug} must come last to avoid swallowing named segments
+    Route::controller(CourseController::class)
+        ->prefix('courses')
+        ->name('courses.')
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('{slug}', 'show')->name('show');
+        });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Authenticated Routes — auth:sanctum
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Authenticated user identity
+    Route::get('user', fn (Request $request) => $request->user())
+        ->name('user.show');
+
+    // Profile
+    Route::controller(ProfileController::class)
+        ->prefix('profile')
+        ->name('profile.')
+        ->group(function () {
+            Route::get('/', 'show')->name('show');
+            Route::put('/', 'update')->name('update');
+        });
+
+    // Notifications — read-all before parameterised {id}/read
+    Route::controller(NotificationController::class)
+        ->prefix('notifications')
+        ->name('notifications.')
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('read-all', 'markAllAsRead')->name('read-all');
+            Route::post('{id}/read', 'markAsRead')->name('read');
+        });
+
+    // Exams — named static segments before parameterised {id}
+    Route::controller(ExamController::class)
+        ->prefix('exams')
+        ->name('exams.')
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('my-results', 'myResults')->name('my-results');
+            Route::post('start', 'start')->name('start');
+            Route::post('save-answer', 'answer')->name('save-answer');
+            Route::post('{id}/submit', 'submit')->name('submit');
+        });
+
+    // ── Student authenticated routes ───────────────────────────────────────
+    Route::prefix('student')->name('student.')->group(function () {
+
+        Route::get('courses/dashboard', CourseDashboardController::class)
+            ->name('courses.dashboard');
+
+        Route::post('enrollments', [EnrollmentController::class, 'store'])
+            ->name('enrollments.store');
+
+        // Certificates — {enrollment}/download must be declared before {enrollment}
+        Route::controller(CertificateController::class)
+            ->prefix('certificates')
+            ->name('certificates.')
+            ->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('{enrollment}/download', 'download')->name('download');
+                Route::get('{enrollment}', 'show')->name('show');
+            });
     });
-    // profile routes
-    Route::get('/profile', [ProfileController::class, 'show']);
-    Route::put('/profile', [ProfileController::class, 'update']);
-    // notifications routes
-    Route::get('/notifications', [NotificationController::class, 'index']);
-    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
-    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
-    // Exam routes
-    Route::prefix('exams')->group(function () {
-        Route::get('/', [ExamController::class, 'index']);
-        Route::post('/start', [ExamController::class, 'start']); // start exam
-        Route::post('/save-answer', [ExamController::class, 'answer']); // save one question answer
-        Route::post('/{id}/submit', [ExamController::class, 'submit']); // submit exam
-        Route::get('/my-results', [ExamController::class, 'myResults']);
+});
 
+/*
+|--------------------------------------------------------------------------
+| Admin Routes — auth:sanctum + role:admin
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:admin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+
+        // Users
+        Route::post('users', [AdminUserController::class, 'store'])
+            ->name('users.store');
+
+        // Tags
+        Route::get('tags', [AdminTagController::class, 'index'])
+            ->name('tags.index');
+
+        // Categories — static `tree` segment before any future parameterised routes
+        Route::get('categories/tree', [AdminCategoryController::class, 'tree'])
+            ->name('categories.tree');
+
+        // Courses (full CRUD)
+        Route::prefix('courses')->name('courses.')->group(function () {
+            Route::get('trash', [AdminCourseController::class, 'trash'])->name('trash');
+            Route::post('{id}/restore', [AdminCourseController::class, 'restore'])->name('restore');
+            Route::delete('{id}/force-delete', [AdminCourseController::class, 'forceDelete'])->name('force-delete');
+        });
+        Route::apiResource('courses', AdminCourseController::class);
+
+        // Instructors — POST used for update to support multipart/form-data uploads
+        Route::post('instructors/{instructor}', [AdminInstructorController::class, 'update'])
+            ->name('instructors.update');
+        Route::apiResource('instructors', AdminInstructorController::class)
+            ->except(['store', 'update']);
+
+        // Students — POST used for update (same multipart/form-data reason)
+        Route::post('students/{student}', [AdminStudentController::class, 'update'])
+            ->name('students.update');
+        Route::apiResource('students', AdminStudentController::class)
+            ->except(['store', 'update']);
+
+        // Reviews
+        Route::post('reviews/{review}', [AdminReviewController::class, 'update'])
+            ->name('reviews.update');
+        Route::apiResource('reviews', AdminReviewController::class)
+            ->except(['store', 'update']);
+
+        // Payments — no manual store; handled via payment gateway callbacks
+        Route::apiResource('payments', AdminPaymentController::class)
+            ->except(['store']);
+
+        // Certificates
+        Route::apiResource('certificates', AdminCertificateController::class)
+            ->except(['store', 'create']);
+
+        // Solutions (full CRUD)
+        Route::apiResource('solutions', AdminSolutionController::class);
     });
-});
-
-
-Route::get('/settings/{key}', [SettingController::class, 'getSettingByKey']);
-
-Route::group(['prefix' => 'student', 'namespace' => 'App\Http\Controllers\Api\User'], function () {
-    Route::get('/categories', [CategoryController::class, 'index']); // categories
-    Route::get('/courses', [CourseController::class, 'index']);      // courses
-    Route::get('/courses/dashboard', CourseDashboardController::class)->middleware('auth:sanctum'); // courses dashboard
-    Route::get('/courses/{slug}', [CourseController::class, 'show']);
-    Route::post('/enrollments', [EnrollmentController::class, 'store'])->middleware('auth:sanctum');
-    Route::get('/solutions', [SolutionsController::class, 'index']);     // all solutions
-    Route::get('/solutions/{solution}', [SolutionsController::class, 'show']);
-    Route::get('/instructors', [InstructorController::class, 'index']); // show instructors
-    Route::post('/contact-us', [ContactUsController::class, 'store'])->name('contact-us.store'); // contact us
-    Route::get('/reviews/latest', [CourseReviewController::class, 'latest']); // latest 5 reviews
-    Route::get('/reviews/course/{courseId}', [CourseReviewController::class, 'course']); // reviews of a specific course
-    Route::get('/certificates', [CertificateController::class, 'index'])// certificates
-     ->middleware('auth:sanctum')->name('certificate.index');
-    Route::get('/certificates/{enrollment}/download', [CertificateController::class, 'download'])// download certificate
-     ->middleware('auth:sanctum')->name('certificate.download');
-    Route::get('/certificates/download/{enrollment}', [CertificateController::class, 'download'])// alias for exam in Postman
-     ->middleware('auth:sanctum');
-    Route::get('/certificates/{enrollment}', [CertificateController::class, 'show'])// show certificate data
-     ->middleware('auth:sanctum')->name('certificate.show');
-
-});
-
-Route::group(['prefix' => 'admin', 'namespace' => 'App\Http\Controllers\Api\Admin'], function () {
-    Route::get('/tags', [AdminTagController::class, 'index']); // tags
-    Route::post('/users', [AdminUserController::class, 'store'])->middleware('auth:sanctum', 'role:admin'); // users
-    // Solutions Management
-    Route::apiResource('solutions', AdminSolutionController::class); // solutions
-    // Instructors Management
-    Route::post('instructors/{instructor}', [AdminInstructorController::class, 'update']);
-    Route::apiResource('instructors', AdminInstructorController::class)->except(['store', 'update']);
-    Route::get('categories/tree', [AdminCategoryController::class, 'tree']); // categories tree
-    Route::apiResource('courses', AdminCourseController::class)->middleware('auth:sanctum', 'role:admin'); // admin courses
-
-    // Students Management
-    Route::post('students/{student}', [AdminStudentController::class, 'update']);
-    Route::apiResource('students', AdminStudentController::class)->except(['store', 'update']);
-
-    // Reviews Management
-    Route::post('reviews/{review}', [AdminReviewController::class, 'update']);
-    Route::apiResource('reviews', AdminReviewController::class)->except(['store' , 'update']);
-    // Payments Management
-    Route::apiResource('payments', AdminPaymentController::class)->except(['store']);
-    // Certificates Management
-    Route::apiResource('certificates', AdminCertificateController::class)->except(['store', 'create']);
-});
-
-

@@ -20,7 +20,7 @@ class QuestionFactory extends Factory
     {
         return [
             'exam_id' => Exam::inRandomOrder()->first()->id ?? Exam::factory(),
-            'question_text' => $this->faker->sentence(10) . '?',
+            'question_text' => $this->faker->sentence(10).'?',
             'marks' => $this->faker->randomElement([5, 10, 15]),
         ];
     }

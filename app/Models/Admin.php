@@ -16,7 +16,7 @@ class Admin extends Model
         'phone',
         'avatar',
         'gender',
-        'status'
+        'status',
     ];
 
     public function user()

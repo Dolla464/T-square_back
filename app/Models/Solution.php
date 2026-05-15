@@ -11,7 +11,7 @@ class Solution extends Model
 
     protected $fillable = [
         'title',
-        'description'
+        'description',
     ];
 
     public function tags()

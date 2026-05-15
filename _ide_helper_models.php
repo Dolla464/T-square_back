@@ -118,6 +118,8 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \App\Models\Course|null $course
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Enrollment> $enrollments
+ * @property-read int|null $enrollments_count
  * @property-read \App\Models\Student $student
  * @method static \Database\Factories\CertificateFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Certificate newModelQuery()
@@ -192,15 +194,15 @@ namespace App\Models{
  * @property int $duration_weeks
  * @property int $duration_hours
  * @property string $status
- * @property int $is_featured
- * @property int $is_free
+ * @property bool $is_featured
+ * @property bool $is_free
  * @property int $category_id
  * @property int $instructor_id
  * @property numeric $avg_rating
  * @property int $total_reviews
  * @property int $total_students
  * @property numeric $total_revenue
- * @property string|null $published_at
+ * @property \Illuminate\Support\Carbon|null $published_at
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
@@ -276,16 +278,21 @@ namespace App\Models{
  * @property string $title
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property-read \App\Models\Course|null $course
  * @method static \Database\Factories\CourseLearningFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseLearning newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseLearning newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseLearning onlyTrashed()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseLearning query()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseLearning whereCourseId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseLearning whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseLearning whereDeletedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseLearning whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseLearning whereTitle($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseLearning whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseLearning withTrashed(bool $withTrashed = true)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseLearning withoutTrashed()
  */
 	class CourseLearning extends \Eloquent {}
 }
@@ -302,13 +309,16 @@ namespace App\Models{
  * @property int $sort_order
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property-read \App\Models\Course|null $course
  * @method static \Database\Factories\CoursePreviewFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CoursePreview newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CoursePreview newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CoursePreview onlyTrashed()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CoursePreview query()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CoursePreview whereCourseId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CoursePreview whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CoursePreview whereDeletedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CoursePreview whereDescription($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CoursePreview whereDurationSeconds($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CoursePreview whereId($value)
@@ -317,6 +327,8 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CoursePreview whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CoursePreview whereVideoProvider($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CoursePreview whereVideoUrl($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CoursePreview withTrashed(bool $withTrashed = true)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CoursePreview withoutTrashed()
  */
 	class CoursePreview extends \Eloquent {}
 }
@@ -366,6 +378,7 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $completed_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \App\Models\Certificate|null $certificate
  * @property-read \App\Models\Course|null $course
  * @property-read \App\Models\Order|null $order
  * @property-read \App\Models\Student $student

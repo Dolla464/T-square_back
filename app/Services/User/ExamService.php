@@ -10,8 +10,8 @@ use App\Models\Enrollment;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\Question;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -19,10 +19,11 @@ class ExamService
 {
     protected $certificateService;
 
-    public function __construct(\App\Services\User\CertificateService $certificateService)
+    public function __construct(CertificateService $certificateService)
     {
         $this->certificateService = $certificateService;
     }
+
     /**
      * get all available exams for a student
      *
@@ -34,6 +35,7 @@ class ExamService
         // بنجيب الامتحانات المتاحة بناءً على الكورسات اللي الطالب مشترك فيها ويكون الامتحان active
         return $student->availableExams()->where('is_active', true)->with('course')->get();
     }
+
     public function startAttempt(int $studentId, int $examId)
     {
         $exam = Exam::withCount(['attempts' => function ($q) use ($studentId) {
@@ -44,7 +46,7 @@ class ExamService
             ->where('course_id', '=', $exam->course_id, 'and')
             ->exists();
 
-        if (!$isEnrolled) {
+        if (! $isEnrolled) {
             abort(403, 'You are not enrolled in this course.');
         }
 
@@ -61,6 +63,7 @@ class ExamService
 
         return $attempt;
     }
+
     /**
      *  save one question answer - now only allows answers for the exam's questions
      */
@@ -70,7 +73,7 @@ class ExamService
 
         // Ensure this question belongs to the exam for this attempt
         $question = $attempt->exam->questions->where('id', $questionId)->first();
-        if (!$question) {
+        if (! $question) {
             abort(403, 'This question does not belong to this exam.');
         }
 
@@ -84,9 +87,9 @@ class ExamService
         return Answer::updateOrCreate(
             ['attempt_id' => $attemptId, 'question_id' => $questionId],
             [
-                'choice_id'    => $choiceId,
-                'is_correct'   => $choice->is_correct,
-                'marks_earned' => $choice->is_correct ? $question->marks : 0
+                'choice_id' => $choiceId,
+                'is_correct' => $choice->is_correct,
+                'marks_earned' => $choice->is_correct ? $question->marks : 0,
             ]
         );
     }
@@ -104,11 +107,11 @@ class ExamService
 
         if ($attempt->status !== 'ongoing') {
             return [
-                'score'        => $attempt->score,
-                'total_marks'  => $attempt->exam->total_marks,
+                'score' => $attempt->score,
+                'total_marks' => $attempt->exam->total_marks,
                 'passing_mark' => $attempt->exam->passing_mark,
-                'is_passed'    => $attempt->score >= $attempt->exam->passing_mark,
-                'status'       => $attempt->status,
+                'is_passed' => $attempt->score >= $attempt->exam->passing_mark,
+                'status' => $attempt->status,
             ];
         }
 
@@ -118,9 +121,9 @@ class ExamService
             $certificateEnrollmentId = null;
 
             $attempt->update([
-                'score'       => $totalScore,
-                'status'      => $isPassed ? 'passed' : 'failed',
-                'finished_at' => now()
+                'score' => $totalScore,
+                'status' => $isPassed ? 'passed' : 'failed',
+                'finished_at' => now(),
             ]);
 
             // التحديث لازم يكون هنا قبل الـ return بتاع الـ transaction
@@ -129,11 +132,11 @@ class ExamService
                 $enrollment = Enrollment::where('student_id', '=', $attempt->student_id, 'and')
                     ->where('course_id', '=', $attempt->exam->course_id, 'and')
                     ->first();
-                
+
                 if ($enrollment) {
                     $enrollment->update([
                         'is_completed' => true,
-                        'completed_at' => now()
+                        'completed_at' => now(),
                     ]);
 
                     $certificateEnrollmentId = $enrollment->id;
@@ -142,11 +145,11 @@ class ExamService
 
             // دلوقتي نرجع النتيجة للـ Controller
             return [
-                'score'        => $totalScore,
-                'total_marks'  => $attempt->exam->total_marks,
+                'score' => $totalScore,
+                'total_marks' => $attempt->exam->total_marks,
                 'passing_mark' => $attempt->exam->passing_mark,
-                'is_passed'    => $isPassed,
-                'status'       => $isPassed ? 'passed' : 'failed',
+                'is_passed' => $isPassed,
+                'status' => $isPassed ? 'passed' : 'failed',
                 'certificate_enrollment_id' => $certificateEnrollmentId,
             ];
         });
@@ -168,7 +171,7 @@ class ExamService
         try {
             $enrollment = Enrollment::with(['student', 'course'])->find($enrollmentId);
 
-            if (!$enrollment) {
+            if (! $enrollment) {
                 return;
             }
 
@@ -192,7 +195,7 @@ class ExamService
                 ]);
             }
         } catch (\Throwable $e) {
-            Log::error('Certificate generation/email failed: ' . $e->getMessage(), [
+            Log::error('Certificate generation/email failed: '.$e->getMessage(), [
                 'attempt_id' => $attempt->id,
                 'enrollment_id' => $enrollmentId,
             ]);
@@ -213,6 +216,7 @@ class ExamService
             ->map(function ($attempt) {
                 // إضافة معلومة سريعة للفرونت إند: هل دي شهادة قابلة للتحميل؟
                 $attempt->can_download_certificate = ($attempt->status === 'passed' && $attempt->exam->is_final);
+
                 return $attempt;
             });
     }

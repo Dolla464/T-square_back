@@ -7,8 +7,8 @@ use App\Http\Requests\Website\CourseDashboardRequest;
 use App\Http\Resources\User\Courses\CourseDashboardResource;
 use App\Models\User;
 use App\Services\User\CourseDashboardService;
-use Illuminate\Http\JsonResponse;
 use App\Traits\ApiResponseTrait;
+use Illuminate\Http\JsonResponse;
 
 class CourseDashboardController extends Controller
 {
@@ -17,19 +17,19 @@ class CourseDashboardController extends Controller
     public function __construct(
         private readonly CourseDashboardService $dashboardService
     ) {}
- 
+
     /**
      * GET /api/student/courses/dashboard
      */
     public function __invoke(CourseDashboardRequest $request): JsonResponse
     {
         $validated = $request->validated();
- 
+
         // ── الطالب الحالي المسجل دخوله ───────────────────────────────────
         /** @var User|null $user */
         $user = $request->user();
         if (! $user) {
-            
+
             return $this->errorResponse('Unauthenticated', 401);
         }
 
@@ -37,7 +37,7 @@ class CourseDashboardController extends Controller
         if (! $student) {
             return $this->errorResponse('Student not found', 404);
         }
- 
+
         // ── جلب البيانات من الـ Service ────────────────────────────────────
         $data = $this->dashboardService->getDashboardData(
             studentId: $student->id,
@@ -46,7 +46,7 @@ class CourseDashboardController extends Controller
                 'status' => $validated['status'] ?? 'all',
             ]
         );
- 
+
         // ── تجهيز الـ Response ─────────────────────────────────────────────
         return $this->successResponse([
             'stats' => $data['stats'],

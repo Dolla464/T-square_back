@@ -4,8 +4,10 @@ namespace App\Services\User;
 
 use App\Models\Certificate;
 use App\Models\Enrollment;
+use App\Models\ExamAttempt;
 use Illuminate\Support\Str;
 use Spatie\LaravelPdf\Facades\Pdf;
+use Spatie\LaravelPdf\PdfBuilder;
 
 class CertificateService
 {
@@ -23,7 +25,7 @@ class CertificateService
         }
 
         // 2. Define a unique file path and save the PDF to storage
-        $fileName = 'certificates/cert_' . Str::random(16) . '.pdf';
+        $fileName = 'certificates/cert_'.Str::random(16).'.pdf';
         $this->certificatePdfData([
             'name' => $enrollment->student->full_name,
             'course' => $enrollment->course->title,
@@ -31,15 +33,15 @@ class CertificateService
         ])->disk('public')->save($fileName);
 
         // 3. Generate a unique Certificate Number
-        $certificateNum = 'TSQ-' . date('Y') . '-' . strtoupper(Str::random(8));
+        $certificateNum = 'TSQ-'.date('Y').'-'.strtoupper(Str::random(8));
 
         // 4. Save to the Database
         $certificate = Certificate::create([
-            'student_id'      => $enrollment->student_id,
-            'course_id'       => $enrollment->course_id,
+            'student_id' => $enrollment->student_id,
+            'course_id' => $enrollment->course_id,
             'certificate_url' => $fileName,
             'certificate_num' => $certificateNum,
-            'issued_at'       => now(),
+            'issued_at' => now(),
         ]);
 
         return $certificate;
@@ -54,17 +56,17 @@ class CertificateService
             'course' => $enrollment->course->title,
             'date' => now()->format('Y-m-d'),
         ])
-            ->name('certificate-' . $enrollment->id . '.pdf');
+            ->name('certificate-'.$enrollment->id.'.pdf');
     }
 
     /**
-     * @param  \App\Models\ExamAttempt  $attempt
+     * @param  ExamAttempt  $attempt
      */
     public function generateBinaryPdf($attempt): string
     {
         $attempt->loadMissing(['student', 'exam.course']);
 
-        $temporaryPath = tempnam(sys_get_temp_dir(), 'certificate_') . '.pdf';
+        $temporaryPath = tempnam(sys_get_temp_dir(), 'certificate_').'.pdf';
 
         $this->certificatePdfData([
             'name' => $attempt->student->full_name,
@@ -82,7 +84,7 @@ class CertificateService
      * Generate a PDF instance for a certificate.
      *
      * @param  array{name: string, course: string, date: string}  $data
-     * @return \Spatie\LaravelPdf\PdfBuilder
+     * @return PdfBuilder
      *
      * @throws \InvalidArgumentException
      * @throws \Exception
@@ -91,7 +93,7 @@ class CertificateService
     {
         // Defensive: Ensure all required keys exist and are strings
         foreach (['name', 'course', 'date'] as $key) {
-            if (!array_key_exists($key, $data) || !is_string($data[$key]) || empty($data[$key])) {
+            if (! array_key_exists($key, $data) || ! is_string($data[$key]) || empty($data[$key])) {
                 throw new \InvalidArgumentException("Certificate PDF data missing or invalid for key: {$key}");
             }
         }
@@ -102,13 +104,13 @@ class CertificateService
             $npmBinary = config('services.browsershot.npm_binary', 'C:\Program Files\nodejs\npm.cmd');
             $nodeModulesPath = config('services.browsershot.include_path', base_path('node_modules'));
 
-            if (!file_exists($nodeBinary) || !file_exists($npmBinary)) {
+            if (! file_exists($nodeBinary) || ! file_exists($npmBinary)) {
                 throw new \Exception('Browsershot dependencies missing or misconfigured');
             }
 
             $browsershot->setNodeBinary($nodeBinary)
-                        ->setNpmBinary($npmBinary)
-                        ->setIncludePath($nodeModulesPath);
+                ->setNpmBinary($npmBinary)
+                ->setIncludePath($nodeModulesPath);
         };
 
         try {
@@ -116,7 +118,7 @@ class CertificateService
                 ->withBrowsershot($browsershotConfigurator);
         } catch (\Throwable $e) {
             // Optionally, consider logging here for better observability
-            throw new \Exception('Failed to generate certificate PDF: ' . $e->getMessage(), 0, $e);
+            throw new \Exception('Failed to generate certificate PDF: '.$e->getMessage(), 0, $e);
         }
     }
 

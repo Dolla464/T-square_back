@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Exam;
 use App\Models\Question;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class QuestionSeeder extends Seeder
@@ -17,7 +16,7 @@ class QuestionSeeder extends Seeder
         // لكل امتحان، هنضيف 5 أسئلة عشوائية
         Exam::all()->each(function ($exam) {
             Question::factory(5)->create([
-                'exam_id' => $exam->id
+                'exam_id' => $exam->id,
             ]);
         });
     }

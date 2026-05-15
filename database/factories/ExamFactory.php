@@ -20,7 +20,7 @@ class ExamFactory extends Factory
     {
         return [
             'course_id' => Course::inRandomOrder()->first()->id ?? Course::factory(),
-            'title' => $this->faker->words(3, true) . ' Exam',
+            'title' => $this->faker->words(3, true).' Exam',
             'description' => $this->faker->paragraph(),
             'duration' => $this->faker->randomElement([30, 60, 90, 120]), // بالدقائق
             'total_marks' => $this->faker->randomElement([50, 100, 200]),

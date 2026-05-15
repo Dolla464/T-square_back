@@ -24,9 +24,9 @@ class CourseListResource extends JsonResource
             'duration_hours' => $this->duration_hours,
             'duration_weeks' => $this->duration_weeks,
             'price' => [
-                'original' => (int)$this->price_before,
-                'discount' => (int)$this->discount_price,
-                'final' => (int)$this->price,
+                'original' => (int) $this->price_before,
+                'discount' => (int) $this->discount_price,
+                'final' => (int) $this->price,
             ],
             'category' => $this->category->name ?? null,
             'tags' => $this->whenLoaded('tags', fn () => $this->tags->take(4)->map(function ($tag) {

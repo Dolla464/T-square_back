@@ -15,11 +15,11 @@ class UpdateProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'      => ['sometimes', 'string', 'max:255'],
+            'name' => ['sometimes', 'string', 'max:255'],
             'full_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'gender'    => ['sometimes', 'nullable', Rule::in(['male', 'female'])],
-            'avatar'    => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
-            'password'  => ['sometimes', 'nullable', 'string', 'min:8', 'confirmed'],
+            'gender' => ['sometimes', 'nullable', Rule::in(['male', 'female'])],
+            'avatar' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+            'password' => ['sometimes', 'nullable', 'string', 'min:8', 'confirmed'],
 
             // حقول محظور تعديلها
             'email' => ['prohibited'],

@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Instructor;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,15 +19,15 @@ class InstructorFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => \App\Models\User::factory(), // سينشئ مستخدم جديد لكل مدرب
+            'user_id' => User::factory(), // سينشئ مستخدم جديد لكل مدرب
             'full_name' => $this->faker->name(),
             'phone' => $this->faker->unique()->phoneNumber(),
             'avatar' => 'default_avatar.png',
             'bio' => $this->faker->paragraphs(2, true),
             'gender' => $this->faker->randomElement(['male', 'female']),
-            'insta_url' => 'https://instagram.com/' . $this->faker->userName(),
-            'linkedin_url' => 'https://linkedin.com/in/' . $this->faker->userName(),
-            'facebook_url' => 'https://facebook.com/' . $this->faker->userName(),
+            'insta_url' => 'https://instagram.com/'.$this->faker->userName(),
+            'linkedin_url' => 'https://linkedin.com/in/'.$this->faker->userName(),
+            'facebook_url' => 'https://facebook.com/'.$this->faker->userName(),
             'status' => 'active',
         ];
     }

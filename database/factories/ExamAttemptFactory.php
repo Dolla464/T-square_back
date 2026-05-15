@@ -20,11 +20,12 @@ class ExamAttemptFactory extends Factory
     public function definition(): array
     {
         $start = $this->faker->dateTimeBetween('-1 month', 'now');
+
         return [
             'student_id' => Student::inRandomOrder()->first()->id ?? Student::factory(),
             'exam_id' => Exam::inRandomOrder()->first()->id ?? Exam::factory(),
             'started_at' => $start,
-            'finished_at' => (clone $start)->modify('+' . rand(20, 60) . ' minutes'),
+            'finished_at' => (clone $start)->modify('+'.rand(20, 60).' minutes'),
             'score' => $this->faker->randomFloat(2, 0, 100),
         ];
     }

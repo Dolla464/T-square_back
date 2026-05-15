@@ -51,7 +51,7 @@ class ProfileService
                 $userData['name'] = $shortName;
             }
 
-            if (!empty($userData)) {
+            if (! empty($userData)) {
                 $user->update($userData);
             }
 
@@ -60,7 +60,7 @@ class ProfileService
                     'full_name' => $validated['full_name'] ?? null,
                     'gender' => $validated['gender'] ?? null,
                     // لا نضع avatar هنا مباشرة لأنه قد يكون كائن ملف (File Object)
-                ], fn($value) => !is_null($value));
+                ], fn ($value) => ! is_null($value));
 
                 if (isset($validated['avatar']) && $validated['avatar'] instanceof UploadedFile) {
                     // استدعاء الـ Trait (الآن سيعمل بدون Intervention Image)
@@ -71,12 +71,13 @@ class ProfileService
                     );
                 }
 
-                if (!empty($profileData)) {
+                if (! empty($profileData)) {
                     $profile->update($profileData);
                 }
             }
 
             $user->refresh();
+
             return $this->show($user);
         });
     }
@@ -85,10 +86,10 @@ class ProfileService
     {
         // Spatie check
         return match (true) {
-            $user->hasRole('student')    => 'student',
-            $user->hasRole('admin')      => 'admin',
+            $user->hasRole('student') => 'student',
+            $user->hasRole('admin') => 'admin',
             $user->hasRole('instructor') => 'instructor',
-            default                      => null,
+            default => null,
         };
     }
 
@@ -99,7 +100,7 @@ class ProfileService
             [
                 'full_name' => $user->name,
                 'phone' => null,
-                'enrollment_number' => 'TEMP-' . $user->id,
+                'enrollment_number' => 'TEMP-'.$user->id,
                 'group_id' => null,
                 'avatar' => null,
                 'gender' => null,

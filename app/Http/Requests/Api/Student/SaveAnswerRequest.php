@@ -16,7 +16,7 @@ class SaveAnswerRequest extends FormRequest
         // بنجيب الطالب المرتبط باليوزر، وبعدين نشوف محاولاته
         $student = $this->user()->student;
 
-        if (!$student) {
+        if (! $student) {
             return false;
         }
 
@@ -34,9 +34,9 @@ class SaveAnswerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'attempt_id'  => 'required|exists:exam_attempts,id',
+            'attempt_id' => 'required|exists:exam_attempts,id',
             'question_id' => 'required|exists:questions,id',
-            'choice_id'   => [
+            'choice_id' => [
                 'required',
                 // التأكد إن الاختيار ده يخص السؤال المبعوت فعلاً
                 Rule::exists('choices', 'id')->where(function ($query) {

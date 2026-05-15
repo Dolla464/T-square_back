@@ -7,7 +7,6 @@ Route::get('/', function () {
     return ['Laravel' => app()->version()];
 });
 
-
 Route::get('/test-pdf', function () {
     return Pdf::view('certificate', [
         'name'   => 'Anas Aln3san',
@@ -18,14 +17,5 @@ Route::get('/test-pdf', function () {
         ->landscape()
         ->name('test-certificate.pdf');
 });
-Route::get('/phpinfo-test', function () {
-    phpinfo();
-});
-Route::get('/test-gd', function () {
-    return [
-        'loaded' => extension_loaded('gd'),
-        'functions' => get_extension_funcs('gd'),
-        'png_func' => function_exists('imagecreatefrompng'),
-    ];
-});
-//require __DIR__.'/auth.php';
+
+// require __DIR__.'/auth.php';

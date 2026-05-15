@@ -3,7 +3,6 @@
 namespace App\Services\Admin;
 
 use App\Models\Solution;
-use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\DB;
 
 class AdminSolutionService
@@ -74,7 +73,7 @@ class AdminSolutionService
                 $updateData['description'] = $data['description'];
             }
 
-            if (!empty($updateData)) {
+            if (! empty($updateData)) {
                 $solution->update($updateData);
             }
 

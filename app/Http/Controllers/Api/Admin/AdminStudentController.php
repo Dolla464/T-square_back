@@ -25,16 +25,16 @@ class AdminStudentController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filters = [
-            'search'      => $request->query('search'),
-            'status'      => $request->query('status'),      // like: active
+            'search' => $request->query('search'),
+            'status' => $request->query('status'),      // like: active
             'is_verified' => $request->query('is_verified'), // like: 1 or 0
         ];
-    
+
         $students = $this->studentService->index(
-            $request->query('per_page', 10), 
+            $request->query('per_page', 10),
             $filters
         );
-    
+
         return $this->paginateResponse($students->through(function ($student) {
             return new AdminStudentResource($student);
         }), 'Students retrieved successfully');

@@ -34,7 +34,7 @@ class EnrollmentFactory extends Factory
      */
     public function manual(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'order_id' => null,
             'price_paid' => 0,
         ]);

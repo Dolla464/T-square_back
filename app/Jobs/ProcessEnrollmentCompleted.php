@@ -26,7 +26,7 @@ class ProcessEnrollmentCompleted implements ShouldQueue
     public function handle(CertificateService $certificateService): void
     {
         $this->enrollment->updateQuietly([
-            'completed_at' => now()
+            'completed_at' => now(),
         ]);
 
         // Issue the certificate and save it to DB

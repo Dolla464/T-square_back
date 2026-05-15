@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Enrollment;
 use App\Models\ExamAttempt;
 use Carbon\Carbon;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class ExamAttemptSeeder extends Seeder
@@ -20,6 +19,7 @@ class ExamAttemptSeeder extends Seeder
 
         if ($enrollments->isEmpty()) {
             $this->command->warn('يا عادل لازم تشغل الـ EnrollmentSeeder والـ ExamSeeder الأول!');
+
             return;
         }
 
@@ -31,13 +31,13 @@ class ExamAttemptSeeder extends Seeder
                 $startedAt = Carbon::now()->subDays(rand(1, 30))->subMinutes(rand(60, 200));
 
                 ExamAttempt::create([
-                    'student_id'  => $enrollment->student_id,
-                    'exam_id'     => $exam->id,
-                    'started_at'  => $startedAt,
+                    'student_id' => $enrollment->student_id,
+                    'exam_id' => $exam->id,
+                    'started_at' => $startedAt,
                     // بنفترض إن الامتحان مدته عشوائية بين 20 لـ 50 دقيقة
                     'finished_at' => (clone $startedAt)->addMinutes(rand(20, 50)),
                     // درجة عشوائية من إجمالي درجات الامتحان
-                    'score'       => rand(0, (int)$exam->total_marks),
+                    'score' => rand(0, (int) $exam->total_marks),
                 ]);
             }
         }

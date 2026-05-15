@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request; // استخدم Request العادي
-use Illuminate\Support\Facades\Validator;
 
 class VerifyEmailController extends Controller
 {
@@ -24,7 +23,7 @@ class VerifyEmailController extends Controller
         }
 
         // 2. التحقق من الـ Hash (لضمان صحة الرابط والبريد)
-        if (!hash_equals(sha1($request->user()->getEmailForVerification()), (string) $request->route('hash'))) {
+        if (! hash_equals(sha1($request->user()->getEmailForVerification()), (string) $request->route('hash'))) {
             return $this->errorResponse('Invalid verification link.', 403);
         }
 

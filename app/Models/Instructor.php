@@ -21,13 +21,13 @@ class Instructor extends Model
         'insta_url',
         'linkedin_url',
         'facebook_url',
-        'status'
+        'status',
     ];
 
     protected function avatar(): Attribute
     {
-        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
-            get: fn($value) => $value ? asset('storage/' . $value) : asset('assets/default-instructor.png'),
+        return Attribute::make(
+            get: fn ($value) => $value ? asset('storage/'.$value) : asset('assets/default-instructor.png'),
         );
     }
 
@@ -80,7 +80,7 @@ class Instructor extends Model
 
         $this->update([
             'avg_rating' => round($stats->average ?? 0, 2),
-            'reviews_count' => $stats->total ?? 0
+            'reviews_count' => $stats->total ?? 0,
         ]);
     }
 }

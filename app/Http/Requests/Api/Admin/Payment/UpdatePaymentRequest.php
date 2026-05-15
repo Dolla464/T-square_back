@@ -29,4 +29,3 @@ class UpdatePaymentRequest extends FormRequest
         ];
     }
 }
-
