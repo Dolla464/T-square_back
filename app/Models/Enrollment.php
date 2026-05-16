@@ -13,6 +13,7 @@ class Enrollment extends Model
         'student_id',
         'course_id',
         'order_id',
+        'group_id',
         'price_paid',
         'is_completed',
         'completed_at',
@@ -37,6 +38,11 @@ class Enrollment extends Model
     public function order()
     {
         return $this->belongsTo(Order::class, 'order_id');
+    }
+
+    public function learningGroup()
+    {
+        return $this->belongsTo(LearningGroup::class, 'group_id');
     }
 
     /**
