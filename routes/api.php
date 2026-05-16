@@ -186,7 +186,6 @@ Route::middleware(['auth:sanctum', 'role:admin'])
         // Learning Groups
         Route::prefix('learning-groups')->group(function () {
             Route::get('/selection', [AdminLearningGroupController::class, 'selection']);
-
             // Per-group bulk actions
             Route::get('{groupId}/unassigned-students', [AdminLearningGroupController::class, 'getUnassignedStudents'])->name('learning-groups.unassigned-students');
             Route::post('{groupId}/bulk-assign',        [AdminLearningGroupController::class, 'bulkAssignStudents'])->name('learning-groups.bulk-assign');
