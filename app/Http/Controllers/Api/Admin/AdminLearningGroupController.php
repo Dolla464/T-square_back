@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\LearningGroupRequest;
 use App\Http\Resources\Admin\LearningGroup\AdminLearningGroupResource;
 use App\Models\LearningGroup;
 use App\Services\Admin\AdminLearningGroupService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class AdminLearningGroupController extends Controller
 {
@@ -29,10 +29,52 @@ class AdminLearningGroupController extends Controller
         return $this->paginateResponse($groups, 'Learning groups retrieved successfully');
     }
 
+    public function store(LearningGroupRequest $request): JsonResponse
+    {
+        $group = $this->adminLearningGroupService->createGroup($request->validated());
+
+        $group->load(['course:id,title', 'instructor:id,full_name']);
+
+        return $this->successResponse(
+            new AdminLearningGroupResource($group),
+            'Learning group created successfully',
+            201
+        );
+    }
+
+    public function show(LearningGroup $learningGroup): JsonResponse
+    {
+        $learningGroup->load(['course:id,title', 'instructor:id,full_name']);
+        $learningGroup->loadCount('students');
+
+        return $this->successResponse(
+            new AdminLearningGroupResource($learningGroup),
+            'Learning group retrieved successfully'
+        );
+    }
+
+    public function update(LearningGroupRequest $request, LearningGroup $learningGroup): JsonResponse
+    {
+        $group = $this->adminLearningGroupService->updateGroup($learningGroup, $request->validated());
+
+        $group->load(['course:id,title', 'instructor:id,full_name']);
+
+        return $this->successResponse(
+            new AdminLearningGroupResource($group),
+            'Learning group updated successfully'
+        );
+    }
+
+    public function destroy(LearningGroup $learningGroup): JsonResponse
+    {
+        $this->adminLearningGroupService->deleteGroup($learningGroup);
+
+        return $this->successResponse(null, 'Learning group deleted successfully');
+    }
+
     public function selection()
     {
         $groups = $this->adminLearningGroupService->getSelection();
-        // return them in a simple and fast format for the dropdowns
         return $this->successResponse($groups, 'Learning groups retrieved for selection successfully');
     }
 
