@@ -1,162 +1,196 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="ar">
 <head>
-    <title>Certificate</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Professional Fixed</title>
     <style>
-        @import url('https://fonts.googleapis.com/css?family=Open+Sans|Pinyon+Script|Rochester');
-
-        @page {
-            size: A4 landscape;
-            margin: 0;
-        }
-
         body {
-            margin: 0;
-            padding: 0;
-            background: #fff;
-            /* خليه أبيض عشان الطباعة */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
         }
 
-        .pm-certificate-container {
+        .certificate-container {
+            width: 900px;
+            height: 600px;
+            background-color: white;
             position: relative;
-            width: 297mm;
-            /* عرض الـ A4 landscape */
-            height: 210mm;
-            /* طول الـ A4 landscape */
-            background-color: #618597;
-            padding: 0;
-            color: #333;
-            font-family: 'Open Sans', sans-serif;
-            box-sizing: border-box;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             overflow: hidden;
+            box-sizing: border-box;
         }
 
-        /* تعديل البوردر عشان يظبط مع أبعاد الورقة */
-        .outer-border {
+        /* الخطوط العلوية والسفلية - بعيدة عن الدوائر */
+        .header-line, .footer-line {
             position: absolute;
-            top: 10mm;
-            left: 10mm;
-            right: 10mm;
-            bottom: 10mm;
-            border: 2px solid #fff;
-            pointer-events: none;
-        }
-
-        .inner-border {
-            position: absolute;
-            top: 20mm;
-            left: 20mm;
-            right: 20mm;
-            bottom: 20mm;
-            border: 2px solid #fff;
-            pointer-events: none;
-        }
-
-        .pm-certificate-border {
-            position: absolute;
-            top: 25mm;
-            left: 25mm;
-            right: 25mm;
-            bottom: 25mm;
-            background-color: rgba(255, 255, 255, 1);
-            padding: 40px;
-            text-align: center;
-        }
-
-        /* باقي التنسيقات خليها زي ما هي بس شيل الـ positions المعقدة */
-        .cursive {
-            font-family: 'Pinyon Script', cursive;
-        }
-
-        .bold {
-            font-weight: bold;
-        }
-
-        .underline {
-            border-bottom: 1px solid #777;
-            padding-bottom: 5px;
-            margin-bottom: 15px;
-            display: inline-block;
-            min-width: 200px;
-        }
-
-        .pm-certificate-title h2 {
-            font-size: 34px;
-            margin-top: 20px;
-        }
-
-        .pm-name-text {
-            font-size: 30px;
-        }
-
-        .pm-earned-text {
-            font-size: 20px;
-            display: block;
-            margin: 10px 0;
-        }
-
-        .pm-credits-text {
-            font-size: 18px;
-            display: block;
-        }
-
-        .pm-certificate-footer {
-            position: absolute;
-            bottom: 40px;
-            left: 0;
             width: 100%;
             display: flex;
-            justify-content: space-around;
+            align-items: center;
+            padding: 0 30px;
+            box-sizing: border-box;
+            z-index: 10;
         }
 
-        .footer-item {
-            width: 30%;
+        .header-line { top: 30px; left: 0; }
+        .footer-line { bottom: 30px; left: 0; flex-direction: row-reverse; }
+
+        .red-bar {
+            height: 10px;
+            background-color: #c00000;
+            flex-grow: 1;
         }
+
+        .header-line .red-bar { border-radius: 0 10px 10px 0; margin-right: 20px; }
+        .footer-line .red-bar { border-radius: 10px 0 0 10px; margin-left: 20px; }
+
+        .dots {
+            display: flex;
+            gap: 15px;
+        }
+
+        .dot {
+            width: 18px;
+            height: 18px;
+            background-color: #c00000;
+            border-radius: 50%;
+        }
+
+        /* المحتوى يبدأ وينتهي بين الخطوط بدون لمس الدوائر */
+        .main-content {
+            width: 100%;
+            height: 100%;
+            padding: 70px 60px; /* مسافة لعدم لمس الخطوط والدواير */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            box-sizing: border-box;
+        }
+
+        .top-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo { width: 110px; height: auto; }
+        .center-name { font-size: 20px; color: #333; }
+
+        .text-center { text-align: center; }
+
+        .main-title {
+            font-size: 45px;
+            font-weight: bold;
+            margin: 10px 0;
+            letter-spacing: 2px;
+        }
+
+        .certify-text { font-size: 18px; font-style: italic; margin-bottom: 20px; }
+
+        .student-name {
+            font-size: 34px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            border-bottom: none;
+        }
+
+        .course-info { font-size: 19px; margin-bottom: 5px; }
+        .tags { font-size: 14px; color: #555; margin-bottom: 20px; }
+        .date-text { font-size: 18px; }
+
+        /* قسم التوقيعات حسب الصورة الموضحة */
+        .signatures-area {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end; /* لضمان محاذاة الأسماء تحت */
+            position: relative;
+            padding-bottom: 20px;
+        }
+
+        .sig-group {
+            text-align: center;
+            width: 200px;
+        }
+
+        /* الشرطة اللي في النص مرفوعة فوق شوية */
+        .middle-dash {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 65px; /* مرفوعة عن مستوى الأسماء */
+            font-weight: bold;
+            font-size: 22px;
+            letter-spacing: 1px;
+        }
+
+        .label { font-size: 16px; color: #777; margin-bottom: 5px; }
+        .name { font-size: 19px; font-weight: bold; color: #000; }
+
     </style>
 </head>
-
 <body>
-    <div class="pm-certificate-container">
-        <div class="outer-border"></div>
-        <div class="inner-border"></div>
-        <div class="pm-certificate-border">
-            <div class="pm-certificate-title cursive">
-                <h2>Course completion certificate from T-square Academy</h2>
+
+<div class="certificate-container">
+    <div class="header-line">
+        <div class="red-bar"></div>
+        <div class="dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="top-row">
+            <img src="{{ asset('image/logo-dark.png') }}" alt="T-sqaure Logo" class="logo">
+            <div class="center-name">T-Square Training Center</div>
+        </div>
+
+        <div class="text-center">
+            <div class="main-title">CERTIFICATE</div>
+            <div class="certify-text">This is to certify that</div>
+            <div class="student-name">{{ $name }}</div>
+            
+            <div class="course-info">Has successfully completed course on {{ $course }}</div>
+            <div class="tags">(HTML - CSS - Java Script - Bootstrap - ECMA Script6 - Ajax - Json - API - React Js)</div>
+            
+            <div class="date-text">Date Of Issue : {{ $date }}</div>
+        </div>
+
+        <div class="signatures-area">
+            <div class="sig-group">
+                <div class="label">Instructor</div>
+                <div class="name">Ahmed Hatem</div>
             </div>
 
-            <div class="pm-certificate-body">
-                <br><br>
-                <div class="underline">
-                    <span class="pm-name-text bold">{{ $name }}</span>
-                </div>
-                <span class="pm-earned-text padding-0 block cursive">is hereby awarded this</span>
-                <span class="pm-credits-text block bold sans">Certificate of Completion</span>
-                <br>
-                <span class="pm-earned-text cursive">while completing the training course entitled</span>
-                <div class="underline">
-                    <span class="pm-credits-text bold">{{ $course }}</span>
-                </div>
-            </div>
+            <div class="middle-dash">---------</div>
 
-            <div class="pm-certificate-footer">
-                <div class="footer-item">
-                    <span class="bold">T-square</span>
-                    <div style="border-top: 1px solid #777; margin: 10px 0;"></div>
-                    <small>Staff Development</small>
-                </div>
-                <div class="footer-item">
-                    <span class="bold">Date Completed</span>
-                    <div style="border-top: 1px solid #777; margin: 10px 0;"></div>
-                    <small>{{ $date }}</small>
-                </div>
+            <div class="sig-group">
+                <div class="label">CEO</div>
+                <div class="name">Tamer Elshal</div>
             </div>
         </div>
     </div>
-</body>
 
+    <div class="footer-line">
+        <div class="red-bar"></div>
+        <div class="dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+    </div>
+</div>
+
+</body>
 </html>
