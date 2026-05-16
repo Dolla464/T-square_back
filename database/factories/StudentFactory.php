@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Models\LearningGroup;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -24,7 +23,6 @@ class StudentFactory extends Factory
             'full_name' => $this->faker->name(),
             'phone' => $this->faker->unique()->phoneNumber(),
             'enrollment_number' => 'STU-'.$this->faker->unique()->numberBetween(10000, 99999),
-            'group_id' => LearningGroup::inRandomOrder()->first()->id ?? null,
             'avatar' => 'default_student.png',
             'gender' => $this->faker->randomElement(['male', 'female']),
             'status' => 'active',

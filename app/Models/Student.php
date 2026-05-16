@@ -15,7 +15,6 @@ class Student extends Model
         'full_name',
         'phone',
         'enrollment_number',
-        'group_id',
         'avatar',
         'gender',
         'status',
@@ -26,9 +25,17 @@ class Student extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function learningGroup()
+    /**
+     * The group this student belongs to for a specific course enrollment.
+     * Returns the LearningGroup for the enrollment matching the given course_id.
+     */
+    public function learningGroupForCourse(int $courseId): ?LearningGroup
     {
-        return $this->belongsTo(LearningGroup::class, 'group_id');
+        return $this->enrollments()
+            ->where('course_id', $courseId)
+            ->with('learningGroup')
+            ->first()
+            ?->learningGroup;
     }
 
     public function orders()
