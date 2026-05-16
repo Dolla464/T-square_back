@@ -79,13 +79,6 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasManyThrough(Course::class, Instructor::class);
     }
 
-    // علاقة الوصول للمجموعة (عن طريق جدول الطلاب)
-    public function learningGroup()
-    {
-        // بنقول للارافيل: هات المجموعة اللي تخص الطالب اللي مربوط باليوزر ده
-        return $this->hasOneThrough(LearningGroup::class, Student::class, 'user_id', 'id', 'id', 'group_id');
-    }
-
     // الوصول للمجموعات من خلال ملف المدرب
     public function instructorGroups()
     {
