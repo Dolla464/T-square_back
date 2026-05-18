@@ -129,7 +129,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Student authenticated routes ───────────────────────────────────────
     Route::prefix('student')->name('student.')->group(function () {
 
-        Route::get('courses/dashboard', CourseDashboardController::class)
+        Route::get('dashboard/courses', CourseDashboardController::class)
             ->name('courses.dashboard');
 
         Route::post('enrollments', [EnrollmentController::class, 'store'])

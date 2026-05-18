@@ -4,6 +4,7 @@ namespace App\Services\User;
 
 use App\Events\StudentExamAttemptCompleted;
 use App\Mail\CertificateMail;
+use App\Notifications\CertificateReady;
 use App\Models\Answer;
 use App\Models\Choice;
 use App\Models\Enrollment;
@@ -134,7 +135,7 @@ class ExamService
                     ->first();
 
                 if ($enrollment) {
-                    $enrollment->update([
+                    $enrollment->updateQuietly([
                         'is_completed' => true,
                         'completed_at' => now(),
                     ]);
@@ -182,6 +183,8 @@ class ExamService
 
             if ($email) {
                 Mail::to($email)->send(new CertificateMail($attempt, $pdfPath));
+
+                $enrollment->student?->notify(new CertificateReady($enrollment));
 
                 Log::info('Certificate email sent', [
                     'attempt_id' => $attempt->id,

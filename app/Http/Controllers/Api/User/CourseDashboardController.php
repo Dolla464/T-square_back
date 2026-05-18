@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\User;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Website\CourseDashboardRequest;
 use App\Http\Resources\User\Courses\CourseDashboardResource;
+use App\Models\Student;
 use App\Models\User;
 use App\Services\User\CourseDashboardService;
 use App\Traits\ApiResponseTrait;
@@ -23,7 +24,7 @@ class CourseDashboardController extends Controller
      */
     public function __invoke(CourseDashboardRequest $request): JsonResponse
     {
-        $validated = $request->validated();
+        // $validated = $request->validated();
 
         // ── الطالب الحالي المسجل دخوله ───────────────────────────────────
         /** @var User|null $user */
@@ -33,7 +34,7 @@ class CourseDashboardController extends Controller
             return $this->errorResponse('Unauthenticated', 401);
         }
 
-        $student = $user->student;
+        $student = Student::where('user_id', $user->id)->first();
         if (! $student) {
             return $this->errorResponse('Student not found', 404);
         }
