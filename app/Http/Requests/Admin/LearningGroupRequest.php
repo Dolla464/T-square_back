@@ -23,9 +23,15 @@ class LearningGroupRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'group_name'    => 'required|string|max:255',
-            'course_id'     => 'required|exists:courses,id',
-            'instructor_id' => 'required|exists:instructors,id',
+            'group_name'         => 'required|string|max:255',
+            'course_id'          => 'required|exists:courses,id',
+            'instructor_id'      => 'required|exists:instructors,id',
+            // Flat array of student IDs to assign/keep in the group
+            'student_ids'        => 'nullable|array',
+            'student_ids.*'      => 'integer|exists:students,id',
+            // Keyed object { "student_id": bool } — keys are string-cast integers from JSON
+            'student_statuses'   => 'nullable|array',
+            'student_statuses.*' => 'boolean',
         ];
     }
 }
