@@ -165,9 +165,15 @@ Route::middleware(['auth:sanctum', 'role:admin'])
         Route::get('tags', [AdminTagController::class, 'index'])
             ->name('tags.index');
 
-        // Categories — static `tree` segment before any future parameterised routes
+        // Categories ───────────────────────────────────────────────────────────
+        // Static "tree" segment is declared FIRST so that it is never captured
+        // by the {category} wildcard of the apiResource below.
         Route::get('categories/tree', [AdminCategoryController::class, 'tree'])
             ->name('categories.tree');
+
+        // Full CRUD without destroy (deleting categories is strictly forbidden).
+        Route::apiResource('categories', AdminCategoryController::class)
+            ->except(['destroy']);
 
         // Courses (full CRUD)
         Route::prefix('courses')->name('courses.')->group(function () {
