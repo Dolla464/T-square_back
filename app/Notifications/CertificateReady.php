@@ -34,7 +34,7 @@ class CertificateReady extends Notification
             'enrollment_id' => $this->enrollment->id,
             'course_title' => $this->enrollment->course->title,
             'message' => 'تهانينا! شهادتك لدورة '.$this->enrollment->course->title.' متاحة الآن للتحميل.',
-            'action_link' => route('certificate.download', ['enrollment' => $this->enrollment->id]),
+            'action_link' => route('student.certificates.download', ['enrollment' => $this->enrollment->id]),
         ];
     }
 

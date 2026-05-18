@@ -32,8 +32,7 @@ use Illuminate\Support\Facades\Route;
 | Authentication Routes
 |--------------------------------------------------------------------------
 */
-
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -49,7 +48,7 @@ Route::prefix('student')->name('student.')->group(function () {
 
     Route::get('categories', [CategoryController::class, 'index'])
         ->name('categories.index');
-
+        
     Route::get('instructors', [InstructorController::class, 'index'])
         ->name('instructors.index');
 
@@ -92,7 +91,7 @@ Route::prefix('student')->name('student.')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
 
     // Authenticated user identity
-    Route::get('user', fn(Request $request) => $request->user())
+    Route::get('user', fn (Request $request) => $request->user())
         ->name('user.show');
 
     // Profile
@@ -183,30 +182,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])
         Route::apiResource('instructors', AdminInstructorController::class)
             ->except(['store', 'update']);
 
-        // Learning Groups
-        Route::prefix('learning-groups')->group(function () {
-            Route::get('/selection', [AdminLearningGroupController::class, 'selection']);
-            // Per-group bulk actions
-            Route::get('{groupId}/unassigned-students', [AdminLearningGroupController::class, 'getUnassignedStudents'])->name('learning-groups.unassigned-students');
-            Route::post('{groupId}/bulk-assign',        [AdminLearningGroupController::class, 'bulkAssignStudents'])->name('learning-groups.bulk-assign');
-            Route::post('{groupId}/bulk-complete',      [AdminLearningGroupController::class, 'bulkCompleteStudents'])->name('learning-groups.bulk-complete');
-        });
-        Route::apiResource('learning-groups', AdminLearningGroupController::class);
-
         // Students — POST used for update (same multipart/form-data reason)
         Route::post('students/{student}', [AdminStudentController::class, 'update'])
             ->name('students.update');
-        Route::prefix('students')->group(function () {
-            // 1. Update student status
-            Route::patch('{student}/status', [AdminStudentController::class, 'updateStatus']);
-
-            // 2. Toggle user verification
-            Route::post('{student}/toggle-verify', [AdminStudentController::class, 'toggleVerify']);
-            // 3. Update the course group of the student
-            Route::put('{student}/courses/{course}/group', [AdminStudentController::class, 'updateCourseGroup']);
-            // 4. Update the course status of the student
-            Route::put('{student}/courses/{course}/status', [AdminStudentController::class, 'updateCourseStatus']);
-        });
         Route::apiResource('students', AdminStudentController::class)
             ->except(['store', 'update']);
 

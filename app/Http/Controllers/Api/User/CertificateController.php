@@ -132,8 +132,8 @@ class CertificateController extends Controller
             ], 403);
         }
 
-        // Issue or fetch the certificate
-        $certificate = $this->certificateService->issueCertificate($enrollment);
+    // Issue or fetch the certificate (force regeneration to pick up updated tags/instructor)
+    $certificate = $this->certificateService->issueCertificate($enrollment, true);
 
         // Download the file from storage
         if (! Storage::disk('public')->exists($certificate->certificate_url)) {
