@@ -29,7 +29,7 @@ class CertificateResource extends JsonResource
             'course_title' => optional($this->course)->title ?? 'Course Not Found',
             'is_completed' => (bool) $this->is_completed,
             'certificate_url' => $this->is_completed
-                ? route('certificate.download', ['enrollment' => $this->id])
+                ? route('student.certificates.download', ['enrollment' => $this->id])
                 : null,
             'certificate_num' => $certificate ? $certificate->certificate_num : null,
             'issued_at' => $certificate ? $certificate->issued_at : null,

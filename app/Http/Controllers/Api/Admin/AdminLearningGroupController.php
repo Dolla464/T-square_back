@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LearningGroupRequest;
-use App\Http\Resources\Admin\LearningGroup\AdminLearningGroupResource;
 use App\Models\LearningGroup;
 use App\Services\Admin\AdminLearningGroupService;
 use Illuminate\Http\JsonResponse;
@@ -19,24 +18,19 @@ class AdminLearningGroupController extends Controller
         $this->adminLearningGroupService = $adminLearningGroupService;
     }
 
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        $groups = $this->adminLearningGroupService->getAllGroups($request->get('perPage', 10));
-
-        // convert the collection to the resource before returning
-        $groups->setCollection(AdminLearningGroupResource::collection($groups->getCollection())->collection);
+        $groups = $this->adminLearningGroupService->getAllGroups($request->get('perPage', 10), $request->get('search'));
 
         return $this->paginateResponse($groups, 'Learning groups retrieved successfully');
     }
 
     public function store(LearningGroupRequest $request): JsonResponse
     {
-        $group = $this->adminLearningGroupService->createGroup($request->validated());
-
-        $group->load(['course:id,title', 'instructor:id,full_name']);
+        $groupResource = $this->adminLearningGroupService->createGroup($request->validated());
 
         return $this->successResponse(
-            new AdminLearningGroupResource($group),
+            $groupResource,
             'Learning group created successfully',
             201
         );
@@ -44,24 +38,22 @@ class AdminLearningGroupController extends Controller
 
     public function show(LearningGroup $learningGroup): JsonResponse
     {
-        $learningGroup->load(['course:id,title', 'instructor:id,full_name']);
-        $learningGroup->loadCount('students');
+        $groupResource = $this->adminLearningGroupService->getGroupDetails($learningGroup);
 
         return $this->successResponse(
-            new AdminLearningGroupResource($learningGroup),
+            $groupResource,
             'Learning group retrieved successfully'
         );
     }
 
     public function update(LearningGroupRequest $request, LearningGroup $learningGroup): JsonResponse
     {
-        $group = $this->adminLearningGroupService->updateGroup($learningGroup, $request->validated());
-
-        $group->load(['course:id,title', 'instructor:id,full_name']);
+        // The method in the service now does everything and is protected by a Transaction
+        $groupResource = $this->adminLearningGroupService->updateGroup($learningGroup, $request->validated());
 
         return $this->successResponse(
-            new AdminLearningGroupResource($group),
-            'Learning group updated successfully'
+            $groupResource,
+            'Learning group and students updated successfully'
         );
     }
 
@@ -72,16 +64,17 @@ class AdminLearningGroupController extends Controller
         return $this->successResponse(null, 'Learning group deleted successfully');
     }
 
-    public function selection()
+    public function selection(): JsonResponse
     {
         $groups = $this->adminLearningGroupService->getSelection();
+
         return $this->successResponse($groups, 'Learning groups retrieved for selection successfully');
     }
 
     /**
      * Get the available students for assignment (GET)
      */
-    public function getUnassignedStudents($groupId)
+    public function getUnassignedStudents($groupId): JsonResponse
     {
         $result = $this->adminLearningGroupService->getUnassignedCourseStudents((int)$groupId);
 
@@ -95,9 +88,8 @@ class AdminLearningGroupController extends Controller
     /**
      * Bulk assign students to the group (POST)
      */
-    public function bulkAssignStudents(Request $request, $groupId)
+    public function bulkAssignStudents(Request $request, $groupId): JsonResponse
     {
-        // Strict validation of the inputs from the students table
         $request->validate([
             'student_ids' => 'required|array',
             'student_ids.*' => 'exists:students,id',
@@ -110,12 +102,10 @@ class AdminLearningGroupController extends Controller
             (int)$request->course_id
         );
 
-        // If all the students are paid successfully without any unpaid students
         if (empty($result['unpaid_students'])) {
             return $this->successResponse(null, "All selected students ({$result['assigned_count']}) have been assigned to the group successfully.");
         }
 
-        // Partial success: some students were paid and some were skipped due to incomplete payment
         return $this->successResponse([
             'unpaid_students' => $result['unpaid_students']
         ], "Successfully assigned {$result['assigned_count']} students. Some students were skipped due to incomplete payment.");
@@ -124,7 +114,7 @@ class AdminLearningGroupController extends Controller
     /**
      * Bulk-mark selected students as completed for this group's course (POST)
      */
-    public function bulkCompleteStudents(Request $request, $groupId)
+    public function bulkCompleteStudents(Request $request, $groupId): JsonResponse
     {
         $request->validate([
             'student_ids'   => 'required|array',

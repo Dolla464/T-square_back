@@ -6,22 +6,35 @@ use App\Models\Certificate;
 use App\Models\Enrollment;
 use App\Models\ExamAttempt;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
 
 class CertificateService
 {
-    public function issueCertificate(Enrollment $enrollment)
+    public function issueCertificate(Enrollment $enrollment, bool $force = false)
     {
-        $enrollment->loadMissing(['student', 'course']);
+        // Ensure instructor relation on course is loaded to avoid N+1 when extracting instructor name
+        $enrollment->loadMissing(['student', 'course.instructor']);
 
         // 1. Check if the certificate already exists to prevent duplicates
-        $existingCert = Certificate::where('student_id', '=', $enrollment->student_id, 'and')
-            ->where('course_id', '=', $enrollment->course_id, 'and')
+        // Note: removed incorrect extra arguments to where() calls
+        $existingCert = Certificate::query()
+            ->where('student_id', $enrollment->student_id)
+            ->where('course_id', $enrollment->course_id)
             ->first();
 
-        if ($existingCert) {
+        if ($existingCert && ! $force) {
             return $existingCert;
+        }
+
+        // If forcing regeneration, delete old file and DB record so a fresh certificate is created
+        if ($existingCert && $force) {
+            if (! empty($existingCert->certificate_url) && Storage::disk('public')->exists($existingCert->certificate_url)) {
+                Storage::disk('public')->delete($existingCert->certificate_url);
+            }
+            // delete the old record to allow creating a new one with fresh metadata
+            $existingCert->delete();
         }
 
         // 2. Define a unique file path and save the PDF to storage
@@ -30,6 +43,8 @@ class CertificateService
             'name' => $enrollment->student->full_name,
             'course' => $enrollment->course->title,
             'date' => now()->format('Y-m-d'),
+            'tags' => $this->extractCourseTags($enrollment->course),
+            'instructor_name' => $enrollment->course->instructor->full_name ?? null,
         ])->disk('public')->save($fileName);
 
         // 3. Generate a unique Certificate Number
@@ -49,12 +64,14 @@ class CertificateService
 
     public function generateLiveCertificate(Enrollment $enrollment)
     {
-        $enrollment->loadMissing(['student', 'course']);
+    $enrollment->loadMissing(['student', 'course.instructor']);
 
         return $this->certificatePdfData([
             'name' => $enrollment->student->full_name,
             'course' => $enrollment->course->title,
             'date' => now()->format('Y-m-d'),
+            'tags' => $this->extractCourseTags($enrollment->course),
+            'instructor_name' => $enrollment->course->instructor->full_name ?? null,
         ])
             ->name('certificate-'.$enrollment->id.'.pdf');
     }
@@ -64,7 +81,7 @@ class CertificateService
      */
     public function generateBinaryPdf($attempt): string
     {
-        $attempt->loadMissing(['student', 'exam.course']);
+    $attempt->loadMissing(['student', 'exam.course.instructor']);
 
         $temporaryPath = tempnam(sys_get_temp_dir(), 'certificate_').'.pdf';
 
@@ -72,6 +89,8 @@ class CertificateService
             'name' => $attempt->student->full_name,
             'course' => $attempt->exam->course->title,
             'date' => now()->format('Y-m-d'),
+            'tags' => $this->extractCourseTags($attempt->exam->course),
+            'instructor_name' => $attempt->exam->course->instructor->full_name ?? null,
         ])->save($temporaryPath);
 
         $pdfContent = file_get_contents($temporaryPath);
@@ -96,6 +115,11 @@ class CertificateService
             if (! array_key_exists($key, $data) || ! is_string($data[$key]) || empty($data[$key])) {
                 throw new \InvalidArgumentException("Certificate PDF data missing or invalid for key: {$key}");
             }
+        }
+
+        // Ensure tags key always exists to keep the view simple
+        if (! array_key_exists('tags', $data)) {
+            $data['tags'] = null;
         }
 
         // Encapsulate Browsershot configuration
@@ -133,4 +157,32 @@ class CertificateService
     //         'body' => $message,
     //     ]);
     // }
+
+    /**
+     * Extract tags from a Course model in a normalized form.
+     * Returns an array of tag names, a single string, or null when none.
+     *
+     * @param  mixed  $course
+     * @return array|string|null
+     */
+    private function extractCourseTags($course)
+    {
+        if (! $course) {
+            return null;
+        }
+
+        // If relation isn't loaded, attempt to load safely
+        if (! $course->relationLoaded('tags')) {
+            $course->load('tags');
+        }
+
+        $tags = $course->tags ?? null;
+
+        if (! $tags || $tags->isEmpty()) {
+            return null;
+        }
+
+        // Return array of names
+        return $tags->pluck('name')->all();
+    }
 }
