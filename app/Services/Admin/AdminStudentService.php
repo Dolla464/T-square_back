@@ -22,7 +22,23 @@ class AdminStudentService
      */
     public function index(int $perPage = 10, array $filters = []): LengthAwarePaginator
     {
-        return Student::with(['user:id,email,email_verified_at'])
+        // define the basic relations to be loaded for the Resource
+        $relations = [
+            'user:id,email,email_verified_at',
+            'enrollments.learningGroup',
+            'enrollments.course.instructor',
+            'enrollments.course.learningGroups'
+        ];
+
+        // if there is a group_id filter, filter the loaded relations to get the first group
+        if (!empty($filters['group_id'])) {
+            $relations['enrollments'] = function ($query) use ($filters) {
+                $query->orderByRaw('group_id = ? DESC', [$filters['group_id']])
+                    ->latest();
+            };
+        }
+
+        return Student::with($relations)
             ->when(isset($filters['search']), function ($query) use ($filters) {
                 $search = $filters['search'];
                 $query->where(function ($q) use ($search) {
@@ -32,14 +48,14 @@ class AdminStudentService
                         });
                 });
             })
-            ->when(isset($filters['status']), function ($query) use ($filters) {
+            ->when(isset($filters['status']) && $filters['status'] !== '', function ($query) use ($filters) {
                 $query->where('status', $filters['status']);
             })
-            ->when(isset($filters['gender']), function ($query) use ($filters) {
+            ->when(isset($filters['gender']) && $filters['gender'] !== '', function ($query) use ($filters) {
                 $query->where('gender', $filters['gender']);
             })
-            ->when(isset($filters['group_id']), function ($query) use ($filters) {
-                // group_id now lives on enrollments, not students
+            ->when(!empty($filters['group_id']), function ($query) use ($filters) {
+                // filter the students who have this group
                 $query->whereHas('enrollments', function ($q) use ($filters) {
                     $q->where('group_id', $filters['group_id']);
                 });
@@ -72,7 +88,7 @@ class AdminStudentService
                 $student->getRawOriginal('avatar')
             );
         } else {
-            // إزالة حقل الصورة من المصفوفة لو لم يتم رفع ملف جديد حتى لا يتم تفريغ الصورة القديمة
+            // remove the avatar field from the array if no new file was uploaded
             unset($data['avatar']);
         }
 
