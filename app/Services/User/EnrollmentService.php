@@ -37,7 +37,7 @@ class EnrollmentService
             $existingEnrollment = Enrollment::query()
                 ->where('student_id', $student->id)
                 ->where('course_id', $course->id)
-                ->frist();
+                ->first();
 
             if ($existingEnrollment) {
                 throw ValidationException::withMessages([
