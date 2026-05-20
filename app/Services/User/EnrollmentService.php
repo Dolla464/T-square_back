@@ -50,7 +50,7 @@ class EnrollmentService
                             'enrollment_id' => $existingEnrollment->id,
                             'enrolled_at'   => $existingEnrollment->created_class ?? $existingEnrollment->created_at->toDateTimeString(),
                             'is_completed'  => (bool) $existingEnrollment->is_completed,
-                            'course_title'  => $course->title, // لو حابب تبعت اسم الكورس زيادة تأكيد
+                            'course_title'  => $course->title, 
                             'price_paid'    => (float) $existingEnrollment->price_paid,
                         ]
                     ],
