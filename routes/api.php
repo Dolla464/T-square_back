@@ -190,6 +190,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])
             Route::get('trash', [AdminExamController::class, 'trash'])->name('trash');
             Route::post('{id}/restore', [AdminExamController::class, 'restore'])->name('restore');
             Route::delete('{id}/force-delete', [AdminExamController::class, 'forceDelete'])->name('force-delete');
+            Route::patch('{id}/toggle-status', [AdminExamController::class, 'toggleStatus'])->name('toggle-status');
         });
         Route::apiResource('exams', AdminExamController::class);
 

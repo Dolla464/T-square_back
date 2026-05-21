@@ -121,4 +121,23 @@ class AdminExamController extends Controller
             'Exam deleted permanently'
         );
     }
+
+    /**
+     * Change the status of a specific exam
+     */
+    public function toggleStatus(Request $request, int $id): JsonResponse
+    {
+        // The validation will ensure that the passed value is either 0 or 1
+        $request->validate([
+            'is_active' => 'required|in:0,1',
+        ]);
+
+        // Call the Service to update the status
+        $exam = $this->examService->toggleExamStatus($id, $request->is_active);
+
+        return $this->successResponse(
+            new AdminExamResource($exam), // The Resource of the exam
+            'Exam status updated successfully'
+        );
+    }
 }
