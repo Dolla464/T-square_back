@@ -108,4 +108,18 @@ class AdminExamService
         $exam = Exam::withTrashed()->findOrFail($id);
         return $exam->forceDelete(); // Real final deletion
     }
+
+    /**
+     * Change the active status of the exam (Enable / Disable)
+     */
+    public function toggleExamStatus(int $id, int $isActive): Exam
+    {
+        $exam = Exam::findOrFail($id);
+
+        $exam->update([
+            'is_active' => $isActive
+        ]);
+
+        return $exam;
+    }
 }
