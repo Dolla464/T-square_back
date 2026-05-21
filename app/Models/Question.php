@@ -12,25 +12,51 @@ class Question extends Model
 
     protected $fillable = ['exam_id', 'question_text', 'marks'];
 
-    // السؤال ينتمي لامتحان واحد
+    /**
+     * Monitor model operations and apply automatic deletion and restoration of choices
+     */
+    protected static function booted()
+    {
+        // 1. When the question is soft deleted
+        static::deleted(function ($question) {
+            // If the admin performs forceDelete, the database will behave (if Cascade is used)
+            // If soft delete is performed normally, we will perform soft delete for the choices
+            if (! $question->isForceDeleting()) {
+                $question->choices()->delete();
+            }
+        });
+
+        // 2. When the question is restored
+        static::restored(function ($question) {
+            // We will restore all the choices that were deleted with the question
+            $question->choices()->restore();
+        });
+    }
+
+    protected $casts = [
+        'marks' => 'float',
+    ];
+
     public function exam()
     {
         return $this->belongsTo(Exam::class);
     }
 
-    // جلب الإجابة الصحيحة فقط (مفيد جداً في التصحيح)
+    // The most efficient way to get the correct answer only
     public function correctChoice()
     {
-        return $this->hasOne(Choice::class)->where('is_correct', true);
+        return $this->hasOne(Choice::class)->ofMany([
+            'id' => 'max'
+        ], function ($query) {
+            $query->where('is_correct', true);
+        });
     }
 
-    // جلب كل الاختيارات التابعة للسؤال
     public function choices()
     {
         return $this->hasMany(Choice::class, 'question_id');
     }
 
-    // ٢. جلب كل إجابات الطلاب على هذا السؤال (عبر كل المحاولات)
     public function studentAnswers()
     {
         return $this->hasMany(Answer::class);
