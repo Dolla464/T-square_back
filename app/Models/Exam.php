@@ -23,18 +23,30 @@ class Exam extends Model
         'shuffle_questions',
     ];
 
-    // علاقة الامتحان بالكورس
+    // Convert data types when dealing with them in the code
+    protected $casts = [
+        'is_active' => 'boolean',
+        'is_final' => 'boolean',
+        'shuffle_questions' => 'boolean',
+        'max_attempts' => 'integer',
+        'duration' => 'integer',
+        'total_marks' => 'float',
+        'passing_mark' => 'float',
+    ];
+
+    // The exam belongs to one course
     public function course()
     {
         return $this->belongsTo(Course::class);
     }
 
-    // علاقة الامتحان بالأسئلة (اللي لسه هنعملها)
+    // The exam belongs to many questions
     public function questions()
     {
         return $this->hasMany(Question::class);
     }
 
+    // The exam belongs to many attempts
     public function attempts()
     {
         return $this->hasMany(ExamAttempt::class);

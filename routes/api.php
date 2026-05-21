@@ -3,9 +3,11 @@
 use App\Http\Controllers\Api\Admin\AdminCategoryController;
 use App\Http\Controllers\Api\Admin\AdminCertificateController;
 use App\Http\Controllers\Api\Admin\AdminCourseController;
+use App\Http\Controllers\Api\Admin\AdminExamController;
 use App\Http\Controllers\Api\Admin\AdminInstructorController;
 use App\Http\Controllers\Api\Admin\AdminLearningGroupController;
 use App\Http\Controllers\Api\Admin\AdminPaymentController;
+use App\Http\Controllers\Api\Admin\AdminQuestionController;
 use App\Http\Controllers\Api\Admin\AdminReviewController;
 use App\Http\Controllers\Api\Admin\AdminSolutionController;
 use App\Http\Controllers\Api\Admin\AdminStudentController;
@@ -182,6 +184,22 @@ Route::middleware(['auth:sanctum', 'role:admin'])
             Route::delete('{id}/force-delete', [AdminCourseController::class, 'forceDelete'])->name('force-delete');
         });
         Route::apiResource('courses', AdminCourseController::class);
+
+        // Exams
+        Route::prefix('exams')->name('exams.')->group(function () {
+            Route::get('trash', [AdminExamController::class, 'trash'])->name('trash');
+            Route::post('{id}/restore', [AdminExamController::class, 'restore'])->name('restore');
+            Route::delete('{id}/force-delete', [AdminExamController::class, 'forceDelete'])->name('force-delete');
+        });
+        Route::apiResource('exams', AdminExamController::class);
+
+        // Questions
+        Route::prefix('questions')->name('questions.')->group(function () {
+            Route::get('trash', [AdminQuestionController::class, 'trash'])->name('trash');
+            Route::post('{id}/restore', [AdminQuestionController::class, 'restore'])->name('restore');
+            Route::delete('{id}/force-delete', [AdminQuestionController::class, 'forceDelete'])->name('force-delete');
+        });
+        Route::apiResource('questions', AdminQuestionController::class);
 
         // Instructors — POST used for update to support multipart/form-data uploads
         Route::post('instructors/{instructor}', [AdminInstructorController::class, 'update'])
