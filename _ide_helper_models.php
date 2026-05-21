@@ -53,7 +53,7 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \App\Models\ExamAttempt $attempt
- * @property-read \App\Models\Choice $choice
+ * @property-read \App\Models\Choice|null $choice
  * @property-read \App\Models\Question|null $question
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Answer newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Answer newQuery()
@@ -145,19 +145,24 @@ namespace App\Models{
  * @property bool $is_correct
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Answer> $chosenBy
  * @property-read int|null $chosen_by_count
  * @property-read \App\Models\Question|null $question
  * @method static \Database\Factories\ChoiceFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Choice newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Choice newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Choice onlyTrashed()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Choice query()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Choice whereChoiceText($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Choice whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Choice whereDeletedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Choice whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Choice whereIsCorrect($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Choice whereQuestionId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Choice whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Choice withTrashed(bool $withTrashed = true)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Choice withoutTrashed()
  */
 	class Choice extends \Eloquent {}
 }
@@ -373,6 +378,7 @@ namespace App\Models{
  * @property int $student_id
  * @property int $course_id
  * @property int|null $order_id
+ * @property int|null $group_id
  * @property numeric $price_paid
  * @property bool $is_completed
  * @property \Illuminate\Support\Carbon|null $completed_at
@@ -380,6 +386,7 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \App\Models\Certificate|null $certificate
  * @property-read \App\Models\Course|null $course
+ * @property-read \App\Models\LearningGroup|null $learningGroup
  * @property-read \App\Models\Order|null $order
  * @property-read \App\Models\Student $student
  * @method static \Database\Factories\EnrollmentFactory factory($count = null, $state = [])
@@ -389,6 +396,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment whereCompletedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment whereCourseId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment whereGroupId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment whereIsCompleted($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Enrollment whereOrderId($value)
@@ -407,11 +415,11 @@ namespace App\Models{
  * @property string|null $description
  * @property int $duration Duration in minutes
  * @property int $max_attempts
- * @property int $shuffle_questions
- * @property int $is_final
- * @property numeric $total_marks
- * @property numeric $passing_mark
- * @property int $is_active
+ * @property bool $shuffle_questions
+ * @property bool $is_final
+ * @property float $total_marks
+ * @property float $passing_mark
+ * @property bool $is_active
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
@@ -534,6 +542,7 @@ namespace App\Models{
  * @property string $group_name
  * @property int $course_id
  * @property int $instructor_id
+ * @property int $enrolled_students
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \App\Models\Course|null $course
@@ -546,6 +555,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LearningGroup query()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LearningGroup whereCourseId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LearningGroup whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LearningGroup whereEnrolledStudents($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LearningGroup whereGroupName($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LearningGroup whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LearningGroup whereInstructorId($value)
@@ -618,7 +628,7 @@ namespace App\Models{
  * @property int $id
  * @property int $exam_id
  * @property string $question_text
- * @property numeric $marks
+ * @property float $marks
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
@@ -698,7 +708,6 @@ namespace App\Models{
  * @property string $full_name
  * @property string|null $phone
  * @property string $enrollment_number
- * @property int|null $group_id
  * @property string|null $avatar
  * @property string|null $gender
  * @property string $status
@@ -714,7 +723,6 @@ namespace App\Models{
  * @property-read int|null $enrollments_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ExamAttempt> $examAttempts
  * @property-read int|null $exam_attempts_count
- * @property-read \App\Models\LearningGroup|null $learningGroup
  * @property-read \Illuminate\Notifications\DatabaseNotificationCollection<int, \Illuminate\Notifications\DatabaseNotification> $notifications
  * @property-read int|null $notifications_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Order> $orders
@@ -733,7 +741,6 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Student whereEnrollmentNumber($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Student whereFullName($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Student whereGender($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Student whereGroupId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Student whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Student wherePhone($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Student whereStatus($value)
@@ -786,7 +793,6 @@ namespace App\Models{
  * @property-read \App\Models\Instructor|null $instructor
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\LearningGroup> $instructorGroups
  * @property-read int|null $instructor_groups_count
- * @property-read \App\Models\LearningGroup|null $learningGroup
  * @property-read \Illuminate\Notifications\DatabaseNotificationCollection<int, \Illuminate\Notifications\DatabaseNotification> $notifications
  * @property-read int|null $notifications_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \Spatie\Permission\Models\Permission> $permissions
