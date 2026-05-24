@@ -18,6 +18,7 @@ class CourseReviewResource extends JsonResource
             'id' => $this->id,
             'rating' => $this->rating,
             'overall_comment' => $this->overall_comment,
+            'status' => $this->status,
 
             'student' => [
                 'full_name' => $this->student?->full_name,
@@ -32,6 +33,5 @@ class CourseReviewResource extends JsonResource
                 'full_name' => $this->instructor?->full_name,
             ],
         ];
-
     }
 }

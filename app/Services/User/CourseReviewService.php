@@ -13,11 +13,12 @@ class CourseReviewService
      */
     public function getLatestReviews(): Collection
     {
-        return CourseReview::with([
-            'student:id,avatar,full_name',
-            'course:id,title',
-            'instructor:id,full_name',
-        ])
+        return CourseReview::active()
+            ->with([
+                'student:id,avatar,full_name',
+                'course:id,title',
+                'instructor:id,full_name',
+            ])
             ->select([
                 'id',
                 'course_id',
@@ -26,6 +27,7 @@ class CourseReviewService
                 'rating',
                 'overall_comment',
                 'created_at',
+                'status',
             ])
             ->latest()
             ->limit(5)
@@ -38,10 +40,11 @@ class CourseReviewService
      */
     public function getCourseReviews(int $courseId): Collection
     {
-        return CourseReview::with([
-            'student:id,avatar,full_name',
-            'instructor:id,full_name',
-        ])
+        return CourseReview::active()
+            ->with([
+                'student:id,avatar,full_name',
+                'instructor:id,full_name',
+            ])
             ->where('course_id', $courseId)
             ->select([
                 'id',
@@ -51,6 +54,7 @@ class CourseReviewService
                 'rating',
                 'overall_comment',
                 'created_at',
+                'status',
             ])
             ->latest()
             ->limit(5)

@@ -56,11 +56,15 @@ class AdminReviewController extends Controller
      */
     public function update(UpdateAdminReviewRequest $request, CourseReview $review): JsonResponse
     {
-        $updatedReview = $this->reviewService->update($review, $request->validated());
+        $updatedReview = $this->reviewService->update(
+            $review,
+            
+            $request->validated()
+        );
 
         return $this->successResponse(
-            new AdminReviewResource($updatedReview),
-            'Review updated successfully'
+            data: new AdminReviewResource($updatedReview),
+            message: 'Review updated successfully'
         );
     }
 
