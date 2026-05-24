@@ -8,7 +8,11 @@ Route::get('/', function () {
 });
 
 Route::get('/test-pdf', function () {
-    return Pdf::view('certificate', ['name' => 'Anas Aln3san', 'course' => 'Laravel Backend'])
+    return Pdf::view('certificate', [
+        'name'   => 'Anas Aln3san',
+        'course' => 'Laravel Backend',
+        'date'   => now(),
+    ])
         ->format('a4')
         ->landscape()
         ->name('test-certificate.pdf');

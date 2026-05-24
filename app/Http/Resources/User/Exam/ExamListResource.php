@@ -23,8 +23,7 @@ class ExamListResource extends JsonResource
             'passing_mark' => $this->passing_mark,
             'is_final' => (bool) $this->is_final,
             'max_attempts' => $this->max_attempts,
-            'course_name' => $this->course->title,
-            // ممكن نضيف حالة المحاولة لو الطالب بدأه قبل كده ومكملش
+            'title' => $this->course?->title,            // ممكن نضيف حالة المحاولة لو الطالب بدأه قبل كده ومكملش
             'has_attempt' => $this->attempts()->where('student_id', $request->user()->student->id)->exists(),
         ];
     }

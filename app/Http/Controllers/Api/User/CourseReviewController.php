@@ -9,7 +9,7 @@ use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 
 class CourseReviewController extends Controller
-{
+{ 
     use ApiResponseTrait;
 
     public function __construct(

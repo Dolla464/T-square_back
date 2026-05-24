@@ -236,7 +236,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])
             ->except(['store', 'update']);
 
         // Reviews
-        Route::post('reviews/{review}', [AdminReviewController::class, 'update'])
+        Route::put('reviews/{review}', [AdminReviewController::class, 'update'])
             ->name('reviews.update');
         Route::apiResource('reviews', AdminReviewController::class)
             ->except(['store', 'update']);

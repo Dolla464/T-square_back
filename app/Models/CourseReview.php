@@ -18,7 +18,11 @@ class CourseReview extends Model
         'center_rating',
         'rating',
         'overall_comment',
+        'status',
     ];
+
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_INACTIVE = 'inactive';
 
     /**
      * الـ Boot Method: هو المحرك اللي بيراقب الأحداث في الموديل
@@ -29,7 +33,14 @@ class CourseReview extends Model
 
         // ١. قبل إنشاء التقييم أو تحديثه: احسب المتوسط الكلي
         static::saving(function ($review) {
-            $review->rating = ($review->content_rating + $review->instructor_rating + $review->center_rating) / 3;
+            $review->rating = (
+                $review->content_rating +
+                $review->instructor_rating +
+                $review->center_rating
+            ) / 3;
+
+            // لو مفيش status حطه active تلقائي
+            $review->status ??= self::STATUS_ACTIVE;
         });
 
         // ٢. بعد الحفظ (إنشاء أو تعديل): حدث إحصائيات الكورس والمحاضر
@@ -59,7 +70,16 @@ class CourseReview extends Model
         }
     }
 
+    /**
+     * Scope للتقييمات النشطة فقط
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', self::STATUS_ACTIVE);
+    }
+
     // العلاقات
+
     // التقييم يخص كورس معين
     public function course()
     {
@@ -72,7 +92,7 @@ class CourseReview extends Model
         return $this->belongsTo(Student::class);
     }
 
-    // التقييم موجه لمدرب معين (عشان تحسب متوسط تقييم المدرب نفسه)
+    // التقييم موجه لمدرب معين
     public function instructor()
     {
         return $this->belongsTo(Instructor::class);

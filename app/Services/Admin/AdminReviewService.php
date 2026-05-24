@@ -14,13 +14,23 @@ class AdminReviewService
     {
         $query = CourseReview::with(['course', 'student', 'instructor']);
 
-        if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->whereHas('course', function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%");
-            })->orWhereHas('student', function ($q) use ($search) {
-                $q->where('full_name', 'like', "%{$search}%");
-            });
+        $query->where(function ($q) use ($filters) {
+
+            if (!empty($filters['search'])) {
+                $search = $filters['search'];
+
+                $q->whereHas('course', function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%");
+                })
+                    ->orWhereHas('student', function ($q) use ($search) {
+                        $q->where('full_name', 'like', "%{$search}%");
+                    });
+            }
+        });
+
+        // 🔥 فلتر status (active / inactive)
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
 
         return $query->latest()->paginate($perPage);
@@ -37,9 +47,12 @@ class AdminReviewService
     /**
      * Update the specified review in storage.
      */
+
     public function update(CourseReview $review, array $data): CourseReview
     {
-        $review->update($data);
+        $review->update([
+            'status' => $data['status'] ?? $review->status,
+        ]);
 
         return $review->load(['course', 'student', 'instructor']);
     }

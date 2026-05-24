@@ -62,7 +62,6 @@ trait HandleImageUploadTrait
 
             // create an empty image with the new dimensions
             $resizedImage = \imagecreatetruecolor($newWidth, $newHeight);
-
             // keep the transparency (if it's a PNG)
             \imagealphablending($resizedImage, false);
             \imagesavealpha($resizedImage, true);
