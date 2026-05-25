@@ -67,7 +67,7 @@ class CourseDashboardService
     // -------------------------------------------------------------------------
 
     /**
-     * هات أحدث الكورسات مع الفلترة
+     * هات أحدث الكورسات مع الفلترة (فقط الكورسات التي تم سدادها بنجاح)
      */
     private function getCourses(int $studentId, array $filters): Collection
     {
@@ -75,16 +75,25 @@ class CourseDashboardService
         $status = $this->normalizeStatus($filters['status'] ?? null);
 
         $query = Course::active()
+            // ── 1. الفلترة الصارمة: لا تجلب الكورس إلا إذا كان هناك سداد مكتمل ──
+            ->whereHas('enrollments', function ($q) use ($studentId) {
+                $q->where('student_id', $studentId)
+                    ->whereHas('order', function ($orderQuery) {
+                        $orderQuery->where('status', 'completed'); // 👈 شرط السداد المكتمل
+                    });
+            })
+
+            // ── 2. جلب العلاقات المعتادة لكودك (Eager Loading) ──
             ->with([
                 'instructor:id,full_name,field',
                 'tags:id,name,slug',
                 'previews:id,course_id,title,video_url,description,video_provider,duration_seconds,sort_order',
             ])
 
-            // ── Enrollment بتاعت بالطالب الحالي فقط (Constrained Eager Load) ──
+            // ── Enrollment بتاعت بالطالب الحالي فقط ──
             ->with([
-                'enrollments' => fn ($q) => $q
-                    ->select('id', 'course_id', 'student_id', 'is_completed', 'completed_at')
+                'enrollments' => fn($q) => $q
+                    ->select('id', 'course_id', 'student_id', 'order_id', 'is_completed', 'completed_at')
                     ->where('student_id', $studentId),
             ])
 
@@ -98,10 +107,10 @@ class CourseDashboardService
                 'created_at',
             ]);
 
-        // ── تطبيق الفلاتر ──────────────────────────────────────────────────
+        // ── تطبيق الفلاتر الإضافية ───────────────────────────────────────────
         $query = $this->applyFilters($query, $studentId, $search, $status);
 
-        // ── أحدث LATEST_LIMIT كورس بس  ─────────────────────
+        // ── أحدث LATEST_LIMIT كورس بس ─────────────────────
         return $query
             ->latest()                      // ORDER BY created_at DESC
             ->limit(self::LATEST_LIMIT)     // LIMIT 10
@@ -115,19 +124,23 @@ class CourseDashboardService
     {
         // ── فلتر البحث بالعنوان ────────────────────────────────────────────
         if ($search !== null) {
-            $query->where('title', 'like', '%'.$search.'%');
+            $query->where('title', 'like', '%' . $search . '%');
         }
 
         // ── فلتر الحالة (all / in_progress / completed) ────────────────────
         if ($status === self::STATUS_IN_PROGRESS) {
             // الكورسات اللي اشترك فيها الطالب مخلصهاش بعد
-            $query->whereHas('enrollments', fn ($q) => $q->where('student_id', $studentId)
-                ->where('is_completed', false)
+            $query->whereHas(
+                'enrollments',
+                fn($q) => $q->where('student_id', $studentId)
+                    ->where('is_completed', false)
             );
         } elseif ($status === self::STATUS_COMPLETED) {
             // الكورسات اللي  الطالب خلصها
-            $query->whereHas('enrollments', fn ($q) => $q->where('student_id', $studentId)
-                ->where('is_completed', true)
+            $query->whereHas(
+                'enrollments',
+                fn($q) => $q->where('student_id', $studentId)
+                    ->where('is_completed', true)
             );
         }
 
