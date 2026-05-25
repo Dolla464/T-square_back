@@ -38,6 +38,8 @@ class Course extends Model
         'instructor_id',
         'published_at',
         'avg_rating',
+        'published_at',
+        'status',
         'total_reviews',
         'total_students',
         'total_revenue', // ضفت حقول الإحصائيات هنا لو هتحتاج تحدثها

@@ -91,6 +91,7 @@ class AdminCourseService
     public function create(array $data): Course
     {
         $learnings = $data['learnings'] ?? [];
+
         // 1. معالجة الصور – thumbnail (max 800px) and cover (max 1920px)
         if (! empty($data['thumbnail']) && $data['thumbnail'] instanceof UploadedFile) {
             $data['thumbnail'] = $this->uploadImage($data['thumbnail'], 'courses/thumbnails', null, 800);
@@ -100,9 +101,17 @@ class AdminCourseService
             $data['cover_image'] = $this->uploadImage($data['cover_image'], 'courses/covers', null, 1920);
         }
 
-        // 2. معالجة التاريخ ليتوافق مع MySQL (إذا كان مرسلاً من الفرونت إند)
-        if (isset($data['published_at']) && ! empty($data['published_at'])) {
-            $data['published_at'] = date('Y-m-d H:i:s', strtotime($data['published_at']));
+        // 2. معالجة الحالة (Status) وتاريخ النشر (published_at) ليتوافق مع MySQL
+        $status = $data['status'] ?? 'draft'; // القيمة الافتراضية مسودة إذا لم تُرسل
+
+        if ($status === 'published') {
+            // إذا تم إرسال تاريخ محدد من الفرونت إند نقوم بتهيئته، وإلا نضع تاريخ اللحظة الحالية (نشر فوري)
+            $data['published_at'] = (! empty($data['published_at']))
+                ? date('Y-m-d H:i:s', strtotime($data['published_at']))
+                : now();
+        } else {
+            // إذا كان مسودة (draft)، نضمن أن تاريخ النشر فارغ تماماً
+            $data['published_at'] = null;
         }
 
         // 3. استخراج العلاقات والبيانات الإضافية قبل إنشاء الموديل
@@ -113,7 +122,7 @@ class AdminCourseService
         // تنظيف المصفوفة من الحقول التي لا تنتمي لجدول courses
         unset($data['tags'], $data['previews'], $data['learnings']);
 
-        // 4. إنشاء الكورس الأساسي
+        // 4. إنشاء الكورس الأساسي (سيأخذ الـ status والـ published_at تلقائياً من الـ $data)
         $course = Course::create($data);
 
         // 5. حفظ الـ Learnings (ماذا سيتعلم الطالب)
@@ -133,7 +142,6 @@ class AdminCourseService
         }
 
         // 7. إنشاء فيديوهات المعاينة (Previews)
-        // نمرر مصفوفة فارغة لـ existingVideoUrls لأن الكورس جديد تماماً
         $this->syncPreviews($course, $previews, []);
 
         return $this->freshWithRelations($course->id);
