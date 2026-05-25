@@ -10,9 +10,7 @@ class InstructorResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'image' => $this->avatar
-                                ? asset('storage/'.$this->avatar)
-                                : null,
+            'image' => $this->avatar ?? null,
             'fullname' => $this->full_name,
             'field' => $this->field,
             'email' => $this->user?->email ?? null,

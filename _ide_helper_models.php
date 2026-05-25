@@ -354,6 +354,7 @@ namespace App\Models{
  * @property-read \App\Models\Course|null $course
  * @property-read \App\Models\Instructor $instructor
  * @property-read \App\Models\Student $student
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview active()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview query()

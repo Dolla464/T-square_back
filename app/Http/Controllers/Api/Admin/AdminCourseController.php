@@ -41,7 +41,11 @@ class AdminCourseController extends Controller
 
         $course = $this->courseService->create($data);
 
-        return (new AdminCourseResource($course))->response()->setStatusCode(201);
+        return $this->successResponse(
+            new AdminCourseResource($course),
+            'Course created successfully',
+            201
+        );
     }
 
     /**
