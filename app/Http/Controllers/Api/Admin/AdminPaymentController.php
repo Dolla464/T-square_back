@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Admin\Payment\UpdatePaymentRequest;
+use App\Http\Resources\Admin\Payment\AdminPaymentCollection;
 use App\Http\Resources\Admin\Payment\AdminPaymentResource;
+use App\Services\Admin\AdminPaymentAnalyticsService;
 use App\Services\Admin\AdminPaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -12,12 +14,15 @@ use Illuminate\Http\Response;
 
 class AdminPaymentController extends Controller
 {
-    public function __construct(private readonly AdminPaymentService $payments) {}
+    public function __construct(
+        private readonly AdminPaymentService $payments,
+        private readonly AdminPaymentAnalyticsService $analytics
+    ) {}
 
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(Request $request): AdminPaymentCollection
     {
         $perPage = (int) $request->integer('per_page', 10);
         $perPage = max(1, min(100, $perPage));
@@ -27,7 +32,9 @@ class AdminPaymentController extends Controller
             'status' => $request->string('status')->toString(),
         ], $perPage);
 
-        return AdminPaymentResource::collection($paginator);
+        $stats = $this->analytics->getRecentStats();
+
+        return new AdminPaymentCollection($paginator, $stats);
     }
 
     /**
