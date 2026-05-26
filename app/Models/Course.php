@@ -60,6 +60,13 @@ class Course extends Model
         ];
     }
 
+    // protected $appends = ['is_enrolled'];
+
+    // public function getIsEnrolledAttribute()
+    // {
+    //     return $this->attributes['is_enrolled'] ?? $this->is_enrolled ?? false;
+    // }
+
     protected static function booted()
     {
         static::saving(function ($course) {
@@ -126,7 +133,7 @@ class Course extends Model
             }
 
             // يضيف رابط الـ Storage كاملاً للمسار المخزن
-            return asset('storage/'.$value);
+            return asset('storage/' . $value);
         });
     }
 
@@ -141,7 +148,7 @@ class Course extends Model
                 return $value;
             }
 
-            return asset('storage/'.$value);
+            return asset('storage/' . $value);
         });
     }
 

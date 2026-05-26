@@ -134,6 +134,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('dashboard/courses', CourseDashboardController::class)
             ->name('courses.dashboard');
 
+        Route::get('courses/{course_id}/check-enrollment', [EnrollmentController::class, 'checkEnrollment'])
+            ->name('courses.check-enrollment')
+            ->middleware('auth:sanctum');
+
         Route::post('enrollments', [EnrollmentController::class, 'store'])
             ->name('enrollments.store');
 

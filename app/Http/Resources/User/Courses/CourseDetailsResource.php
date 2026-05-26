@@ -20,7 +20,7 @@ class CourseDetailsResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'short_description' => $this->short_description,
-            'image' => $this->thumbnail,
+            'image' => $this->cover_image,
             'level' => $this->level,
             'duration_hours' => $this->duration_hours,
             'duration_weeks' => $this->duration_weeks,
@@ -42,9 +42,9 @@ class CourseDetailsResource extends JsonResource
             ],
 
             // مصفوفة "ماذا ستتعلم"
-            'learnings' => $this->whenLoaded('learnings', fn () => $this->learnings->pluck('title'), []),
+            'learnings' => $this->whenLoaded('learnings', fn() => $this->learnings->pluck('title'), []),
 
-            'tags' => $this->whenLoaded('tags', fn () => $this->tags->map(function ($tag) {
+            'tags' => $this->whenLoaded('tags', fn() => $this->tags->map(function ($tag) {
                 return [
                     'id' => $tag->id,
                     'name' => $tag->name,
@@ -53,7 +53,7 @@ class CourseDetailsResource extends JsonResource
             })->values(), []),
 
             // مصفوفة الفيديوهات أو الملفات التجريبية
-            'previews' => $this->whenLoaded('previews', fn () => $this->previews->map(function ($preview) {
+            'previews' => $this->whenLoaded('previews', fn() => $this->previews->map(function ($preview) {
                 return [
                     'id' => $preview->id,
                     'title' => $preview->title,
@@ -64,6 +64,7 @@ class CourseDetailsResource extends JsonResource
                     'sort_order' => $preview->sort_order,
                 ];
             })->values(), []),
+            
         ];
     }
 }

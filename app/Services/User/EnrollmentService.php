@@ -37,6 +37,7 @@ class EnrollmentService
             $existingEnrollment = Enrollment::query()
                 ->where('student_id', $student->id)
                 ->where('course_id', $course->id)
+                ->lockForUpdate()
                 ->first();
 
             if ($existingEnrollment) {

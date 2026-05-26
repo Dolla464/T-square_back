@@ -351,6 +351,7 @@ namespace App\Models{
  * @property string|null $overall_comment
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property string $status
  * @property-read \App\Models\Course|null $course
  * @property-read \App\Models\Instructor $instructor
  * @property-read \App\Models\Student $student
@@ -367,6 +368,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview whereInstructorRating($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview whereOverallComment($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview whereRating($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview whereStatus($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview whereStudentId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview whereUpdatedAt($value)
  */

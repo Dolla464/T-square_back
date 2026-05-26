@@ -29,15 +29,15 @@ class CourseService
                     });
                 });
             })
-            ->when(isset($filters['level']), fn ($q) => $q->where('level', $filters['level']))
-            ->when(isset($filters['search']), fn ($q) => $q->where('title', 'like', '%'.$filters['search'].'%'))
+            ->when(isset($filters['level']), fn($q) => $q->where('level', $filters['level']))
+            ->when(isset($filters['search']), fn($q) => $q->where('title', 'like', '%' . $filters['search'] . '%'))
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
     }
 
     /**
-     * جلب تفاصيل كورس معين للطالب
+     * جلب تفاصيل كورس معين للطالب مع فحص حالة الاشتراك والـ Instructor ID
      */
     public function getCourseDetails($slug)
     {
@@ -55,7 +55,22 @@ class CourseService
 
         // جلب 3 كورسات مشابهة من نفس القسم (بعيداً عن الكورس الحالي)
         $relatedCourses = Course::active()
-            ->select(['id', 'title', 'slug', 'thumbnail', 'duration_hours', 'duration_weeks', 'short_description', 'price_before', 'discount_price', 'price', 'category_id', 'attendance_type'])
+            // 💡 تم إضافة 'instructor_id' هنا لضمان عمل الـ with([instructor]) بدون مشاكل
+            ->select([
+                'id',
+                'title',
+                'slug',
+                'thumbnail',
+                'duration_hours',
+                'duration_weeks',
+                'short_description',
+                'price_before',
+                'discount_price',
+                'price',
+                'category_id',
+                'instructor_id',
+                'attendance_type'
+            ])
             ->with([
                 'category:id,name,slug',
                 'instructor:id,user_id,avatar',
