@@ -4,25 +4,25 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateAdminReviewRequest;
+use App\Http\Resources\Admin\AdminReviewCollection;
 use App\Http\Resources\Admin\AdminReviewResource;
 use App\Models\CourseReview;
 use App\Services\Admin\AdminReviewService;
+use App\Services\Admin\AdminReviewAnalyticsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AdminReviewController extends Controller
 {
-    private AdminReviewService $reviewService;
-
-    public function __construct(AdminReviewService $reviewService)
-    {
-        $this->reviewService = $reviewService;
-    }
+    public function __construct(
+        private readonly AdminReviewService $reviewService,
+        private readonly AdminReviewAnalyticsService $analytics
+    ) {}
 
     /**
      * Display a listing of the reviews.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): AdminReviewCollection
     {
         $filters = [
             'search' => $request->query('search'),
@@ -33,9 +33,14 @@ class AdminReviewController extends Controller
             $filters
         );
 
-        return $this->paginateResponse($reviews->through(function ($review) {
+        // جلب الإحصائيات المكيشة لآخر شهر
+        $stats = $this->analytics->getRecentStats();
+
+        $paginatedResources = $reviews->through(function ($review) {
             return new AdminReviewResource($review);
-        }), 'Reviews retrieved successfully');
+        });
+
+        return new AdminReviewCollection($paginatedResources, $stats);
     }
 
     /**
@@ -58,7 +63,7 @@ class AdminReviewController extends Controller
     {
         $updatedReview = $this->reviewService->update(
             $review,
-            
+
             $request->validated()
         );
 
