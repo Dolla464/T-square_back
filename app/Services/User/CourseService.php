@@ -7,7 +7,7 @@ use App\Models\Course;
 class CourseService
 {
     /**
-     * جلب الكورسات النشطة مع الفلترة والبحث
+     * Get active courses with filters and search
      */
     public function getActiveCourses(array $filters)
     {
@@ -37,7 +37,7 @@ class CourseService
     }
 
     /**
-     * جلب تفاصيل كورس معين للطالب مع فحص حالة الاشتراك والـ Instructor ID
+     * Get course details for a student with enrollment check and instructor ID
      */
     public function getCourseDetails($slug)
     {
@@ -53,9 +53,9 @@ class CourseService
             ], 404));
         }
 
-        // جلب 3 كورسات مشابهة من نفس القسم (بعيداً عن الكورس الحالي)
+        // Get 3 similar courses from the same category (excluding the current course)
         $relatedCourses = Course::active()
-            // 💡 تم إضافة 'instructor_id' هنا لضمان عمل الـ with([instructor]) بدون مشاكل
+            // Added 'instructor_id' here to ensure the with([instructor]) works without issues
             ->select([
                 'id',
                 'title',

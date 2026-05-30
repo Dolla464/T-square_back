@@ -42,7 +42,7 @@ class Course extends Model
         'status',
         'total_reviews',
         'total_students',
-        'total_revenue', // ضفت حقول الإحصائيات هنا لو هتحتاج تحدثها
+        'total_revenue', // Added statistics fields here if you need to update them
     ];
 
     protected $casts = [
@@ -55,36 +55,29 @@ class Course extends Model
     {
         return [
             'slug' => [
-                'source' => 'title', // بنقول للحزمة تاخد الـ slug من حقل الـ title
+                'source' => 'title', // Tell the package to take the slug from the title field
             ],
         ];
     }
 
-    // protected $appends = ['is_enrolled'];
-
-    // public function getIsEnrolledAttribute()
-    // {
-    //     return $this->attributes['is_enrolled'] ?? $this->is_enrolled ?? false;
-    // }
-
     protected static function booted()
     {
         static::saving(function ($course) {
-            //  حساب السعر مع الحماية من القيم الفارغة والسالبة
+            // Calculate the price with protection from empty and negative values
             if ($course->is_free) {
                 $course->price = 0;
             } else {
                 $priceBefore = $course->price_before ?? 0;
                 $discount = $course->discount_price ?? 0;
-                // الدالة max بتضمن إن السعر عمره ما يقل عن صفر لو الخصم أكبر من السعر الأساسي
+                // The max function ensures the price is never less than zero if the discount is greater than the base price
                 $course->price = max(0, $priceBefore - $discount);
             }
         });
     }
 
     /**
-     * تحديث إحصائيات التقييم للكورس
-     * بيتم استدعاؤها من موديل CourseReview عند الحفظ أو المسح
+     * Update the rating statistics for the course
+     * It is called from the CourseReview model when saving or deleting
      */
     public function updateRatingStats()
     {
@@ -92,7 +85,7 @@ class Course extends Model
             ->selectRaw('AVG(rating) as average, COUNT(*) as total')
             ->first();
 
-        // تم التعديل لاستخدام total_reviews بناءً على الميجريشن
+        // Modified to use total_reviews based on the migration
         $this->update([
             'avg_rating' => round($stats->average ?? 0, 2),
             'total_reviews' => $stats->total ?? 0,
@@ -118,21 +111,21 @@ class Course extends Model
     }
 
     /**
-     * Accessor لضمان عودة رابط صورة الغلاف كاملاً
+     * Accessor to ensure the cover image URL is returned fully
      */
     protected function coverImage(): Attribute
     {
         return Attribute::get(function ($value) {
             if (! $value) {
-                return null; // أو يمكنك وضع رابط صورة افتراضية هنا
+                return null; // Or you can put a default image URL here
             }
 
-            // إذا كان الرابط يبدأ بـ http (مثل صور Faker) يرجعه كما هو
+            // If the URL starts with http (like Faker images) return it as is
             if (filter_var($value, FILTER_VALIDATE_URL)) {
                 return $value;
             }
 
-            // يضيف رابط الـ Storage كاملاً للمسار المخزن
+            // Add the full Storage URL for the stored path
             return asset('storage/' . $value);
         });
     }
@@ -152,7 +145,7 @@ class Course extends Model
         });
     }
 
-    // ================= العلاقات ================= //
+    // ================= Relationships ================= //
 
     public function category()
     {
