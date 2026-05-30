@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\AdminCategoryController;
 use App\Http\Controllers\Api\Admin\AdminCertificateController;
 use App\Http\Controllers\Api\Admin\AdminCourseController;
+use App\Http\Controllers\Api\Admin\AdminDiscoveryMediaController;
 use App\Http\Controllers\Api\Admin\AdminExamController;
 use App\Http\Controllers\Api\Admin\AdminInstructorController;
 use App\Http\Controllers\Api\Admin\AdminLearningGroupController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Api\User\InstructorController;
 use App\Http\Controllers\Api\User\ProfileController;
 use App\Http\Controllers\Api\User\SolutionsController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\Api\PublicWebsiteController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +47,8 @@ require __DIR__ . '/auth.php';
 
 Route::get('/settings/{key}', [SettingController::class, 'getSettingByKey'])
     ->name('settings.show');
+Route::get('/website-media/{key}', [PublicWebsiteController::class, 'getMediaByKey'])
+    ->name('website-media.get');
 
 // ── Student public browsing routes ────────────────────────────────────────
 Route::prefix('student')->name('student.')->group(function () {
@@ -255,4 +259,14 @@ Route::middleware(['auth:sanctum', 'role:admin'])
 
         // Solutions (full CRUD)
         Route::apiResource('solutions', AdminSolutionController::class);
+
+        // Settings
+        Route::get('/discovery-media', [AdminDiscoveryMediaController::class, 'index'])->name('discovery-media.index');
+        // Unified route to upload media (whether for hero, about, or discovery)
+        Route::post('/website-media/upload', [AdminDiscoveryMediaController::class, 'upload'])
+            ->name('website-media.upload');
+
+        // Unified route to delete a single image from any array section
+        Route::delete('/website-media/delete', [AdminDiscoveryMediaController::class, 'destroy'])
+            ->name('website-media.delete');
     });

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Cache;
 
 class Setting extends Model
 {
-    // يمسح الكاش اوتوماتيك اول ما اى قيمة تتعدل
+    // Clear the cache automatically when any value is changed
     protected static function booted()
     {
         static::saved(function () {
@@ -18,8 +18,8 @@ class Setting extends Model
     protected $fillable = ['key', 'value', 'type', 'group_name'];
 
     /**
-     * دالة مساعدة لجلب قيمة أي إعداد بسرعة
-     * استخدامها: Setting::get('site_name')
+     * Helper function to get the value of any setting quickly
+     * Usage: Setting::get('site_name')
      */
     public static function get($key, $default = null)
     {
@@ -28,11 +28,26 @@ class Setting extends Model
             return $default;
         }
 
-        // تحويل القيمة بناءً على النوع
+        // Convert the value based on the type
         return match ($setting->type) {
             'boolean' => filter_var($setting->value, FILTER_VALIDATE_BOOLEAN),
             'json' => json_decode($setting->value, true),
             default => $setting->value,
         };
+    }
+
+    /**
+     * Helper function to save or update any setting quickly
+     */
+    public static function set($key, $value, $type = 'string', $group = 'general')
+    {
+        return self::updateOrCreate(
+            ['key' => $key],
+            [
+                'value' => $type === 'json' ? json_encode($value, JSON_UNESCAPED_UNICODE) : $value,
+                'type' => $type,
+                'group_name' => $group
+            ]
+        );
     }
 }
