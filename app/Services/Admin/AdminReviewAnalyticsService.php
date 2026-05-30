@@ -27,9 +27,9 @@ class AdminReviewAnalyticsService
                     // 2. متوسط التقييم للمقبولين فقط
                     DB::raw('AVG(CASE WHEN status = "accepted" THEN rating END) as average_rating'),
 
-                    // 3. عد الحالات بناءً على الـ status
-                    DB::raw('COUNT(CASE WHEN status = "pending" THEN 1 END) as pending_count'),
-                    DB::raw('COUNT(CASE WHEN status = "rejected" THEN 1 END) as rejected_count'),
+                    // 3. عد الحالات بناءً على الـ review_status
+                    DB::raw('COUNT(CASE WHEN review_status = "pending" THEN 1 END) as pending_count'),
+                    DB::raw('COUNT(CASE WHEN review_status = "rejected" THEN 1 END) as rejected_count'),
                 ])
                 ->first();
 

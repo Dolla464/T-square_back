@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('course_reviews', function (Blueprint $table) {
-            $table->enum('status', ['accepted', 'pending', 'rejected'])
+            $table->enum('review_status', ['accepted', 'pending', 'rejected'])
                 ->default('pending')
                 ->index();
         });
@@ -24,7 +24,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('course_reviews', function (Blueprint $table) {
-            $table->enum('status', ['accepted', 'pending', 'rejected'])
+            $table->enum('review_status', ['accepted', 'pending', 'rejected'])
                 ->default('pending')
                 ->index();
         });
