@@ -16,7 +16,8 @@ class SettingSeeder extends Seeder
             ['key' => 'site_name', 'value' => 'T-Square LMS', 'type' => 'string', 'group_name' => 'general'],
             ['key' => 'site_logo', 'value' => 'logo.png', 'type' => 'image', 'group_name' => 'general'],
             ['key' => 'facebook_url', 'value' => 'https://facebook.com/tsquare', 'type' => 'string', 'group_name' => 'social'],
-            ['key' => 'maintenance_mode', 'value' => 'false', 'type' => 'boolean', 'group_name' => 'general'],
+            ['key' => 'whatsapp', 'value' => '0201210608027', 'type' => 'string', 'group_name' => 'social'],
+            ['key' => 'maintenance_mode', 'value' => '0', 'type' => 'boolean', 'group_name' => 'general'],
             ['key' => 'contact_email', 'value' => 'info@tsquare.com', 'type' => 'string', 'group_name' => 'general'],
         ];
 

@@ -9,11 +9,13 @@ use App\Http\Controllers\Api\Admin\AdminInstructorController;
 use App\Http\Controllers\Api\Admin\AdminLearningGroupController;
 use App\Http\Controllers\Api\Admin\AdminPaymentController;
 use App\Http\Controllers\Api\Admin\AdminQuestionController;
+use App\Http\Controllers\Api\Admin\AdminMessageController;
 use App\Http\Controllers\Api\Admin\AdminReviewController;
 use App\Http\Controllers\Api\Admin\AdminSolutionController;
 use App\Http\Controllers\Api\Admin\AdminStudentController;
 use App\Http\Controllers\Api\Admin\AdminTagController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
+use App\Http\Controllers\Api\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\Notification\NotificationController;
 use App\Http\Controllers\Api\User\CategoryController;
 use App\Http\Controllers\Api\User\CertificateController;
@@ -49,6 +51,10 @@ Route::get('/settings/{key}', [SettingController::class, 'getSettingByKey'])
     ->name('settings.show');
 Route::get('/website-media/{key}', [PublicWebsiteController::class, 'getMediaByKey'])
     ->name('website-media.get');
+// Fixed maintenance page route for students
+Route::get('/maintenance', function () {
+    return view('maintenance'); // Simply return the maintenance Blade view
+})->name('maintenance.page');
 
 // ── Student public browsing routes ────────────────────────────────────────
 Route::prefix('student')->name('student.')->group(function () {
@@ -167,6 +173,15 @@ Route::middleware(['auth:sanctum', 'role:admin'])
     ->name('admin.')
     ->group(function () {
 
+        // Update a single general setting (site_name, contact_email, whatsapp,
+        // facebook_url, maintenance_mode) — one { key, value } pair per request.
+        Route::post('/settings', [AdminSettingController::class, 'update'])
+            ->name('settings.update');
+
+        // Current maintenance-mode status (used to hydrate the toggle on load).
+        Route::get('/settings/maintenance-status', [AdminSettingController::class, 'getMaintenanceStatus'])
+            ->name('settings.maintenance-status');
+        
         // Users
         Route::post('users', [AdminUserController::class, 'store'])
             ->name('users.store');
@@ -242,6 +257,10 @@ Route::middleware(['auth:sanctum', 'role:admin'])
         });
         Route::apiResource('students', AdminStudentController::class)
             ->except(['store', 'update']);
+
+        // Messages (read-only – index + show)
+        Route::apiResource('messages', AdminMessageController::class)
+            ->only(['index', 'show']);
 
         // Reviews
         Route::put('reviews/{review}', [AdminReviewController::class, 'update'])

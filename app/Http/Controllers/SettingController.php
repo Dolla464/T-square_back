@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Setting;
 use App\Traits\ApiResponseTrait;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SettingController extends Controller
 {
@@ -42,5 +44,26 @@ class SettingController extends Controller
             ['key' => $key, 'value' => $processedValue],
             'Data fetched successfully'
         );
+    }
+
+    // function to toggle the maintenance mode
+    public function toggleMaintenance(Request $request)
+    {
+        // Validate the incoming request
+        $request->validate([
+            'status' => 'required|boolean'
+        ]);
+
+        // Update the value in the database (1 or 0)
+        DB::table('settings')
+            ->where('key', 'maintenance_mode')
+            ->update([
+                'value' => $request->status ? '1' : '0',
+                'updated_at' => now()
+            ]);
+
+        return $this->successResponse([ 
+            'message' => $request->status ? 'Maintenance mode enabled successfully' : 'Maintenance mode disabled and the website is now working'
+        ], 'Maintenance mode toggled successfully');
     }
 }

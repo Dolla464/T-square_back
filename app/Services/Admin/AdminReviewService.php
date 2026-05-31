@@ -8,32 +8,31 @@ use Illuminate\Pagination\LengthAwarePaginator;
 class AdminReviewService
 {
     /**
-     * Display a listing of the reviews.
+     * Display a listing of the reviews with eager loading and filtering.
      */
     public function index(int $perPage = 10, array $filters = []): LengthAwarePaginator
     {
-        $query = CourseReview::with(['course', 'student', 'instructor']);
-
-        $query->where(function ($q) use ($filters) {
-
-            if (!empty($filters['search'])) {
+        return CourseReview::with(['course', 'student', 'instructor'])
+            // استخدام when لتطبيق بحث الـ Scopes بشكل نظيف
+            ->when(!empty($filters['search']), function ($query) use ($filters) {
                 $search = $filters['search'];
 
-                $q->whereHas('course', function ($q) use ($search) {
-                    $q->where('title', 'like', "%{$search}%");
-                })
-                    ->orWhereHas('student', function ($q) use ($search) {
-                        $q->where('full_name', 'like', "%{$search}%");
-                    });
-            }
-        });
-
-        // 🔥 فلتر status (active / inactive)
-        if (!empty($filters['status'])) {
-            $query->where('status', $filters['status']);
-        }
-
-        return $query->latest()->paginate($perPage);
+                // تجميع شروط البحث بداخل أقواس لحماية بقية الفلاتر
+                $query->where(function ($q) use ($search) {
+                    $q->whereHas('course', function ($q) use ($search) {
+                        $q->where('title', 'like', "%{$search}%");
+                    })
+                        ->orWhereHas('student', function ($q) use ($search) {
+                            $q->where('full_name', 'like', "%{$search}%");
+                        });
+                });
+            })
+            // التحقق من الـ review_status بشكل آمن حتى لو كانت القيمة 0 أو string
+            ->when(isset($filters['review_status']) && $filters['review_status'] !== '', function ($query) use ($filters) {
+                $query->where('review_status', $filters['review_status']);
+            })
+            ->latest()
+            ->paginate($perPage);
     }
 
     /**
@@ -47,12 +46,14 @@ class AdminReviewService
     /**
      * Update the specified review in storage.
      */
-
     public function update(CourseReview $review, array $data): CourseReview
     {
-        $review->update([
-            'status' => $data['status'] ?? $review->status,
-        ]);
+        // استخدام array_key_exists أو التحديث المباشر للقيم الممررة فقط
+        if (array_key_exists('review_status', $data)) {
+            $review->update([
+                'review_status' => $data['review_status'],
+            ]);
+        }
 
         return $review->load(['course', 'student', 'instructor']);
     }
@@ -62,6 +63,6 @@ class AdminReviewService
      */
     public function destroy(CourseReview $review): bool
     {
-        return $review->delete();
+        return (bool) $review->delete();
     }
 }

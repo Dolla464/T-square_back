@@ -18,11 +18,12 @@ class CourseReview extends Model
         'center_rating',
         'rating',
         'overall_comment',
-        'status',
+        'review_status',
     ];
 
-    public const STATUS_ACTIVE = 'active';
-    public const STATUS_INACTIVE = 'inactive';
+    public const REVIEW_STATUS_ACCEPTED = 'accepted';
+    public const REVIEW_STATUS_PENDING = 'pending';
+    public const REVIEW_STATUS_REJECTED = 'rejected';
 
     /**
      * الـ Boot Method: هو المحرك اللي بيراقب الأحداث في الموديل
@@ -40,7 +41,7 @@ class CourseReview extends Model
             ) / 3;
 
             // لو مفيش status حطه active تلقائي
-            $review->status ??= self::STATUS_ACTIVE;
+            $review->review_status ??= self::REVIEW_STATUS_PENDING;
         });
 
         // ٢. بعد الحفظ (إنشاء أو تعديل): حدث إحصائيات الكورس والمحاضر
@@ -75,7 +76,7 @@ class CourseReview extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('status', self::STATUS_ACTIVE);
+        return $query->where('review_status', self::REVIEW_STATUS_ACCEPTED);
     }
 
     // العلاقات

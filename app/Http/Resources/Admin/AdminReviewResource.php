@@ -18,7 +18,7 @@ class AdminReviewResource extends JsonResource
             'id' => $this->id,
             'course_id' => $this->course_id,
             'student_id' => $this->student_id,
-            'status' => $this->status,
+            'review_status' => $this->review_status,
             'instructor_id' => $this->instructor_id,
             'content_rating' => $this->content_rating,
             'instructor_rating' => $this->instructor_rating,

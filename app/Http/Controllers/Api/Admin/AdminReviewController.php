@@ -24,23 +24,22 @@ class AdminReviewController extends Controller
      */
     public function index(Request $request): AdminReviewCollection
     {
-        $filters = [
-            'search' => $request->query('search'),
-        ];
+        // 1. جلب الفلاتر المتاحة من الطلب بالكامل لضمان عدم سقوط أي فلتر (مثل review_status)
+        $filters = $request->only(['search', 'review_status']);
 
         $reviews = $this->reviewService->index(
             $request->query('per_page', 10),
             $filters
         );
 
-        // جلب الإحصائيات المكيشة لآخر شهر
+        // 2. جلب الإحصائيات المكيشة
         $stats = $this->analytics->getRecentStats();
 
-        $paginatedResources = $reviews->through(function ($review) {
-            return new AdminReviewResource($review);
-        });
-
-        return new AdminReviewCollection($paginatedResources, $stats);
+        // 3. تمرير الـ Paginator مباشرة، واستخدام additional لإرفاق الـ Meta Data (الإحصائيات) نظيفة في الـ JSON
+        return (new AdminReviewCollection($reviews))
+            ->additional([
+                'analytics' => $stats
+            ]);
     }
 
     /**
@@ -63,13 +62,12 @@ class AdminReviewController extends Controller
     {
         $updatedReview = $this->reviewService->update(
             $review,
-
             $request->validated()
         );
 
         return $this->successResponse(
-            data: new AdminReviewResource($updatedReview),
-            message: 'Review updated successfully'
+            new AdminReviewResource($updatedReview),
+            'Review updated successfully'
         );
     }
 

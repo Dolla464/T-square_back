@@ -30,7 +30,7 @@ class UpdateAdminReviewRequest extends FormRequest
             'instructor_rating' => ['sometimes', 'required', 'numeric', 'min:0', 'max:5'],
             'center_rating' => ['sometimes', 'required', 'numeric', 'min:0', 'max:5'],
             'overall_comment' => ['sometimes', 'required', 'string', 'max:1000'],
-            'status' => ['sometimes', 'required', 'in:active,inactive'],
+            'review_status' => ['sometimes', 'required', 'in:accepted,pending,rejected'],
 
         ];
     }
