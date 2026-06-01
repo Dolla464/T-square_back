@@ -16,4 +16,9 @@ class Message extends Model
         'title',
         'content',
     ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 }
