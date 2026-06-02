@@ -23,6 +23,14 @@ class SettingController extends Controller
         'whatsapp'         => ['type' => 'string',  'group' => 'social'],
         'facebook_url'     => ['type' => 'string',  'group' => 'social'],
         'maintenance_mode' => ['type' => 'boolean', 'group' => 'general'],
+        'instagram_url'    => ['type' => 'string',  'group' => 'social'],
+        'linkedin_url'     => ['type' => 'string',  'group' => 'social'],
+        'hero_title_en'    => ['type' => 'string',  'group' => 'general'],
+        'hero_title_ar'    => ['type' => 'string',  'group' => 'general'],
+        'hero_title_highlight_en' => ['type' => 'string',  'group' => 'general'],
+        'hero_title_highlight_ar' => ['type' => 'string',  'group' => 'general'],
+        'hero_subtitle_en' => ['type' => 'string',  'group' => 'general'],
+        'hero_subtitle_ar' => ['type' => 'string',  'group' => 'general'],
     ];
 
     /**
