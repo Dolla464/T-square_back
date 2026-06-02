@@ -273,6 +273,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])
             ->except(['store']);
 
         // Certificates
+        Route::get('certificates/{certificate}/download', [AdminCertificateController::class, 'download'])
+            ->name('certificates.download');
         Route::apiResource('certificates', AdminCertificateController::class)
             ->except(['store', 'create']);
 
