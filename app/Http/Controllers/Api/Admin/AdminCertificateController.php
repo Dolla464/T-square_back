@@ -52,7 +52,7 @@ class AdminCertificateController extends Controller
 
         // 5. Rebuild the data field to contain the certificates and statistics together
         $originalData = $responseData['data'] ?? [];
-        
+
         $responseData['data'] = [
             'statistics'   => $result['stats'],
             'certificates' => $originalData
@@ -77,11 +77,19 @@ class AdminCertificateController extends Controller
     }
 
     /**
-     * Securely download the certificate file from storage.
+     * View the certificate file inline.
      */
-    public function download(Certificate $certificate): StreamedResponse
+    public function viewFile(Certificate $certificate): StreamedResponse
     {
-        return $this->certificates->download($certificate);
+        return $this->certificates->viewFile($certificate);
+    }
+
+    /**
+     * Download the certificate file to the user's device.
+     */
+    public function downloadFile(Certificate $certificate): StreamedResponse
+    {
+        return $this->certificates->downloadFile($certificate);
     }
 
     /**

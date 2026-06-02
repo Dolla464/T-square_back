@@ -87,24 +87,34 @@ class AdminCertificateService
         return $certificate;
     }
 
-    // ─── Download ────────────────────────────────────────────────────────────
-
     /**
-     * Return a streamed download response for the certificate PDF/file.
-     *
-     * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
+     * View the certificate file inline.
      */
-    public function download(Certificate $certificate): StreamedResponse
+    public function viewFile(Certificate $certificate): StreamedResponse
     {
         $path = $certificate->certificate_url;
 
-        abort_unless(
-            $path && Storage::disk('public')->exists($path),
-            Response::HTTP_NOT_FOUND,
-            'Certificate file not found on storage.'
-        );
+        if (!Storage::disk('public')->exists($path)) {
+            abort(404, 'Certificate file not found on server.');
+        }
 
-        $fileName = 'certificate-' . $certificate->certificate_num . '.' . pathinfo($path, PATHINFO_EXTENSION);
+        return Storage::disk('public')->response($path, null, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline'
+        ]);
+    }
+
+    /**
+     * Download the certificate file to the user's device.
+     */
+    public function downloadFile(Certificate $certificate): StreamedResponse
+    {
+        $path = $certificate->certificate_url;
+        $fileName = 'certificate-' . $certificate->certificate_num . '.pdf';
+
+        if (!Storage::disk('public')->exists($path)) {
+            abort(404, 'Certificate file not found on server.');
+        }
 
         return Storage::disk('public')->download($path, $fileName);
     }
