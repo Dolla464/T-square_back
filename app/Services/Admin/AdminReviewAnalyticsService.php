@@ -9,25 +9,27 @@ use Illuminate\Support\Facades\DB;
 class AdminReviewAnalyticsService
 {
     /**
-     * جلب وتكييش إحصائيات المراجعات لآخر شهر فقط 
+     * Get the analytics stats for the admin dashboard
      */
     public function getRecentStats(): array
     {
         $cacheKey = 'admin_dashboard_review_stats';
 
         return Cache::remember($cacheKey, now()->addHour(), function () {
-            $oneMonthAgo = now()->subMonth();
+            // ملاحظة: تم إزالة فلترة الوقت هنا لكي يحسب كل البيانات المتاحة مثل الـ JSON.
+            // إذا كنت تريد آخر شهر فقط، قم بإلغاء تعليق السطرين القادمين وضعهما في الـ query.
+            // $oneMonthAgo = now()->subMonth();
 
             $stats = CourseReview::query()
-                ->where('created_at', '>=', $oneMonthAgo)
+                // ->where('created_at', '>=', $oneMonthAgo) 
                 ->select([
-                    // 1. إجمالي المراجعات للشهر
+                    // 1. إجمالي المراجعات
                     DB::raw('COUNT(*) as total_reviews'),
 
-                    // 2. متوسط التقييم للمقبولين فقط
-                    DB::raw('AVG(CASE WHEN status = "accepted" THEN rating END) as average_rating'),
+                    // 2. متوسط التقييم للمقبولة فقط (تم تعديل الحقل لـ review_status)
+                    DB::raw('AVG(CASE WHEN review_status = "accepted" THEN rating END) as average_rating'),
 
-                    // 3. عد الحالات بناءً على الـ review_status
+                    // 3. عدد الحالات بناءً على الـ review_status الصحيح
                     DB::raw('COUNT(CASE WHEN review_status = "pending" THEN 1 END) as pending_count'),
                     DB::raw('COUNT(CASE WHEN review_status = "rejected" THEN 1 END) as rejected_count'),
                 ])

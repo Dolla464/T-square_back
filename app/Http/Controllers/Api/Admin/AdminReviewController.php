@@ -11,6 +11,7 @@ use App\Services\Admin\AdminReviewService;
 use App\Services\Admin\AdminReviewAnalyticsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class AdminReviewController extends Controller
 {
@@ -64,6 +65,8 @@ class AdminReviewController extends Controller
             $review,
             $request->validated()
         );
+
+        Cache::forget('admin_dashboard_review_stats');
 
         return $this->successResponse(
             new AdminReviewResource($updatedReview),
