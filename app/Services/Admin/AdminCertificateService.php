@@ -99,8 +99,18 @@ class AdminCertificateService
         }
 
         return Storage::disk('public')->response($path, null, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline'
+            // 1. Trick the IDM into thinking the data is a JavaScript string or stream, not a PDF file
+            'Content-Type' => 'text/plain',
+
+            // 2. Prevent the browser from launching built-in download programs
+            'X-Download-Options' => 'noopen',
+            'Content-Disposition' => 'inline',
+
+            // 3. Basic CORS Headers to allow the browser to read the data smoothly
+            'Access-Control-Allow-Origin' => 'http://localhost:5173', // Specify the Origin precisely instead of *
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+            'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
+            'Access-Control-Expose-Headers' => 'Content-Disposition, Content-Length',
         ]);
     }
 
@@ -110,13 +120,21 @@ class AdminCertificateService
     public function downloadFile(Certificate $certificate): StreamedResponse
     {
         $path = $certificate->certificate_url;
-        $fileName = 'certificate-' . $certificate->certificate_num . '.pdf';
-
+    
         if (!Storage::disk('public')->exists($path)) {
             abort(404, 'Certificate file not found on server.');
         }
-
-        return Storage::disk('public')->download($path, $fileName);
+    
+        // نستخدم response بدلاً من download ونخفي معالم الملف عن الـ IDM
+        return Storage::disk('public')->response($path, null, [
+            'Content-Type' => 'text/plain', // إيهام برامج التحميل أنه نص عادي
+            'X-Download-Options' => 'noopen',
+            'Content-Disposition' => 'inline', // منعه من إطلاق نافذة التحميل الخارجية
+            'Access-Control-Allow-Origin' => 'http://localhost:5173', 
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+            'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
+            'Access-Control-Expose-Headers' => 'Content-Disposition, Content-Length',
+        ]);
     }
 
     // ─── Update ──────────────────────────────────────────────────────────────

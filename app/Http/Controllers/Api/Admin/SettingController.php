@@ -23,6 +23,14 @@ class SettingController extends Controller
         'whatsapp'         => ['type' => 'string',  'group' => 'social'],
         'facebook_url'     => ['type' => 'string',  'group' => 'social'],
         'maintenance_mode' => ['type' => 'boolean', 'group' => 'general'],
+        'instagram_url'    => ['type' => 'string',  'group' => 'social'],
+        'linkedin_url'     => ['type' => 'string',  'group' => 'social'],
+        'hero_title_en'    => ['type' => 'string',  'group' => 'general'],
+        'hero_title_ar'    => ['type' => 'string',  'group' => 'general'],
+        'hero_title_highlight_en' => ['type' => 'string',  'group' => 'general'],
+        'hero_title_highlight_ar' => ['type' => 'string',  'group' => 'general'],
+        'hero_subtitle_en' => ['type' => 'string',  'group' => 'general'],
+        'hero_subtitle_ar' => ['type' => 'string',  'group' => 'general'],
     ];
 
     /**
@@ -87,6 +95,14 @@ class SettingController extends Controller
             'contact_email'    => ['required', 'email:rfc', 'max:255'],
             'whatsapp'         => ['nullable', 'string', 'max:30'],
             'facebook_url'     => ['nullable', 'url', 'max:255'],
+            'instagram_url'    => ['nullable', 'url', 'max:255'],
+            'linkedin_url'     => ['nullable', 'url', 'max:255'],
+            'hero_title_en'    => ['nullable', 'string', 'max:255'],
+            'hero_title_ar'    => ['nullable', 'string', 'max:255'],
+            'hero_title_highlight_en' => ['nullable', 'string', 'max:255'],
+            'hero_title_highlight_ar' => ['nullable', 'string', 'max:255'],
+            'hero_subtitle_en' => ['nullable', 'string', 'max:255'],
+            'hero_subtitle_ar' => ['nullable', 'string', 'max:255'],
             'maintenance_mode' => ['required'],
             default            => ['nullable'],
         };

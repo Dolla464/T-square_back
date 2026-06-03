@@ -31,7 +31,7 @@ class ExamAttemptResource extends JsonResource
             'total_questions' => $questions->count(),
             'total_marks' => $this->exam->total_marks,
             'user_answers' => $this->answers->pluck('choice_id', 'question_id'),
-            'questions' => QuestionResource::collection($questions),
+            'questions' => QuestionResource::collection($this->questions),
         ];
     }
 }

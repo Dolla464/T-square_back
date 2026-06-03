@@ -17,12 +17,12 @@ class ExamAttempt extends Model
     ];
 
     /**
-     * حساب الوقت المستغرق في الامتحان
+     * Calculate the time spent on the exam
      */
     public function getDurationAttribute()
     {
         if ($this->started_at && $this->finished_at) {
-            return $this->started_at->diffInMinutes($this->finished_at).' Minutes';
+            return $this->started_at->diffInMinutes($this->finished_at) . ' Minutes';
         }
 
         return 'Not finished';
@@ -30,7 +30,7 @@ class ExamAttempt extends Model
 
     public function calculateScore()
     {
-        // بطلقة واحدة للداتابيز، هنجمع كل الدرجات المستحقة من جدول الإجابات
+        // With one query, we collect all the scores from the answers table
         $totalScore = $this->answers()->where('is_correct', true)->sum('marks_earned');
 
         $this->fill([
@@ -50,6 +50,12 @@ class ExamAttempt extends Model
     public function exam()
     {
         return $this->belongsTo(Exam::class);
+    }
+
+    public function questions()
+    {
+        return $this->belongsToMany(Question::class, 'attempt_questions')
+            ->withTimestamps();
     }
 
     public function answers()
