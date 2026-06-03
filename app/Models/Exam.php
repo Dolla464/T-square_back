@@ -20,6 +20,7 @@ class Exam extends Model
         'passing_mark',
         'is_final',
         'max_attempts',
+        'questions_per_attempt',
         'shuffle_questions',
     ];
 
@@ -29,6 +30,7 @@ class Exam extends Model
         'is_final' => 'boolean',
         'shuffle_questions' => 'boolean',
         'max_attempts' => 'integer',
+        'questions_per_attempt' => 'integer',
         'duration' => 'integer',
         'total_marks' => 'float',
         'passing_mark' => 'float',

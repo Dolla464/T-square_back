@@ -114,7 +114,8 @@ namespace App\Models{
  * @property int $course_id
  * @property string $certificate_url
  * @property string $certificate_num
- * @property string $issued_at
+ * @property \Illuminate\Support\Carbon $issued_at
+ * @property \App\Enums\CertificateStatus $status Allowed values: issued | pending | revoked
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \App\Models\Course|null $course
@@ -131,6 +132,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Certificate whereCreatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Certificate whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Certificate whereIssuedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Certificate whereStatus($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Certificate whereStudentId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Certificate whereUpdatedAt($value)
  */
@@ -352,6 +354,7 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property string $status
+ * @property string $review_status
  * @property-read \App\Models\Course|null $course
  * @property-read \App\Models\Instructor $instructor
  * @property-read \App\Models\Student $student
@@ -368,6 +371,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview whereInstructorRating($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview whereOverallComment($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview whereRating($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview whereReviewStatus($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview whereStatus($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview whereStudentId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|CourseReview whereUpdatedAt($value)
@@ -418,6 +422,7 @@ namespace App\Models{
  * @property string|null $description
  * @property int $duration Duration in minutes
  * @property int $max_attempts
+ * @property int $questions_per_attempt
  * @property bool $shuffle_questions
  * @property bool $is_final
  * @property float $total_marks
@@ -446,6 +451,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam whereIsFinal($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam whereMaxAttempts($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam wherePassingMark($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam whereQuestionsPerAttempt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam whereShuffleQuestions($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam whereTitle($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Exam whereTotalMarks($value)
@@ -471,6 +477,8 @@ namespace App\Models{
  * @property-read int|null $answers_count
  * @property-read \App\Models\Exam|null $exam
  * @property-read mixed $duration
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Question> $questions
+ * @property-read int|null $questions_count
  * @property-read \App\Models\Student $student
  * @method static \Database\Factories\ExamAttemptFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ExamAttempt newModelQuery()

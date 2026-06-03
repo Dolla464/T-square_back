@@ -23,6 +23,7 @@ class UpdateExamRequest extends FormRequest
             'is_active'         => 'boolean',
             'is_final'          => 'boolean',
             'max_attempts'      => 'integer|min:1',
+            'questions_per_attempt' => 'required|integer|min:1',
             'shuffle_questions' => 'boolean',
         ];
     }
@@ -32,6 +33,8 @@ class UpdateExamRequest extends FormRequest
         return [
             'passing_mark.lte' => 'The passing mark cannot be higher than the total marks of the exam.',
             'course_id.exists' => 'The specified course does not exist in the system.',
+            'questions_per_attempt.min' => 'The number of questions per attempt must be at least 1.',
+            'questions_per_attempt.required' => 'The number of questions per attempt is required.',
         ];
     }
 }

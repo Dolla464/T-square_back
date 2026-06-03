@@ -54,7 +54,7 @@ class Question extends Model
 
     public function choices()
     {
-        return $this->hasMany(Choice::class, 'question_id');
+        return $this->hasMany(Choice::class, 'question_id')->inRandomOrder();
     }
 
     public function studentAnswers()

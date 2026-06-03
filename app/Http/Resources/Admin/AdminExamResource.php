@@ -31,6 +31,7 @@ class AdminExamResource extends JsonResource
             $data['total_marks']       = (float) $this->total_marks;
             $data['passing_mark']      = (float) $this->passing_mark;
             $data['max_attempts']      = (int) $this->max_attempts;
+            $data['questions_per_attempt'] = (int) $this->questions_per_attempt;
             $data['is_final']          = (bool) $this->is_final;
             $data['shuffle_questions'] = (bool) $this->shuffle_questions;
             $data['created_at']        = $this->created_at->format('Y-m-d H:i');
