@@ -8,7 +8,6 @@ use App\Models\Enrollment;
 use App\Services\User\CertificateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 class CertificateController extends Controller
 {
@@ -89,7 +88,51 @@ class CertificateController extends Controller
     }
 
     /**
-     * تحميل الشهادة
+     * Stream the certificate file inline for in-browser (iframe) preview.
+     */
+    public function view(Enrollment $enrollment)
+    {
+        $user = auth('sanctum')->user();
+
+        if (! $user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        $student = $user?->student;
+
+        if (! $student || $enrollment->student_id !== $student->id) {
+            $payload = [
+                'status' => 'error',
+                'message' => 'Sorry, you are not authorized to view this certificate.',
+            ];
+            if (config('app.debug')) {
+                $payload['debug_info'] = [
+                    'auth_student_id' => $student?->id,
+                    'enrollment_student_id' => $enrollment->student_id,
+                ];
+            }
+
+            return response()->json($payload, 403);
+        }
+
+        if (! $enrollment->is_completed) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Sorry, the certificate is not available because the course is not completed yet.',
+            ], 403);
+        }
+
+        // Issue (or fetch) the certificate, then stream it inline for preview.
+        $certificate = $this->certificateService->issueCertificate($enrollment);
+
+        return $this->certificateService->viewFile($certificate);
+    }
+
+    /**
+     * Download Certificate
      */
     public function download(Enrollment $enrollment)
     {
@@ -113,7 +156,7 @@ class CertificateController extends Controller
         if (! $student || $enrollment->student_id !== $student->id) {
             $payload = [
                 'status' => 'error',
-                'message' => 'عذراً، لا تملك صلاحية تحميل هذه الشهادة.',
+                'message' => 'Sorry, you are not authorized to download this certificate.',
             ];
             if (config('app.debug')) {
                 $payload['debug_info'] = [
@@ -128,21 +171,15 @@ class CertificateController extends Controller
         if (! $enrollment->is_completed) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'عذراً، الشهادة غير متاحة لأن الكورس لم يكتمل بعد.',
+                'message' => 'Sorry, the certificate is not available because the course is not completed yet.',
             ], 403);
         }
 
-    // Issue or fetch the certificate (force regeneration to pick up updated tags/instructor)
-    $certificate = $this->certificateService->issueCertificate($enrollment, true);
+        // Issue or fetch the certificate (force regeneration to pick up updated tags/instructor)
+        $certificate = $this->certificateService->issueCertificate($enrollment, true);
 
-        // Download the file from storage
-        if (! Storage::disk('public')->exists($certificate->certificate_url)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'ملف الشهادة غير موجود.',
-            ], 404);
-        }
-
-        return Storage::disk('public')->download($certificate->certificate_url);
+        // Stream the file inline so the SPA can build the download blob itself
+        // (matches the Admin download flow and bypasses download-manager hijacking).
+        return $this->certificateService->downloadFile($certificate);
     }
 }

@@ -9,9 +9,51 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CertificateService
 {
+    /**
+     * Stream the certificate file inline (for in-browser iframe preview).
+     */
+    public function viewFile(Certificate $certificate): StreamedResponse
+    {
+        return $this->streamCertificateFile($certificate->certificate_url);
+    }
+
+    /**
+     * Stream the certificate file inline so the client can build the
+     * download blob itself (consistent with the inline preview path).
+     */
+    public function downloadFile(Certificate $certificate): StreamedResponse
+    {
+        return $this->streamCertificateFile($certificate->certificate_url);
+    }
+
+    /**
+     * Shared file streamer that hides the file's true nature from download
+     * managers (IDM) so the browser can read the bytes for both inline
+     * preview and client-side download.
+     */
+    private function streamCertificateFile(?string $path): StreamedResponse
+    {
+        if (empty($path) || ! Storage::disk('public')->exists($path)) {
+            abort(404, 'Certificate file not found on server.');
+        }
+
+        return Storage::disk('public')->response($path, null, [
+            // Trick download managers into treating the payload as plain text.
+            'Content-Type' => 'text/plain',
+            'X-Download-Options' => 'noopen',
+            'Content-Disposition' => 'inline',
+            // CORS headers so the SPA can read the bytes smoothly.
+            'Access-Control-Allow-Origin' => config('app.frontend_url'),
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+            'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
+            'Access-Control-Expose-Headers' => 'Content-Disposition, Content-Length',
+        ]);
+    }
+
     public function issueCertificate(Enrollment $enrollment, bool $force = false)
     {
         // Ensure instructor relation on course is loaded to avoid N+1 when extracting instructor name
@@ -38,7 +80,7 @@ class CertificateService
         }
 
         // 2. Define a unique file path and save the PDF to storage
-        $fileName = 'certificates/cert_'.Str::random(16).'.pdf';
+        $fileName = 'certificates/cert_' . Str::random(16) . '.pdf';
         $this->certificatePdfData([
             'name' => $enrollment->student->full_name,
             'course' => $enrollment->course->title,
@@ -48,7 +90,7 @@ class CertificateService
         ])->disk('public')->save($fileName);
 
         // 3. Generate a unique Certificate Number
-        $certificateNum = 'TSQ-'.date('Y').'-'.strtoupper(Str::random(8));
+        $certificateNum = 'TSQ-' . date('Y') . '-' . strtoupper(Str::random(8));
 
         // 4. Save to the Database
         $certificate = Certificate::create([
@@ -64,7 +106,7 @@ class CertificateService
 
     public function generateLiveCertificate(Enrollment $enrollment)
     {
-    $enrollment->loadMissing(['student', 'course.instructor']);
+        $enrollment->loadMissing(['student', 'course.instructor']);
 
         return $this->certificatePdfData([
             'name' => $enrollment->student->full_name,
@@ -73,7 +115,7 @@ class CertificateService
             'tags' => $this->extractCourseTags($enrollment->course),
             'instructor_name' => $enrollment->course->instructor->full_name ?? null,
         ])
-            ->name('certificate-'.$enrollment->id.'.pdf');
+            ->name('certificate-' . $enrollment->id . '.pdf');
     }
 
     /**
@@ -81,9 +123,9 @@ class CertificateService
      */
     public function generateBinaryPdf($attempt): string
     {
-    $attempt->loadMissing(['student', 'exam.course.instructor']);
+        $attempt->loadMissing(['student', 'exam.course.instructor']);
 
-        $temporaryPath = tempnam(sys_get_temp_dir(), 'certificate_').'.pdf';
+        $temporaryPath = tempnam(sys_get_temp_dir(), 'certificate_') . '.pdf';
 
         $this->certificatePdfData([
             'name' => $attempt->student->full_name,
@@ -139,10 +181,12 @@ class CertificateService
 
         try {
             return Pdf::view('certificate', $data)
+                ->landscape()
+                ->showBackground(true)
                 ->withBrowsershot($browsershotConfigurator);
         } catch (\Throwable $e) {
             // Optionally, consider logging here for better observability
-            throw new \Exception('Failed to generate certificate PDF: '.$e->getMessage(), 0, $e);
+            throw new \Exception('Failed to generate certificate PDF: ' . $e->getMessage(), 0, $e);
         }
     }
 

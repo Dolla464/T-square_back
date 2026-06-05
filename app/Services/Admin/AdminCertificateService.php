@@ -107,7 +107,7 @@ class AdminCertificateService
             'Content-Disposition' => 'inline',
 
             // 3. Basic CORS Headers to allow the browser to read the data smoothly
-            'Access-Control-Allow-Origin' => 'http://localhost:5173', // Specify the Origin precisely instead of *
+            'Access-Control-Allow-Origin' => config('app.frontend_url'), // Specify the Origin precisely instead of *
             'Access-Control-Allow-Methods' => 'GET, OPTIONS',
             'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
             'Access-Control-Expose-Headers' => 'Content-Disposition, Content-Length',
@@ -130,7 +130,7 @@ class AdminCertificateService
             'Content-Type' => 'text/plain', // إيهام برامج التحميل أنه نص عادي
             'X-Download-Options' => 'noopen',
             'Content-Disposition' => 'inline', // منعه من إطلاق نافذة التحميل الخارجية
-            'Access-Control-Allow-Origin' => 'http://localhost:5173', 
+            'Access-Control-Allow-Origin' => config('app.frontend_url'), 
             'Access-Control-Allow-Methods' => 'GET, OPTIONS',
             'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
             'Access-Control-Expose-Headers' => 'Content-Disposition, Content-Length',

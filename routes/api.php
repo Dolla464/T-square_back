@@ -157,6 +157,7 @@ Route::middleware('auth:sanctum')->group(function () {
             ->name('certificates.')
             ->group(function () {
                 Route::get('/', 'index')->name('index');
+                Route::get('{enrollment}/view', 'view')->name('view');
                 Route::get('{enrollment}/download', 'download')->name('download');
                 Route::get('{enrollment}', 'show')->name('show');
             });

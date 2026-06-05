@@ -1,0 +1,230 @@
+@page {
+    size: A4 landscape;
+    margin: 0;
+}
+
+body {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 297mm;
+    height: 210mm;
+    margin: 0;
+    padding: 0;
+    background-color: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    box-sizing: border-box;
+}
+
+.certificate-container {
+    width: 100%;
+    height: 100%;
+    background-color: white;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+/*
+ * Centered image watermark.
+ * - A full-cover absolutely-positioned wrapper centers the logo with flexbox
+ *   (no transform: translate, which Chromium can cull during print).
+ * - z-index: 0 keeps it strictly beneath every content layer (z-index: 10).
+ * - The <img> opacity stays moderate: the source PNG is already faded, so we
+ *   never reach the extreme-opacity threshold that makes Chromium skip the layer.
+ */
+.watermark-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.watermark-image {
+    width: 65%;
+    max-width: 720px;
+    height: auto;
+    opacity: 0.6;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.main-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 100px 90px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    box-sizing: border-box;
+    background: transparent !important;
+    z-index: 10; /* يضمن ظهور النصوص فوق العلامة المائية مجبراً */
+}
+
+.header-line,
+.footer-line {
+    position: absolute;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 50px;
+    box-sizing: border-box;
+    z-index: 10;
+}
+
+.header-line {
+    top: 40px;
+    left: 0;
+}
+
+.footer-line {
+    bottom: 40px;
+    left: 0;
+    flex-direction: row-reverse;
+}
+
+.red-bar {
+    height: 12px;
+    background-color: #c00000;
+    flex-grow: 1;
+}
+
+.header-line .red-bar {
+    border-radius: 0 10px 10px 0;
+    margin-right: 25px;
+}
+
+.footer-line .red-bar {
+    border-radius: 10px 0 0 10px;
+    margin-left: 25px;
+}
+
+.dots {
+    display: flex;
+    gap: 18px;
+}
+
+.dot {
+    width: 22px;
+    height: 22px;
+    background-color: #c00000;
+    border-radius: 50%;
+}
+
+.top-row {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    width: 145px;
+    height: auto;
+}
+
+.center-name {
+    font-size: 24px;
+    color: #333;
+    font-weight: 600;
+}
+
+.text-center {
+    text-align: center;
+    width: 100%;
+}
+
+.main-title {
+    font-family: "Georgia", "Times New Roman", Times, serif;
+    font-size: 58px;
+    font-weight: bold;
+    margin: 5px 0 15px 0;
+    letter-spacing: 6px;
+    color: #111;
+}
+
+.certify-text {
+    font-size: 22px;
+    font-style: italic;
+    margin-bottom: 25px;
+    color: #555;
+}
+
+.student-name {
+    font-family: "Playfair Display", "Georgia", Garamond, serif;
+    font-size: 46px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    color: #c00000;
+    letter-spacing: 1px;
+}
+
+.course-info {
+    font-size: 25px;
+    margin-bottom: 8px;
+    color: #222;
+}
+
+.tags {
+    font-size: 17px;
+    color: #666;
+    margin-bottom: 30px;
+}
+
+.date-text {
+    font-size: 20px;
+    font-weight: 500;
+    color: #444;
+}
+
+.signatures-area {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+.sig-group {
+    text-align: center;
+    width: 250px;
+}
+
+.middle-dash {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 45px;
+    font-weight: bold;
+    font-size: 24px;
+    letter-spacing: 2px;
+    color: #ccc;
+}
+
+.label {
+    font-size: 18px;
+    color: #777;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+}
+
+.name {
+    font-size: 21px;
+    font-weight: bold;
+    color: #000;
+}
