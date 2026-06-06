@@ -264,7 +264,7 @@ class ExamService
             // Added passed and failed based on the last modification in the Service
             ->whereIn('status', ['passed', 'failed', 'completed', 'timed_out'], 'and', false)
             ->with(['exam' => function ($query) {
-                $query->select('id', 'course_id', 'title', 'passing_mark', 'is_final');
+                $query->select('id', 'course_id', 'title', 'total_marks', 'passing_mark', 'is_final');
             }, 'exam.course:id,title'])
             ->orderBy('finished_at', 'desc');
         // If the exam ID is passed, filter the attempts for the exams belonging to this exam only

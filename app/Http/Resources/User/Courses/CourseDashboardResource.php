@@ -22,22 +22,52 @@ class CourseDashboardResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'slug' => $this->slug,
+            'short_description' => $this->short_description,
+            'description' => $this->description,
             'thumbnail' => $this->thumbnail,
+            'cover_image' => $this->whenNotNull($this->cover_image),
             'google_drive_link' => $this->google_drive_link,
+            'instructor_id' => $this->instructor_id,
+
+            // ── تفاصيل إضافية (تظهر في صفحة الكورس) ────────────────────────
+            'price_before' => $this->whenNotNull($this->price_before),
+            'discount_price' => $this->whenNotNull($this->discount_price),
+            'price' => $this->whenNotNull($this->price),
+            'is_free' => $this->when(isset($this->is_free), fn() => (bool) $this->is_free),
+            'level' => $this->whenNotNull($this->level),
+            'language' => $this->whenNotNull($this->language),
+            'duration_weeks' => $this->whenNotNull($this->duration_weeks),
+            'duration_hours' => $this->whenNotNull($this->duration_hours),
+            'avg_rating' => $this->whenNotNull($this->avg_rating),
+            'total_reviews' => $this->whenNotNull($this->total_reviews),
+            'total_students' => $this->whenNotNull($this->total_students),
 
             // ── بيانات المحاضر ─────────────────────────────────────────────
-            'instructor' => $this->whenLoaded('instructor', fn () => [
+            'instructor' => $this->whenLoaded('instructor', fn() => [
+                'id' => $this->instructor->id,
                 'full_name' => $this->instructor->full_name,
                 'field' => $this->instructor->field,
+                'bio' => $this->instructor->bio,
+                'avatar' => $this->instructor->avatar,
+                'phone' => $this->instructor->phone,
             ]),
 
-            'tags' => $this->whenLoaded('tags', fn () => $this->tags->map(fn ($tag) => [
+            // ── التصنيف ─────────────────────────────────────────────────────
+            'category' => $this->whenLoaded('category', fn() => [
+                'id' => $this->category->id,
+                'name' => $this->category->name,
+                'slug' => $this->category->slug,
+            ]),
+
+            'tags' => $this->whenLoaded('tags', fn() => $this->tags->map(fn($tag) => [
                 'id' => $tag->id,
                 'name' => $tag->name,
                 'slug' => $tag->slug,
             ])->values(), []),
 
-            'previews' => $this->whenLoaded('previews', fn () => $this->previews->map(fn ($preview) => [
+            'learnings' => $this->whenLoaded('learnings', fn() => $this->learnings->pluck('title'), []),
+
+            'previews' => $this->whenLoaded('previews', fn() => $this->previews->map(fn($preview) => [
                 'id' => $preview->id,
                 'title' => $preview->title,
                 'video_url' => $preview->video_url,

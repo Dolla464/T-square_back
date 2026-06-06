@@ -140,6 +140,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('dashboard/courses', CourseDashboardController::class)
             ->name('courses.dashboard');
+        Route::get('dashboard/courses/{id}', [CourseDashboardController::class, 'showCourse'])->name('courses.show');
 
         Route::get('courses/{course_id}/check-enrollment', [EnrollmentController::class, 'checkEnrollment'])
             ->name('courses.check-enrollment')
@@ -179,7 +180,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])
         // Current maintenance-mode status (used to hydrate the toggle on load).
         Route::get('/settings/maintenance-status', [AdminSettingController::class, 'getMaintenanceStatus'])
             ->name('settings.maintenance-status');
-        
+
         // Users
         Route::post('users', [AdminUserController::class, 'store'])
             ->name('users.store');
