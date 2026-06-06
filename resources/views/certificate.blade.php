@@ -7,7 +7,7 @@
     <title>Certificate Professional Fixed</title>
 
     <style>
-        /* حقن ملف الـ CSS المكتمل */
+        /* حقن ملف الـ CSS المحسن المكتمل */
         {!! file_get_contents(resource_path('css/pdf/certificate.css')) !!}
     </style>
 </head>
@@ -15,14 +15,16 @@
 <body>
 
     @php
-        // Embed the watermark as a base64 data URI. Inlining the bytes removes the
-        // async image-load race that makes Chromium print the page before the
-        // watermark paints (the classic "image disappears in the PDF" bug), and
-        // because <img> sizing is driven by width/height — not background-size —
-        // it also avoids the Chromium print background scaling quirk.
+        // 1. تحويل العلامة المائية إلى بيانت باينري مدمجة
         $watermarkPath = public_path('image/logo-watermark.png');
         $watermarkData = is_file($watermarkPath)
             ? 'data:image/png;base64,' . base64_encode(file_get_contents($watermarkPath))
+            : null;
+
+        // 2. تحويل الشعار العلوي لـ Base64 لتجنب مشاكل التزامن واختفاء الشعار
+        $logoPath = public_path('image/logo-dark.png');
+        $logoData = is_file($logoPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
             : null;
     @endphp
 
@@ -45,7 +47,11 @@
 
         <div class="main-content">
             <div class="top-row">
-                <img src="{{ public_path('image/logo-dark.png') }}" alt="T-square Logo" class="logo">
+                @if ($logoData)
+                    <img src="{{ $logoData }}" alt="T-square Logo" class="logo">
+                @else
+                    <div style="width: 145px;"></div>
+                @endif
                 <div class="center-name">T-Square Training Center</div>
             </div>
 
