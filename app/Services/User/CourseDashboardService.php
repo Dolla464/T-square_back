@@ -18,9 +18,9 @@ class CourseDashboardService
     private const STATUS_COMPLETED = 'completed';
 
     /**
-     * جلب كل بيانات الداشبورد: الإحصائيات + قائمة الكورسات
+     * Get all dashboard data: statistics + courses list
      *
-     * @param  int  $studentId  معرّف الطالب الحالي
+     * @param  int  $studentId  Current student ID
      * @param  array  $filters  ['search' => string|null, 'status' => 'all'|'in_progress'|'completed']
      */
     public function getDashboardData(int $studentId, array $filters): array
@@ -36,14 +36,14 @@ class CourseDashboardService
     // -------------------------------------------------------------------------
 
     /**
-     * حساب الإحصائيات عبر queries
+     * Calculate the statistics through queries
      */
     private function getStats(int $studentId): array
     {
-        // كل الكورسات المنشورة
+        // All published courses
         $totalPlatformCourses = Course::active()->count();
 
-        // الإحصائيات بتاعت بالطالب (Query Builder مباشر بدون Hydration)
+        // The statistics of the student (Query Builder directly without Hydration)
         $enrollmentStats = Enrollment::query()
             ->selectRaw('
                 COUNT(*)                                   AS total_enrolled,
@@ -67,7 +67,7 @@ class CourseDashboardService
     // -------------------------------------------------------------------------
 
     /**
-     * هات أحدث الكورسات مع الفلترة (فقط الكورسات التي تم سدادها بنجاح)
+     * Get the latest courses with the filters (only the courses that have been paid successfully)
      */
     private function getCourses(int $studentId, array $filters): Collection
     {
@@ -79,39 +79,41 @@ class CourseDashboardService
             ->whereHas('enrollments', function ($q) use ($studentId) {
                 $q->where('student_id', $studentId)
                     ->whereHas('order', function ($orderQuery) {
-                        $orderQuery->where('status', 'completed'); // 👈 شرط السداد المكتمل
+                        $orderQuery->where('status', 'completed'); // Payment completed condition
                     });
             })
 
-            // ── 2. جلب العلاقات المعتادة لكودك (Eager Loading) ──
+            // ── 2. Get the usual relationships for the course (Eager Loading) ──
             ->with([
-                'instructor:id,full_name,field',
+                'instructor:id,full_name,field,bio,avatar,phone',
                 'tags:id,name,slug',
                 'previews:id,course_id,title,video_url,description,video_provider,duration_seconds,sort_order',
             ])
 
-            // ── Enrollment بتاعت بالطالب الحالي فقط ──
+            // ── Enrollment of the current student only ──
             ->with([
                 'enrollments' => fn($q) => $q
                     ->select('id', 'course_id', 'student_id', 'order_id', 'is_completed', 'completed_at')
                     ->where('student_id', $studentId),
             ])
 
-            // ── نحدد الأعمدة التي نحتاجها بس من جدول courses ─────────────
+            // ── Define the columns we need from the courses table ─────────────
             ->select([
                 'id',
                 'title',
                 'slug',
+                'short_description',
+                'description',
                 'thumbnail',
                 'google_drive_link',
                 'instructor_id',
                 'created_at',
             ]);
 
-        // ── تطبيق الفلاتر الإضافية ───────────────────────────────────────────
+        // ── Apply the additional filters ───────────────────────────────────────────
         $query = $this->applyFilters($query, $studentId, $search, $status);
 
-        // ── أحدث LATEST_LIMIT كورس بس ─────────────────────
+        // ── Get the latest LATEST_LIMIT courses ─────────────────────
         return $query
             ->latest()                      // ORDER BY created_at DESC
             ->limit(self::LATEST_LIMIT)     // LIMIT 10
@@ -119,7 +121,7 @@ class CourseDashboardService
     }
 
     /**
-     * الفلتره
+     * Filter the courses
      */
     private function applyFilters(Builder $query, int $studentId, ?string $search, string $status): Builder
     {
@@ -130,14 +132,14 @@ class CourseDashboardService
 
         // ── فلتر الحالة (all / in_progress / completed) ────────────────────
         if ($status === self::STATUS_IN_PROGRESS) {
-            // الكورسات اللي اشترك فيها الطالب مخلصهاش بعد
+            // The courses the student enrolled in and completed them
             $query->whereHas(
                 'enrollments',
                 fn($q) => $q->where('student_id', $studentId)
                     ->where('is_completed', false)
             );
         } elseif ($status === self::STATUS_COMPLETED) {
-            // الكورسات اللي  الطالب خلصها
+            // The courses the student completed
             $query->whereHas(
                 'enrollments',
                 fn($q) => $q->where('student_id', $studentId)
@@ -149,7 +151,7 @@ class CourseDashboardService
     }
 
     /**
-     * تنظيف قيمة البحث: trim + null لو فاضية
+     * Clean the search value: trim + null if empty
      */
     private function normalizeSearch(mixed $search): ?string
     {
@@ -163,7 +165,7 @@ class CourseDashboardService
     }
 
     /**
-     * ضمان حالة صحيحة فقط
+     * Ensure a valid status only
      */
     private function normalizeStatus(mixed $status): string
     {
@@ -177,5 +179,64 @@ class CourseDashboardService
             self::STATUS_ALL => $status,
             default => self::STATUS_ALL,
         };
+    }
+
+    /**
+     * Get the details of a specific course fully for the selected student
+     * * @param int $studentId
+     * @param int $courseId
+     * @return Course
+     */
+    public function getCourseDetails(int $studentId, int $courseId): Course
+    {
+        return Course::active()
+            // Ensure the student has a completed payment for this course
+            ->whereHas('enrollments', function ($q) use ($studentId, $courseId) {
+                $q->where('student_id', $studentId)
+                  ->where('course_id', $courseId)
+                  ->whereHas('order', function ($orderQuery) {
+                      $orderQuery->where('status', 'completed');
+                  });
+            })
+            // Get the necessary relationships for displaying the course details fully
+            ->with([
+                'instructor:id,full_name,field,bio,avatar,phone',
+                'category:id,name,slug',
+                'tags:id,name,slug',
+                'previews:id,course_id,title,video_url,description,video_provider,duration_seconds,sort_order',
+                'learnings:id,course_id,title',
+            ])
+            // Get the enrollment data for this student only to read the completion status and date in the frontend
+            ->with([
+                'enrollments' => fn($q) => $q
+                    ->select('id', 'course_id', 'student_id', 'order_id', 'is_completed', 'completed_at')
+                    ->where('student_id', $studentId),
+            ])
+            // The columns we need for the full display code
+            ->select([
+                'id',
+                'title',
+                'slug',
+                'short_description',
+                'description',
+                'thumbnail',
+                'cover_image',
+                'price_before',
+                'discount_price',
+                'price',
+                'is_free',
+                'level',
+                'language',
+                'duration_weeks',
+                'duration_hours',
+                'avg_rating',
+                'total_reviews',
+                'total_students',
+                'category_id',
+                'instructor_id',
+                'google_drive_link',
+                'created_at',
+            ])
+            ->findOrFail($courseId); // Throws 404 automatically if the course is not found or the student is not enrolled in it
     }
 }

@@ -93,9 +93,9 @@ class ExamService
 
         // Pull question IDs (IDs) randomly by the required number from the question bank of this exam
         $randomQuestionIds = Question::where('exam_id', $examId)
-        ->inRandomOrder() // Randomize the questions
-        ->take($limit)    // Pull only the required number (e.g. 50 out of 100)
-        ->pluck('id');
+            ->inRandomOrder() // Randomize the questions
+            ->take($limit)    // Pull only the required number (e.g. 50 out of 100)
+            ->pluck('id');
 
         // 5. Attach the randomly selected questions to the current attempt in the intermediate table to fix them
         $attempt->questions()->attach($randomQuestionIds);
@@ -258,22 +258,24 @@ class ExamService
         }
     }
 
-    public function getStudentResults($studentId)
+    public function getStudentResults($studentId, ?int $examId = null)
     {
-        return ExamAttempt::where('student_id', '=', $studentId, 'and')
+        $query = ExamAttempt::where('student_id', '=', $studentId, 'and')
             // Added passed and failed based on the last modification in the Service
             ->whereIn('status', ['passed', 'failed', 'completed', 'timed_out'], 'and', false)
             ->with(['exam' => function ($query) {
-                // Get the course and exam name and whether it is final or not
-                $query->select('id', 'course_id', 'title', 'passing_mark', 'is_final');
-            }, 'exam.course:id,title']) // Get only the columns we need to save memory
-            ->orderBy('finished_at', 'desc')
-            ->get()
-            ->map(function ($attempt) {
-                // Add a quick information for the frontend: is this certificate downloadable?
-                $attempt->can_download_certificate = ($attempt->status === 'passed' && $attempt->exam->is_final);
-
-                return $attempt;
+                $query->select('id', 'course_id', 'title', 'total_marks', 'passing_mark', 'is_final');
+            }, 'exam.course:id,title'])
+            ->orderBy('finished_at', 'desc');
+        // If the exam ID is passed, filter the attempts for the exams belonging to this exam only
+        if ($examId) {
+            $query->whereHas('exam', function ($q) use ($examId) {
+                $q->where('id', $examId);
             });
+        }
+        return $query->get()->map(function ($attempt) {
+            $attempt->can_download_certificate = ($attempt->status === 'passed' && $attempt->exam->is_final);
+            return $attempt;
+        });
     }
 }

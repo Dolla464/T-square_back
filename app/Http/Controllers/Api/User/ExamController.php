@@ -10,9 +10,12 @@ use App\Http\Resources\User\Exam\ExamListResource;
 use App\Http\Resources\User\Exam\ExamResultResource;
 use App\Services\User\ExamService;
 use Illuminate\Http\Request;
+use App\Traits\ApiResponseTrait;
 
 class ExamController extends Controller
 {
+    use ApiResponseTrait;
+
     /** @var ExamService */
     protected $examService;
 
@@ -26,7 +29,7 @@ class ExamController extends Controller
         $student = $request->user()->student;
 
         if (! $student) {
-            return response()->json(['message' => 'Student profile not found'], 404);
+            return $this->errorResponse('Student profile not found', 404);
         }
 
         $exams = $this->examService->getAvailableExams($student);
@@ -40,7 +43,7 @@ class ExamController extends Controller
         $student = $request->user()->student;
 
         if (! $student) {
-            return response()->json(['message' => 'Student profile not found'], 404);
+            return $this->errorResponse('Student profile not found', 404);
         }
 
         $attempt = $this->examService->startAttempt($student->id, $request->exam_id);
@@ -67,7 +70,7 @@ class ExamController extends Controller
         $student = $request->user()->student;
 
         if (! $student) {
-            return response()->json(['message' => 'Student profile not found'], 404);
+            return $this->errorResponse('Student profile not found', 404);
         }
 
         $result = $this->examService->completeAttempt($id, $student->id);
@@ -84,7 +87,7 @@ class ExamController extends Controller
                 'total_marks' => $totalMarks,
                 'is_passed' => $result['is_passed'],
                 'status' => $result['status'],
-                'percentage' => $percentage.'%',
+                'percentage' => $percentage . '%',
                 'feedback' => $result['is_passed']
                     ? 'Congratulations. You passed this exam.'
                     : 'Sorry. You failed this exam. Try again.',
@@ -97,11 +100,17 @@ class ExamController extends Controller
         $student = $request->user()->student;
 
         if (! $student) {
-            return response()->json(['message' => 'Student not found'], 404);
+            return $this->errorResponse('Student not found', 404);
         }
 
-        $results = $this->examService->getStudentResults($student->id);
+        // Read the course ID if it is passed as a Query Parameter
+        $examId = $request->query('exam_id') ? (int)$request->query('exam_id') : null;
 
-        return ExamResultResource::collection($results);
+        $results = $this->examService->getStudentResults($student->id, $examId);
+
+        return $this->successResponse(
+            data: ExamResultResource::collection($results),
+            message: 'Exam results retrieved successfully.',
+        );
     }
 }

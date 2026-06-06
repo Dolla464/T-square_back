@@ -26,7 +26,9 @@ class ExamResultResource extends JsonResource
 
         return [
             'attempt_id' => $this->id,
+            'exam_id' => $this->exam_id,
             'exam_title' => $this->exam->title,
+            'course_id' => $this->exam->course_id,
             'course_name' => $this->exam->course->title,
             'score' => $studentScore,
             'total_marks' => $this->exam->total_marks,
