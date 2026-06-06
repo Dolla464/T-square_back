@@ -15,6 +15,7 @@ use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -42,18 +43,18 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // 1. إنشاء كلاس وهمي (Anonymous Class) لاستخدام التريت
+        // 1. Create a dummy class (Anonymous Class) to use the trait
         $responder = new class
         {
             use ApiResponseTrait;
         };
 
-        // 2. اعتراض الأخطاء لو الطلب جاي من مسار API
+        // 2. Intercept errors if the request is coming from the API path
         $exceptions->render(function (Throwable $e, Request $request) use ($responder) {
 
             if ($request->is('api/*') || $request->wantsJson()) {
 
-                // خطأ 422: فشل التحقق من البيانات (Validation)
+                // Error 422: Validation failed
                 if ($e instanceof ValidationException) {
                     $errors = $e->errors();
                     $firstError = collect($errors)->flatten()->first();
@@ -61,31 +62,37 @@ return Application::configure(basePath: dirname(__DIR__))
                     return $responder->errorResponse($firstError, 422, $errors);
                 }
 
-                // خطأ 404: السجل غير موجود في الداتابيز (زي لما تبحث عن كورس ممسوح)
+                // Error 404: The record not found in the database (like when you search for a verified course)
                 if ($e instanceof ModelNotFoundException) {
-                    // السطر ده بيجيب اسم الموديل عشان يقولك (Course غير موجود مثلاً)
+                    // This line gets the model name to tell you (Course not found for example)
                     $modelName = class_basename($e->getModel());
 
                     return $responder->errorResponse("Sorry, this model ($modelName) not found", 404);
                 }
 
-                // خطأ 404: الرابط نفسه غلط أو مش موجود
+                // Error 404: The same link is wrong or not found
                 if ($e instanceof NotFoundHttpException) {
                     return $responder->errorResponse('This route does not exist', 404);
                 }
 
-                // خطأ 401: المستخدم مش مسجل دخول (Token غلط أو منتهي)
+                // Error 401: The user is not logged in (Token is wrong or expired)
                 if ($e instanceof AuthenticationException) {
                     return $responder->errorResponse('Unauthenticated access', 401);
                 }
 
-                // خطأ 403: المستخدم مسجل دخول بس معندوش صلاحية للأكشن ده
+                // Error 403: The user is logged in but does not have permission for this action
                 if ($e instanceof AccessDeniedHttpException) {
                     return $responder->errorResponse('Unauthorized access', 403);
                 }
 
-                // خطأ 500: أي خطأ برمجي تاني في السيرفر (زي نسيان حرف أو خطأ في الداتابيز)
-                // في وضع التطوير هيرجعلك رسالة الخطأ الحقيقية، في الإنتاج تقدر تخليها رسالة ثابتة
+                // ── The new and special modification ──
+                // Error 503: The site is in maintenance mode (the API)
+                if ($e instanceof HttpException && $e->getStatusCode() === 503) {
+                    return $responder->errorResponse($e->getMessage(), 503);
+                }
+
+                // Error 500: Any other programming error on the server (like forgetting a letter or error in the database)
+                // In development mode, it will return the real error message, in production you can make it a fixed message
                 $message = config('app.debug') ? $e->getMessage() : 'Server error';
 
                 return $responder->errorResponse($message, 500);

@@ -101,6 +101,7 @@ class CourseDashboardService
             ->select([
                 'id',
                 'title',
+                'slug',
                 'thumbnail',
                 'google_drive_link',
                 'instructor_id',

@@ -51,10 +51,6 @@ Route::get('/settings/{key}', [SettingController::class, 'getSettingByKey'])
     ->name('settings.show');
 Route::get('/website-media/{key}', [PublicWebsiteController::class, 'getMediaByKey'])
     ->name('website-media.get');
-// Fixed maintenance page route for students
-Route::get('/maintenance', function () {
-    return view('maintenance'); // Simply return the maintenance Blade view
-})->name('maintenance.page');
 
 // ── Student public browsing routes ────────────────────────────────────────
 Route::prefix('student')->name('student.')->group(function () {
@@ -157,6 +153,7 @@ Route::middleware('auth:sanctum')->group(function () {
             ->name('certificates.')
             ->group(function () {
                 Route::get('/', 'index')->name('index');
+                Route::get('{enrollment}/view', 'view')->name('view');
                 Route::get('{enrollment}/download', 'download')->name('download');
                 Route::get('{enrollment}', 'show')->name('show');
             });

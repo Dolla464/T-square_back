@@ -21,6 +21,7 @@ class CourseDashboardResource extends JsonResource
             // ── بيانات الكورس الأساسية ─────────────────────────────────────
             'id' => $this->id,
             'title' => $this->title,
+            'slug' => $this->slug,
             'thumbnail' => $this->thumbnail,
             'google_drive_link' => $this->google_drive_link,
 

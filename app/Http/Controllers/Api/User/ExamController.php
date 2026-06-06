@@ -36,7 +36,7 @@ class ExamController extends Controller
 
     public function start(StartExamRequest $request)
     {
-        // بنوصل للطالب من خلال علاقة الـ User
+        // Connect to the student through the User relationship
         $student = $request->user()->student;
 
         if (! $student) {
@@ -45,7 +45,7 @@ class ExamController extends Controller
 
         $attempt = $this->examService->startAttempt($student->id, $request->exam_id);
 
-        // تحميل العلاقات عشان الـ Resource يشتغل صح (Eager Loading)
+        // Load the relationships so the Resource works properly (Eager Loading)
         $attempt->load('exam.questions.choices');
 
         return new ExamAttemptResource($attempt);
@@ -72,7 +72,7 @@ class ExamController extends Controller
 
         $result = $this->examService->completeAttempt($id, $student->id);
 
-        // حماية ضد القسمة على صفر
+        // Prevent division by zero
         $totalMarks = $result['total_marks'] > 0 ? $result['total_marks'] : 1;
         $score = $result['score'];
         $percentage = round(($score / $totalMarks) * 100, 2);

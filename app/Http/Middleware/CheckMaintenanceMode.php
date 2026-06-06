@@ -24,28 +24,36 @@ class CheckMaintenanceMode
         // 2. If the maintenance mode is enabled (ON)
         if ($isMaintenanceOn) {
 
-            // Exclude certain paths from the closure to prevent the loop (admin dashboard, login page, and the maintenance page itself)
-            if ($request->is('maintenance') || $request->is('admin/*') || $request->is('login') || $request->is('api/admin/*')) {
+            // أولاً: الاستثناءات المباشرة (الرووتس المسموحة للكل وقت الصيانة)
+            if (
+                $request->is('maintenance') ||
+                $request->is('admin/*') ||
+                $request->is('login') ||
+                $request->is('api/admin/*') ||
+                $request->is('api/settings/maintenance_mode') ||
+                $request->is('api/login') ||
+                $request->is('api/register')
+            ) {
                 return $next($request);
             }
 
-            // Exclude the admin user. Token-based API requests have no web session,
-            // so we must resolve the user through the sanctum guard first (then fall
-            // back to the default web guard) before checking the admin role.
-            $user = $request->user('sanctum') ?? $request->user();
-            if ($user && $user->hasRole('admin')) {
-                return $next($request);
+            // ── التعديل المنقذ هنا ──
+            // نجبر لارافيل تشيك على التوكن من خلال الـ sanctum guard يدوياً
+            if ($request->bearerToken()) {
+                $user = auth('sanctum')->user(); // قراءة المستخدم من التوكن المبعوث في الـ Header
+
+                // لو التوكن سليم والمستخدم أدمن، عَدّيه يفتح أي API هو عايزه!
+                if ($user && $user->hasRole('admin')) {
+                    return $next($request);
+                }
             }
 
-            // 3. Distinguish between API requests and regular Web requests
+            // لو مفيش توكن، أو التوكن مش بتاع أدمن (طالب أو زائر عادي)
+            // 3. التمييز بين طلبات الـ API والـ Web العادية
             if ($request->is('api/*') || $request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'The platform is in maintenance mode currently to update and improve services, we will be back soon.'
-                ], 503); // 503 is the global code for maintenance status (Service Unavailable)
+                abort(503, 'The platform is in maintenance mode currently.');
             }
 
-            // If a regular user (student or visitor) on the Web, redirect them immediately to the maintenance page
             return redirect()->route('maintenance.page');
         }
 
