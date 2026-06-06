@@ -109,7 +109,8 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('profile.')
         ->group(function () {
             Route::get('/', 'show')->name('show');
-            Route::put('/', 'update')->name('update');
+            Route::post('/', 'update')->name('update');
+            Route::put('/password', 'updatePassword')->name('password.update');
         });
 
     // Notifications — read-all before parameterised {id}/read

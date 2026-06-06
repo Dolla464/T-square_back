@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Traits\HandleImageUploadTrait;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class ProfileService
 {
@@ -60,7 +62,7 @@ class ProfileService
                     'full_name' => $validated['full_name'] ?? null,
                     'gender' => $validated['gender'] ?? null,
                     // لا نضع avatar هنا مباشرة لأنه قد يكون كائن ملف (File Object)
-                ], fn ($value) => ! is_null($value));
+                ], fn($value) => ! is_null($value));
 
                 if (isset($validated['avatar']) && $validated['avatar'] instanceof UploadedFile) {
                     // استدعاء الـ Trait (الآن سيعمل بدون Intervention Image)
@@ -100,12 +102,30 @@ class ProfileService
             [
                 'full_name' => $user->name,
                 'phone' => null,
-                'enrollment_number' => 'TEMP-'.$user->id,
+                'enrollment_number' => 'TEMP-' . $user->id,
                 'group_id' => null,
                 'avatar' => null,
                 'gender' => null,
                 'status' => 'active',
             ]
         );
+    }
+
+    /**
+     * Update the user's password securely with current password verification.
+     */
+    public function updatePassword(User $user, array $validated): void
+    {
+        // 1. Verify the current password stored in the database
+        if (! Hash::check($validated['current_password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => ['Current password is incorrect.']
+            ]);
+        }
+
+        // 2. Update the password field and automatically hash the new password using the Casts feature available in the model
+        $user->update([
+            'password' => $validated['password']
+        ]);
     }
 }
