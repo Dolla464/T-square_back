@@ -1,3 +1,8 @@
+/* تطبيق الـ Box Sizing على جميع العناصر لتفادي مشاكل الـ Padding */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 @page {
     size: A4 landscape;
     margin: 0;
@@ -8,14 +13,14 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 297mm;
-    height: 210mm;
+    width: 100vw;
+    height: 100vh;
     margin: 0;
     padding: 0;
     background-color: #ffffff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .certificate-container {
@@ -27,17 +32,9 @@ body {
     flex-direction: column;
     align-items: center;
     overflow: hidden;
-    box-sizing: border-box;
 }
 
-/*
- * Centered image watermark.
- * - A full-cover absolutely-positioned wrapper centers the logo with flexbox
- *   (no transform: translate, which Chromium can cull during print).
- * - z-index: 0 keeps it strictly beneath every content layer (z-index: 10).
- * - The <img> opacity stays moderate: the source PNG is already faded, so we
- *   never reach the extreme-opacity threshold that makes Chromium skip the layer.
- */
+/* طبقة العلامة المائية المحسنة */
 .watermark-layer {
     position: absolute;
     top: 0;
@@ -52,10 +49,10 @@ body {
 }
 
 .watermark-image {
-    width: 65%;
-    max-width: 720px;
+    width: 60%;
+    max-width: 650px;
     height: auto;
-    opacity: 0.6;
+    opacity: 0.5; /* درجة شفافية متزنة للطباعة */
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
 }
@@ -64,14 +61,13 @@ body {
     position: relative;
     width: 100%;
     height: 100%;
-    padding: 100px 90px;
+    padding: 80px 90px; /* تقليص بسيط لضمان عدم الخروج عن الإطار */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    box-sizing: border-box;
     background: transparent !important;
-    z-index: 10; /* يضمن ظهور النصوص فوق العلامة المائية مجبراً */
+    z-index: 10; 
 }
 
 .header-line,
@@ -81,7 +77,6 @@ body {
     display: flex;
     align-items: center;
     padding: 0 50px;
-    box-sizing: border-box;
     z-index: 10;
 }
 
@@ -149,9 +144,9 @@ body {
 
 .main-title {
     font-family: "Georgia", "Times New Roman", Times, serif;
-    font-size: 58px;
+    font-size: 54px; /* تحجيم طفيف متناسق مع الحواف */
     font-weight: bold;
-    margin: 5px 0 15px 0;
+    margin: 5px 0 12px 0;
     letter-spacing: 6px;
     color: #111;
 }
@@ -159,33 +154,33 @@ body {
 .certify-text {
     font-size: 22px;
     font-style: italic;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
     color: #555;
 }
 
 .student-name {
     font-family: "Playfair Display", "Georgia", Garamond, serif;
-    font-size: 46px;
+    font-size: 44px;
     font-weight: bold;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
     color: #c00000;
     letter-spacing: 1px;
 }
 
 .course-info {
-    font-size: 25px;
+    font-size: 24px;
     margin-bottom: 8px;
     color: #222;
 }
 
 .tags {
-    font-size: 17px;
+    font-size: 16px;
     color: #666;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
 }
 
 .date-text {
-    font-size: 20px;
+    font-size: 19px;
     font-weight: 500;
     color: #444;
 }

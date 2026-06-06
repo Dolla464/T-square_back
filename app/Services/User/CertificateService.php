@@ -176,13 +176,13 @@ class CertificateService
 
             $browsershot->setNodeBinary($nodeBinary)
                 ->setNpmBinary($npmBinary)
-                ->setIncludePath($nodeModulesPath);
+                ->setIncludePath($nodeModulesPath)
+                ->showBackground(true);
         };
 
         try {
             return Pdf::view('certificate', $data)
                 ->landscape()
-                ->showBackground(true)
                 ->withBrowsershot($browsershotConfigurator);
         } catch (\Throwable $e) {
             // Optionally, consider logging here for better observability
