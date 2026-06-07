@@ -25,7 +25,7 @@ class CourseDashboardResource extends JsonResource
             'short_description' => $this->short_description,
             'description' => $this->description,
             'thumbnail' => $this->thumbnail,
-            'cover_image' => $this->whenNotNull($this->cover_image),
+            'cover_image' => $this->cover_image,
             'google_drive_link' => $this->google_drive_link,
             'instructor_id' => $this->instructor_id,
 

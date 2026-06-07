@@ -105,6 +105,7 @@ class CourseDashboardService
                 'short_description',
                 'description',
                 'thumbnail',
+                'cover_image',
                 'google_drive_link',
                 'instructor_id',
                 'created_at',
