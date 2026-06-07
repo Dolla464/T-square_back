@@ -24,7 +24,7 @@ class EnrollmentFactory extends Factory
             'student_id' => Student::inRandomOrder()->first()->id ?? Student::factory(),
             'course_id' => Course::inRandomOrder()->first()->id ?? Course::factory(),
             'order_id' => Order::inRandomOrder()->first()->id ?? Order::factory(),
-            'price_paid' => fake()->numberBetween(100, 1000),
+            'price_paid' => $this->faker->numberBetween(100, 1000),
             'is_completed' => false,
         ];
     }
