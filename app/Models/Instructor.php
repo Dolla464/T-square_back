@@ -48,18 +48,36 @@ class Instructor extends Model
     }
 
     /**
-     * هات لي كل الطلاب اللي عند المدرب ده في كل مجموعاته
+     * كل الطلاب المسجّلين في أي كورس لهذا المدرب.
+     *
+     * المسار: Instructor → Course → Enrollment → Student
+     * ملاحظة: بعد migration 2026_05_16، تم نقل group_id من جدول students
+     * إلى جدول enrollments، لذا لا يمكن استخدام hasManyThrough مباشرةً
+     * عبر LearningGroup. نمر الآن عبر Course → Enrollment.
      */
-    public function students()
+    public function enrollmentsViaCoursesRelation()
     {
         return $this->hasManyThrough(
-            Student::class,
-            LearningGroup::class,
-            'instructor_id', // المفتاح الأجنبي في جدول المجموعات
-            'group_id',      // المفتاح الأجنبي في جدول الطلاب
-            'id',            // المفتاح الأساسي في جدول المدربين
-            'id'             // المفتاح الأساسي في جدول المجموعات
+            \App\Models\Enrollment::class,
+            Course::class,
+            'instructor_id', // FK على courses يشير إلى instructors.id
+            'course_id',     // FK على enrollments يشير إلى courses.id
+            'id',            // PK على instructors
+            'id'             // PK على courses
         );
+    }
+
+    /**
+     * جلب الطلاب كـ Builder — استخدم هذه الدالة بدلاً من علاقة students()
+     * مثال الاستخدام: $instructor->getStudentsQuery()->get()
+     */
+    public function getStudentsQuery()
+    {
+        $courseIds = $this->courses()->pluck('id');
+
+        return Student::whereHas('enrollments', function ($q) use ($courseIds) {
+            $q->whereIn('course_id', $courseIds);
+        })->distinct();
     }
 
     // جلب كل التقييمات اللي استلمها المدرب عبر كل كورساته

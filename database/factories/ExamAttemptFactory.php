@@ -12,21 +12,26 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class ExamAttemptFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         $start = $this->faker->dateTimeBetween('-1 month', 'now');
 
         return [
-            'student_id' => Student::inRandomOrder()->first()->id ?? Student::factory(),
-            'exam_id' => Exam::inRandomOrder()->first()->id ?? Exam::factory(),
-            'started_at' => $start,
-            'finished_at' => (clone $start)->modify('+'.rand(20, 60).' minutes'),
-            'score' => $this->faker->randomFloat(2, 0, 100),
+            'student_id'  => Student::inRandomOrder()->first()?->id ?? Student::factory(),
+            'exam_id'     => Exam::inRandomOrder()->first()?->id ?? Exam::factory(),
+            'status'      => 'completed',
+            'started_at'  => $start,
+            'finished_at' => (clone $start)->modify('+' . rand(20, 60) . ' minutes'),
+            'score'       => $this->faker->randomFloat(2, 0, 100),
         ];
+    }
+
+    public function inProgress(): static
+    {
+        return $this->state(fn () => [
+            'status'      => 'in_progress',
+            'finished_at' => null,
+            'score'       => null,
+        ]);
     }
 }
