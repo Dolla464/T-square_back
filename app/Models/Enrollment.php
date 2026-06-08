@@ -46,11 +46,13 @@ class Enrollment extends Model
     }
 
     /**
-     * Helper Function: الحصول على الشهادة الخاصة بالتسجيل
+     * شهادة هذا الاشتراك — تُعثر عليها عبر (student_id + course_id)
+     * لا يوجد enrollment_id على جدول certificates، لذا نقيّد بـ course_id.
      */
     public function certificate()
     {
-        return $this->hasOne(Certificate::class, 'enrollment_id');
+        return $this->hasOne(Certificate::class, 'student_id', 'student_id')
+            ->where('course_id', $this->course_id);
     }
 
     /**

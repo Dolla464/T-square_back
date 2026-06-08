@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use App\Models\Solution;
 
 class Tag extends Model
 {
@@ -29,6 +30,6 @@ class Tag extends Model
 
     public function solutions()
     {
-        return $this->belongsToMany(Tag::class, 'solution_tag');
+        return $this->belongsToMany(Solution::class, 'solution_tag');
     }
 }
