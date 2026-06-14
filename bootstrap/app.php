@@ -19,9 +19,9 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        api: __DIR__.'/../routes/api.php',
-        commands: __DIR__.'/../routes/console.php',
+        web: __DIR__ . '/../routes/web.php',
+        api: __DIR__ . '/../routes/api.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -93,10 +93,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
                 // Error 500: Any other programming error on the server (like forgetting a letter or error in the database)
                 // In development mode, it will return the real error message, in production you can make it a fixed message
-                $message = config('app.debug') ? $e->getMessage() : 'Server error';
+                $message = $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine();
 
                 return $responder->errorResponse($message, 500);
             }
-
         });
     })->create();

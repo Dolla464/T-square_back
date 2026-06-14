@@ -7,38 +7,65 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
- * Trait to handle image upload.
+ * Trait to handle image upload, resizing, and WebP conversion.
  */
 trait HandleImageUploadTrait
 {
     /**
-     * Upload an image to the public disk.
-     */
-    /**
      * Upload, resize, and convert an image to WebP format.
      *
-     * @param  string|null  $oldPath  Path of the old file to delete.
-     * @param  int  $maxSize  Max width/height in pixels (800 for thumbnails, 1920 for covers).
+     * @param UploadedFile $file
+     * @param string $folder
+     * @param string|null $oldPath
+     * @param int $maxSize
+     * @return string
+     * @throws \Exception
      */
     public function uploadImage(UploadedFile $file, string $folder, ?string $oldPath = null, int $maxSize = 800): string
     {
-        // ensure required GD functions are available (and WebP support)
+        // 1. Ensure required GD functions are available
         if (! \function_exists('imagewebp') || (! \function_exists('imagecreatefromjpeg') && ! \function_exists('imagecreatefrompng') && ! \function_exists('imagecreatefromwebp'))) {
-            throw new \Exception('GD extension with image and WebP support is required. Please enable the gd extension and ensure WebP support is available in your PHP build.');
+            throw new \Exception('GD extension with WebP support is required.');
         }
 
-        // 1. delete the old image
+        // 2. Delete the old image if it exists
+        // نُحوّل الـ URL الكامل إلى مسار نسبي (لقواعد البيانات القديمة التي خزنت URL كامل)
+        if ($oldPath) {
+            $storagePublicUrl = Storage::disk('public')->url('');
+            if (str_starts_with($oldPath, $storagePublicUrl)) {
+                $oldPath = ltrim(substr($oldPath, strlen($storagePublicUrl)), '/');
+            } elseif (str_starts_with($oldPath, 'http://') || str_starts_with($oldPath, 'https://')) {
+                // URL كامل لكن من domain مختلف أو نمط مختلف - نتجاهله آمنًا
+                $oldPath = null;
+            }
+        }
+
         if ($oldPath && Storage::disk('public')->exists($oldPath)) {
             Storage::disk('public')->delete($oldPath);
         }
 
-        // 2. prepare the name and path
-        $generatedName = $folder.'_'.time().'_'.Str::random(5).'.webp';
+        // 3. Ensure target directory exists
+        if (!Storage::disk('public')->exists($folder)) {
+            Storage::disk('public')->makeDirectory($folder);
+        }
+        
+        // 4. Prepare the name and path
+        $generatedName = uniqid() . '_' . Str::random(5) . '.webp';
         $fullPath = "{$folder}/{$generatedName}";
 
-        // 3. read the original image
+        // 5. Read the original image
         $imagePath = $file->getRealPath();
+
+        if ($imagePath === false || ! file_exists($imagePath)) {
+            throw new \Exception('Uploaded file is not readable or no longer available.');
+        }
+
         $info = \getimagesize($imagePath);
+
+        if ($info === false) {
+            throw new \Exception('Could not read image information. The file may be corrupted.');
+        }
+
         $width = $info[0];
         $height = $info[1];
 
@@ -49,39 +76,40 @@ trait HandleImageUploadTrait
             default => throw new \Exception('Image type not supported'),
         };
 
-        // --- Resize to $maxSize while maintaining aspect ratio ---
-        $maxSide = $maxSize;
-        if ($width > $maxSide || $height > $maxSide) {
+        // 6. Resize if necessary while maintaining aspect ratio
+        if ($width > $maxSize || $height > $maxSize) {
             if ($width > $height) {
-                $newWidth = $maxSide;
-                $newHeight = (int) ($height * ($maxSide / $width));
+                $newWidth = $maxSize;
+                $newHeight = (int) ($height * ($maxSize / $width));
             } else {
-                $newHeight = $maxSide;
-                $newWidth = (int) ($width * ($maxSide / $height));
+                $newHeight = $maxSize;
+                $newWidth = (int) ($width * ($maxSize / $height));
             }
 
-            // create an empty image with the new dimensions
             $resizedImage = \imagecreatetruecolor($newWidth, $newHeight);
-            // keep the transparency (if it's a PNG)
+            
+            // Maintain transparency for PNG/WebP
             \imagealphablending($resizedImage, false);
             \imagesavealpha($resizedImage, true);
 
-            // copy and resize the image
             \imagecopyresampled($resizedImage, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
 
-            \imagedestroy($source); // delete the old image from memory to free up space
+            \imagedestroy($source);
             $source = $resizedImage;
         }
-        // -------------------------------------------
 
-        // 4. convert the image to WebP using Buffer
+        // 7. Convert to WebP using Buffer
         ob_start();
         \imagewebp($source, null, 80); // quality 80%
         $webpContent = ob_get_clean();
         \imagedestroy($source);
 
-        // 5. save the image
-        Storage::disk('public')->put($fullPath, $webpContent);
+        // 8. Save the image and verify
+        $saved = Storage::disk('public')->put($fullPath, $webpContent);
+        
+        if (!$saved) {
+            throw new \Exception('Failed to save the image to disk.');
+        }
 
         return $fullPath;
     }

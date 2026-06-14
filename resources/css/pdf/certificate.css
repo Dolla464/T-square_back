@@ -1,225 +1,79 @@
-/* تطبيق الـ Box Sizing على جميع العناصر لتفادي مشاكل الـ Padding */
-*, *::before, *::after {
-    box-sizing: border-box;
-}
-
-@page {
-    size: A4 landscape;
-    margin: 0;
-}
-
+/* dompdf يفضل الوحدات المطلقة مثل pt أو px */
 body {
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100vw;
-    height: 100vh;
+    font-family: "DejaVu Sans", sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #ffffff;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    overflow: hidden;
 }
 
 .certificate-container {
-    width: 100%;
-    height: 100%;
-    background-color: white;
+    width: 800px; /* عرض ثابت */
+    height: 550px; /* ارتفاع ثابت للـ A4 Landscape */
+    padding: 40px;
+    border: 2px solid #333;
     position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    overflow: hidden;
 }
 
-/* طبقة العلامة المائية المحسنة */
+/* العلامة المائية */
 .watermark-layer {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 50px;
+    left: 100px;
+    z-index: -1;
+    opacity: 0.1;
+}
+
+/* استبدال Flex بالـ Table لضمان التنسيق */
+.header-table {
     width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 0;
-    pointer-events: none;
+    border-collapse: collapse;
 }
-
-.watermark-image {
-    width: 60%;
-    max-width: 650px;
-    height: auto;
-    opacity: 0.5; /* درجة شفافية متزنة للطباعة */
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-}
-
-.main-content {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    padding: 80px 90px; /* تقليص بسيط لضمان عدم الخروج عن الإطار */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    background: transparent !important;
-    z-index: 10; 
-}
-
-.header-line,
-.footer-line {
-    position: absolute;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    padding: 0 50px;
-    z-index: 10;
-}
-
-.header-line {
-    top: 40px;
-    left: 0;
-}
-
-.footer-line {
-    bottom: 40px;
-    left: 0;
-    flex-direction: row-reverse;
-}
-
 .red-bar {
-    height: 12px;
+    height: 10px;
     background-color: #c00000;
-    flex-grow: 1;
-}
-
-.header-line .red-bar {
-    border-radius: 0 10px 10px 0;
-    margin-right: 25px;
-}
-
-.footer-line .red-bar {
-    border-radius: 10px 0 0 10px;
-    margin-left: 25px;
-}
-
-.dots {
-    display: flex;
-    gap: 18px;
-}
-
-.dot {
-    width: 22px;
-    height: 22px;
-    background-color: #c00000;
-    border-radius: 50%;
+    width: 100%;
 }
 
 .top-row {
     width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    margin-bottom: 30px;
 }
-
 .logo {
-    width: 145px;
-    height: auto;
-}
-
-.center-name {
-    font-size: 24px;
-    color: #333;
-    font-weight: 600;
+    width: 120px;
 }
 
 .text-center {
     text-align: center;
-    width: 100%;
+    margin-top: 20px;
 }
-
 .main-title {
-    font-family: "Georgia", "Times New Roman", Times, serif;
-    font-size: 54px; /* تحجيم طفيف متناسق مع الحواف */
+    font-size: 45pt;
     font-weight: bold;
-    margin: 5px 0 12px 0;
-    letter-spacing: 6px;
     color: #111;
-}
-
-.certify-text {
-    font-size: 22px;
-    font-style: italic;
-    margin-bottom: 20px;
-    color: #555;
+    letter-spacing: 5px;
 }
 
 .student-name {
-    font-family: "Playfair Display", "Georgia", Garamond, serif;
-    font-size: 44px;
-    font-weight: bold;
-    margin-bottom: 25px;
+    font-size: 30pt;
     color: #c00000;
-    letter-spacing: 1px;
-}
-
-.course-info {
-    font-size: 24px;
-    margin-bottom: 8px;
-    color: #222;
-}
-
-.tags {
-    font-size: 16px;
-    color: #666;
-    margin-bottom: 25px;
-}
-
-.date-text {
-    font-size: 19px;
-    font-weight: 500;
-    color: #444;
+    font-weight: bold;
+    margin: 20px 0;
 }
 
 .signatures-area {
     width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    position: relative;
-    padding-bottom: 10px;
+    margin-top: 50px;
 }
-
-.sig-group {
+.sig-cell {
+    width: 50%;
     text-align: center;
-    width: 250px;
-}
-
-.middle-dash {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 45px;
-    font-weight: bold;
-    font-size: 24px;
-    letter-spacing: 2px;
-    color: #ccc;
 }
 
 .label {
-    font-size: 18px;
-    color: #777;
-    margin-bottom: 10px;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 5px;
+    font-size: 14pt;
+    border-bottom: 1px solid #000;
+    margin-bottom: 5px;
 }
-
 .name {
-    font-size: 21px;
+    font-size: 16pt;
     font-weight: bold;
-    color: #000;
 }

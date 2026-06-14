@@ -1,108 +1,188 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Certificate Professional Fixed</title>
-
+    <title>Certificate</title>
     <style>
-        /* حقن ملف الـ CSS المحسن المكتمل */
-        {!! file_get_contents(resource_path('css/pdf/certificate.css')) !!}
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            background: white;
+            margin: 0;
+            padding: 0;
+        }
+
+        .page-wrapper {
+            padding: 20px 32px 18px;
+            page-break-inside: avoid;
+        }
+
+        .top-red-line {
+            background-color: #c00000;
+            height: 7px;
+            width: 100%;
+            margin-bottom: 14px;
+        }
+
+        .bottom-red-line {
+            background-color: #c00000;
+            height: 7px;
+            width: 100%;
+            margin-top: 14px;
+        }
+
+        .logo-row {
+            text-align: left;
+            margin-bottom: 12px;
+        }
+
+        .logo {
+            width: 155px;
+            height: auto;
+        }
+
+        .center-title {
+            text-align: center;
+            font-size: 21px;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .certificate-big {
+            text-align: center;
+            font-size: 38px;
+            font-weight: bold;
+            color: #8B0000;
+            letter-spacing: 4px;
+            margin: 6px 0 10px;
+        }
+
+        .certify-text {
+            text-align: center;
+            font-size: 15px;
+            margin-bottom: 10px;
+        }
+
+        .student-name {
+            text-align: center;
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .student-tags {
+            text-align: center;
+            font-size: 13px;
+            color: #444;
+            margin-bottom: 10px;
+        }
+
+        .course-info {
+            text-align: center;
+            font-size: 15px;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .course-name {
+            font-weight: bold;
+            font-size: 17px;
+        }
+
+        .date-issue {
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 14px;
+        }
+
+        .signatures-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0;
+        }
+
+        .signatures-table td {
+            text-align: center;
+            width: 50%;
+            padding: 0 40px;
+        }
+
+        .signature-line {
+            border-top: 1px solid #333;
+            width: 80%;
+            margin: 0 auto;
+        }
+
+        .signature-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .signature-title {
+            font-size: 11px;
+            color: #777;
+            margin-top: 3px;
+        }
     </style>
 </head>
 
 <body>
+    <div class="page-wrapper">
 
-    @php
-        // 1. تحويل العلامة المائية إلى بيانت باينري مدمجة
-        $watermarkPath = public_path('image/logo-watermark.png');
-        $watermarkData = is_file($watermarkPath)
-            ? 'data:image/png;base64,' . base64_encode(file_get_contents($watermarkPath))
-            : null;
+        <div class="top-red-line"></div>
 
-        // 2. تحويل الشعار العلوي لـ Base64 لتجنب مشاكل التزامن واختفاء الشعار
-        $logoPath = public_path('image/logo-dark.png');
-        $logoData = is_file($logoPath)
-            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
-            : null;
-    @endphp
-
-    <div class="certificate-container">
-
-        @if ($watermarkData)
-            <div class="watermark-layer">
-                <img src="{{ $watermarkData }}" alt="" class="watermark-image">
-            </div>
-        @endif
-
-        <div class="header-line">
-            <div class="red-bar"></div>
-            <div class="dots">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-            </div>
+        <div class="logo-row">
+            @if ($logoData)
+                <img src="{{ $logoData }}" class="logo">
+            @endif
         </div>
 
-        <div class="main-content">
-            <div class="top-row">
-                @if ($logoData)
-                    <img src="{{ $logoData }}" alt="T-square Logo" class="logo">
-                @else
-                    <div style="width: 145px;"></div>
-                @endif
-                <div class="center-name">T-Square Training Center</div>
-            </div>
+        <div class="center-title">T-Square Training Center</div>
 
-            <div class="text-center">
-                <div class="main-title">CERTIFICATE</div>
-                <div class="certify-text">This is to certify that</div>
-                <div class="student-name">{{ $name }}</div>
+        <div class="certificate-big">CERTIFICATE</div>
 
-                <div class="course-info">Has successfully completed course on {{ $course }}</div>
+        <div class="certify-text">This is to certify that</div>
 
-                @php
-                    $renderTags = null;
-                    if (isset($tags) && !empty($tags)) {
-                        if (is_string($tags)) {
-                            $renderTags = $tags;
-                        } elseif (is_array($tags) || $tags instanceof \Illuminate\Support\Collection) {
-                            $renderTags = implode(' - ', (array) $tags);
-                        }
-                    }
-                @endphp
+        <div class="student-name">{{ $name }}</div>
 
-                @if ($renderTags)
-                    <div class="tags">({{ $renderTags }})</div>
-                @endif
-
-                <div class="date-text">Date Of Issue : {{ $date }}</div>
-            </div>
-
-            <div class="signatures-area">
-                <div class="sig-group">
-                    <div class="label">Instructor</div>
-                    <div class="name">{{ $instructor_name ?? 'Instructor' }}</div>
-                </div>
-
-                <div class="middle-dash">---------</div>
-
-                <div class="sig-group">
-                    <div class="label">CEO</div>
-                    <div class="name">Tamer Elshal</div>
-                </div>
-            </div>
+        <div class="course-info">
+            Has successfully completed course on
+            <span class="course-name">{{ $course }}</span>
+            @if (!empty($tags))
+                <div class="student-tags">({{ is_array($tags) ? implode(' - ', $tags) : $tags }})</div>
+            @endif
         </div>
 
-        <div class="footer-line">
-            <div class="red-bar"></div>
-            <div class="dots">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-            </div>
-        </div>
+        <div class="date-issue">Date Of Issue : {{ $date }}</div>
+
+        <table class="signatures-table">
+            <tr>
+                <td>
+                    <div class="signature-line"></div>
+                    <div class="signature-name">{{ $instructor_name ?? 'Instructor' }}</div>
+                    <div class="signature-title">Instructor</div>
+                </td>
+                <td>
+                    <div class="signature-line"></div>
+                    <div class="signature-name">Tamer Elshal</div>
+                    <div class="signature-title">CEO</div>
+                </td>
+            </tr>
+        </table>
+
+        <div class="bottom-red-line"></div>
 
     </div>
 </body>
