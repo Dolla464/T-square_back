@@ -55,7 +55,7 @@ class AdminInstructorService
                 $instructor->getRawOriginal('avatar')
             );
         } else {
-            // remove the avatar field from the array if no new file is uploaded to avoid deleting the old image
+            // لا نلمس الصورة الحالية إذا لم يرسل المستخدم صورة جديدة
             unset($data['avatar']);
         }
 
