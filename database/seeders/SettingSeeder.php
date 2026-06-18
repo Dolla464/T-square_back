@@ -18,12 +18,12 @@ class SettingSeeder extends Seeder
             ['key' => 'contact_email', 'value' => 'info@tsquare.com', 'type' => 'string', 'group_name' => 'general'],
 
             // social media urls
-            ['key' => 'facebook_url', 'value' => 'https://facebook.com/tsquare', 'type' => 'string', 'group_name' => 'social'],
-            ['key' => 'instagram_url', 'value' => 'https://instagram.com/tsquare', 'type' => 'string', 'group_name' => 'social'],
-            ['key' => 'linkedin_url', 'value' => 'https://linkedin.com/tsquare', 'type' => 'string', 'group_name' => 'social'],
+            ['key' => 'facebook_url', 'value' => 'https://www.facebook.com/share/14ecHoEFDts/', 'type' => 'string', 'group_name' => 'social'],
+            ['key' => 'instagram_url', 'value' => 'https://www.instagram.com/tsquare_trainingcenter?igsh=ZzE5cDBuYWF4ajMz', 'type' => 'string', 'group_name' => 'social'],
+            ['key' => 'linkedin_url', 'value' => 'https://www.linkedin.com/company/t-square-training-center', 'type' => 'string', 'group_name' => 'social'],
 
             // whatsapp number
-            ['key' => 'whatsapp', 'value' => '01210608027', 'type' => 'string', 'group_name' => 'social'],
+            ['key' => 'whatsapp', 'value' => '01021327600', 'type' => 'string', 'group_name' => 'social'],
 
             // maintenance mode
             ['key' => 'maintenance_mode', 'value' => '0', 'type' => 'boolean', 'group_name' => 'general'],
