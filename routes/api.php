@@ -97,6 +97,7 @@ Route::prefix('student')->name('student.')->group(function () {
 | Authenticated Routes — auth:sanctum
 |--------------------------------------------------------------------------
 */
+
 Route::middleware('auth:sanctum')->group(function () {
 
     // Authenticated user identity
@@ -167,6 +168,7 @@ Route::middleware('auth:sanctum')->group(function () {
 | Admin Routes — auth:sanctum + role:admin
 |--------------------------------------------------------------------------
 */
+
 Route::middleware(['auth:sanctum', 'role:admin'])
     ->prefix('admin')
     ->name('admin.')
