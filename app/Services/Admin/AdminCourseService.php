@@ -254,42 +254,55 @@ class AdminCourseService
      */
     private function syncPreviews(Course $course, array $previews, array $existingVideoUrls): void
     {
-        $keptIds = []; // سنقوم بتخزين الـ IDs التي نريد الإبقاء عليها
+        $keptIds = [];
 
         foreach ($previews as $index => $item) {
+            $hasTitle = ! empty(trim($item['title'] ?? ''));
+            $hasVideo = (! empty($item['video']) && $item['video'] instanceof UploadedFile)
+                || ! empty($item['video_url']);
+
+            // Skip completely empty rows that would violate the NOT NULL constraint
+            if (! $hasTitle && ! $hasVideo) {
+                continue;
+            }
+
             $previewId = $item['id'] ?? null;
             $oldVideoUrl = $previewId ? ($existingVideoUrls[$previewId] ?? null) : null;
             $videoPayload = [];
 
-            // 1. معالجة الفيديو (نفس كودك الحالي)
+            // 1. Process video: uploaded file takes priority over a URL string
             if (! empty($item['video']) && $item['video'] instanceof UploadedFile) {
                 $videoData = $this->uploadVideo($item['video'], 'courses/previews', $oldVideoUrl);
                 $videoPayload = [
-                    'video_url' => $videoData['path'],
-                    'video_provider' => 'upload',
+                    'video_url'        => $videoData['path'],
+                    'video_provider'   => 'upload',
                     'duration_seconds' => $videoData['duration'],
                 ];
             } elseif (! empty($item['video_url'])) {
                 $videoPayload = [
-                    'video_url' => $item['video_url'],
+                    'video_url'      => $item['video_url'],
                     'video_provider' => $item['video_provider'] ?? 'upload',
                 ];
             }
 
+            // Ensure video_url always has a value so the DB NOT NULL constraint is satisfied
+            if (empty($videoPayload)) {
+                $videoPayload = ['video_url' => ''];
+            }
+
             $attributes = array_filter([
-                'title' => $item['title'] ?? 'Preview ' . ($index + 1),
+                'title'       => $item['title'] ?? 'Preview ' . ($index + 1),
                 'description' => $item['description'] ?? null,
-                'sort_order' => $item['sort_order'] ?? $index,
+                'sort_order'  => $item['sort_order'] ?? $index,
             ], fn($v) => $v !== null);
 
             $attributes = array_merge($attributes, $videoPayload);
 
-            // 2. التحديث أو الإنشاء
+            // 2. Update existing or create new
             if ($previewId && isset($existingVideoUrls[$previewId])) {
                 $course->previews()->where('id', $previewId)->update($attributes);
-                $keptIds[] = $previewId; // أضف الـ ID للقائمة لكي لا يتم حذفه
+                $keptIds[] = $previewId;
             } else {
-                // إذا كان فيديو جديد تماماً
                 $newPreview = $course->previews()->create($attributes);
                 $keptIds[] = $newPreview->id;
             }
