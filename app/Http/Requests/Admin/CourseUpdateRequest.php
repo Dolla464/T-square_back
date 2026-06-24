@@ -43,7 +43,7 @@ class CourseUpdateRequest extends FormRequest
             'learnings.*' => ['nullable', 'string', 'max:500'],
 
             // Previews
-            'previews' => ['sometimes', 'nullable', 'array'],
+            'previews' => ['nullable', 'array'],
             'previews.*.id' => ['sometimes', 'nullable'], // تركناها مرنة للتعامل مع الـ IDs الجديدة أو القديمة
             'previews.*.title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'previews.*.description' => ['nullable', 'string'],

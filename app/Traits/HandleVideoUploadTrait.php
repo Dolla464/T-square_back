@@ -68,18 +68,25 @@ trait HandleVideoUploadTrait
         $absolutePath = Storage::disk('public')->path($storagePath);
 
         try {
-            $id3 = new \getID3;
-            $fileInfo = $id3->analyze($absolutePath);
+            // Analyse getID3 only for small files (< 20MB) to avoid Timeout
+            $fileSizeMB = $size / (1024 * 1024);
+            
+            if ($fileSizeMB < 20) {
+                $id3 = new \getID3;
+                $fileInfo = $id3->analyze($absolutePath);
 
-            if (! empty($fileInfo['playtime_seconds'])) {
-                $duration = (int) round($fileInfo['playtime_seconds']);
-            }
+                if (! empty($fileInfo['playtime_seconds'])) {
+                    $duration = (int) round($fileInfo['playtime_seconds']);
+                }
 
-            if (! empty($fileInfo['filesize'])) {
-                $size = (int) $fileInfo['filesize'];
+                if (! empty($fileInfo['filesize'])) {
+                    $size = (int) $fileInfo['filesize'];
+                }
             }
+            // For large files (> 20MB), we rely on the duration sent from the frontend
         } catch (\Throwable $e) {
             // getID3 analysis failed — duration stays null, size keeps the PHP value
+            
         }
 
         return [
