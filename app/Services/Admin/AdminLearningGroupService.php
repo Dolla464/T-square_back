@@ -192,6 +192,7 @@ class AdminLearningGroupService
 
         $students = DB::table('enrollments')
             ->join('students', 'enrollments.student_id', '=', 'students.id')
+            ->join('users', 'students.user_id', '=', 'users.id')
             // 1. Convert the Join to leftJoin to ensure no students are dropped who don't have an orders system (orders)
             ->leftJoin('orders', 'enrollments.order_id', '=', 'orders.id')
             ->where('enrollments.course_id', $group->course_id)
@@ -205,6 +206,7 @@ class AdminLearningGroupService
                 'students.id',
                 'students.full_name',
                 'students.phone',
+                'users.email',
                 'enrollments.created_at as enrolled_at'
             )
             ->get()

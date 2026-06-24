@@ -152,6 +152,14 @@ class AdminCourseService
      */
     public function update($id, array $data): Course
     {
+        \Log::info('UPDATE SERVICE', [
+            'id' => $id,
+            'has_previews' => isset($data['previews']),
+            'previews_type' => gettype($data['previews'] ?? null),
+            'previews_count' => is_array($data['previews'] ?? null) ? count($data['previews']) : 'N/A',
+            'previews' => $data['previews'] ?? 'NOT SET',
+        ]);
+
         $course = Course::findOrFail($id);
 
         // 1. معالجة الصور (كما هي)
@@ -218,10 +226,21 @@ class AdminCourseService
             }
         }
 
-        // 7. مزامنة الـ Previews
-        if ($previews !== null) {
-            $existingPreviews = $course->previews()->pluck('video_url', 'id')->toArray();
+        // 7. Sync Previews
+        $existingPreviews = $course->previews()->pluck('video_url', 'id')->toArray();
+
+        \Log::info('BEFORE SYNC CHECK', [
+            'has_previews' => $previews !== null,
+            'previews_empty' => empty($previews),
+            'previews_count' => $previews !== null ? count($previews) : 0,
+        ]);
+
+        if ($previews !== null && !empty($previews)) {
+            \Log::info('RUNNING SYNC PREVIEWS');
             $this->syncPreviews($course, $previews, $existingPreviews);
+        } else {
+            \Log::info('RUNNING DELETE ALL PREVIEWS');
+            $this->deleteAllPreviews($course, $existingPreviews);
         }
 
         return $this->freshWithRelations($course->id);
@@ -254,42 +273,92 @@ class AdminCourseService
      */
     private function syncPreviews(Course $course, array $previews, array $existingVideoUrls): void
     {
-        $keptIds = []; // سنقوم بتخزين الـ IDs التي نريد الإبقاء عليها
+        \Log::info('SYNC PREVIEWS START', [
+            'course_id' => $course->id,
+            'previews_count' => count($previews),
+            'existing_count' => count($existingVideoUrls),
+            'existing_ids' => array_keys($existingVideoUrls),
+        ]);
+
+        $keptIds = [];
+
+        if (empty($previews) || !$this->hasRealPreviews($previews)) {
+            $this->deleteAllPreviews($course, $existingVideoUrls);
+            return;
+        }
 
         foreach ($previews as $index => $item) {
+            $hasTitle = ! empty(trim($item['title'] ?? ''));
+            $hasVideo = (! empty($item['video']) && $item['video'] instanceof UploadedFile)
+                || ! empty($item['video_url']);
+
+            \Log::info('PREVIEW ITEM', [
+                'index' => $index,
+                'hasTitle' => $hasTitle,
+                'hasVideo' => $hasVideo,
+                'title' => $item['title'] ?? 'EMPTY',
+                'video_type' => isset($item['video']) ? gettype($item['video']) : 'NOT SET',
+                'video_url' => $item['video_url'] ?? 'NOT SET',
+            ]);
+
+            // Skip completely empty rows that would violate the NOT NULL constraint
+            if (! $hasTitle && ! $hasVideo) {
+                \Log::info('SKIPPING EMPTY PREVIEW', ['index' => $index]);
+                continue;
+            }
+
             $previewId = $item['id'] ?? null;
             $oldVideoUrl = $previewId ? ($existingVideoUrls[$previewId] ?? null) : null;
             $videoPayload = [];
 
-            // 1. معالجة الفيديو (نفس كودك الحالي)
+            // 1. Process video: uploaded file takes priority over a URL string
             if (! empty($item['video']) && $item['video'] instanceof UploadedFile) {
                 $videoData = $this->uploadVideo($item['video'], 'courses/previews', $oldVideoUrl);
                 $videoPayload = [
-                    'video_url' => $videoData['path'],
-                    'video_provider' => 'upload',
-                    'duration_seconds' => $videoData['duration'],
+                    'video_url'        => $videoData['path'],
+                    'video_provider'   => 'upload',
+                    'duration_seconds' => $videoData['duration'] ?? ($item['duration_seconds'] ?? null),
                 ];
             } elseif (! empty($item['video_url'])) {
                 $videoPayload = [
-                    'video_url' => $item['video_url'],
+                    'video_url'      => $item['video_url'],
                     'video_provider' => $item['video_provider'] ?? 'upload',
+                    'duration_seconds' => $this->parseDuration($item['duration_seconds'] ?? null),
                 ];
             }
 
+            // Ensure video_url always has a value so the DB NOT NULL constraint is satisfied
+            if (empty($videoPayload)) {
+                $videoPayload = ['video_url' => ''];
+            }
+
             $attributes = array_filter([
-                'title' => $item['title'] ?? 'Preview ' . ($index + 1),
+                'title'       => $item['title'] ?? 'Preview ' . ($index + 1),
                 'description' => $item['description'] ?? null,
-                'sort_order' => $item['sort_order'] ?? $index,
+                'sort_order'  => $item['sort_order'] ?? $index,
             ], fn($v) => $v !== null);
 
             $attributes = array_merge($attributes, $videoPayload);
 
-            // 2. التحديث أو الإنشاء
+            // 2. Update existing or create new
             if ($previewId && isset($existingVideoUrls[$previewId])) {
-                $course->previews()->where('id', $previewId)->update($attributes);
-                $keptIds[] = $previewId; // أضف الـ ID للقائمة لكي لا يتم حذفه
+                // Check if there is actually a change before updating
+                $existingPreview = $course->previews()->find($previewId);
+                $needsUpdate = false;
+
+                if ($existingPreview) {
+                    if (($item['title'] ?? '') !== $existingPreview->title) $needsUpdate = true;
+                    if (($item['description'] ?? '') !== $existingPreview->description) $needsUpdate = true;
+                    if (($item['video_url'] ?? '') !== $existingPreview->video_url) $needsUpdate = true;
+                    if (($item['sort_order'] ?? 0) != $existingPreview->sort_order) $needsUpdate = true;
+                    if (!empty($item['video']) && $item['video'] instanceof UploadedFile) $needsUpdate = true;
+                }
+
+                if ($needsUpdate) {
+                    $course->previews()->where('id', $previewId)->update($attributes);
+                }
+                $keptIds[] = $previewId;
             } else {
-                // إذا كان فيديو جديد تماماً
                 $newPreview = $course->previews()->create($attributes);
                 $keptIds[] = $newPreview->id;
             }
@@ -305,6 +374,86 @@ class AdminCourseService
             }
             $oldPreview->delete();
         }
+    }
+
+    /**
+     * Check if the previews contain real data
+     */
+    private function hasRealPreviews(array $previews): bool
+    {
+        foreach ($previews as $item) {
+            $hasTitle = !empty(trim($item['title'] ?? ''));
+            $hasVideo = (!empty($item['video']) && $item['video'] instanceof UploadedFile);
+            $hasVideoUrl = !empty($item['video_url'] ?? '');
+
+            if ($hasTitle || $hasVideo || $hasVideoUrl) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Delete all previews associated with the course
+     */
+    private function deleteAllPreviews(Course $course, array $existingVideoUrls): void
+    {
+        \Log::info('DELETE ALL PREVIEWS', [
+            'course_id' => $course->id,
+            'existing_count' => count($existingVideoUrls),
+        ]);
+
+        foreach ($existingVideoUrls as $previewId => $videoUrl) {
+
+            \Log::info('DELETING PREVIEW FILE', [
+                'preview_id' => $previewId,
+                'video_url' => $videoUrl,
+                'exists' => $videoUrl ? Storage::disk('public')->exists($videoUrl) : false,
+            ]);
+
+            // Delete the physical file if it was uploaded
+            if ($videoUrl && Storage::disk('public')->exists($videoUrl)) {
+                Storage::disk('public')->delete($videoUrl);
+            }
+        }
+
+        $deleted = $course->previews()->forceDelete();
+        \Log::info('DELETED FROM DB', ['count' => $deleted]);
+        // Delete all records from the database
+        // $course->previews()->delete();
+    }
+
+    /**
+     * Convert duration from format "3:04" or "1:30:45" to seconds
+     */
+    private function parseDuration($duration): ?int
+    {
+        if ($duration === null || $duration === '') {
+            return null;
+        }
+
+        // If it's a number
+        if (is_numeric($duration)) {
+            return (int) $duration;
+        }
+
+        // If it's in format "MM:SS" or "HH:MM:SS"
+        if (is_string($duration) && str_contains($duration, ':')) {
+            $parts = explode(':', $duration);
+            $seconds = 0;
+
+            if (count($parts) === 2) {
+                // MM:SS
+                $seconds = ((int) $parts[0] * 60) + (int) $parts[1];
+            } elseif (count($parts) === 3) {
+                // HH:MM:SS
+                $seconds = ((int) $parts[0] * 3600) + ((int) $parts[1] * 60) + (int) $parts[2];
+            }
+
+            return $seconds > 0 ? $seconds : null;
+        }
+
+        return null;
     }
 
     /**
