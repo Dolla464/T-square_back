@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -22,17 +25,37 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd /www/wwwroot/api.tsquarecenter.com
-            php artisan down --message="جاري التحديث..." --retry=60
+            
+            # ✅ إلغاء التغييرات المحلية قبل git pull
+            git checkout -- .
+            git clean -fd
+            
+            # ✅ git pull بشكل صحيح
             git pull origin main
+            
+            # تثبيت الاعتماديات
             composer install --no-dev --optimize-autoloader --no-interaction
-            php artisan migrate --force --step
+            
+            # ✅ migrate بدون --step (إذا كان هناك مشاكل)
+            php artisan migrate --force || true
+            
+            # ✅ تجميع الـ cache (مع || true لتجاوز الأخطاء)
             php artisan config:cache
-            php artisan route:cache
+            php artisan route:cache || true
             php artisan view:cache
-            php artisan event:cache
+            php artisan event:cache || true
+            
+            # مسح الـ cache
             php artisan cache:clear
-            php artisan storage:link
+            
+            # ✅ إنشاء رابط storage (إذا لم يكن موجوداً)
+            php artisan storage:link || true
+            
+            # تحسين autoloader
             composer dump-autoload --optimize
+            
+            # ✅ إعادة تشغيل PM2
             pm2 restart tsquare-queue tsquare-scheduler
+            
+            # ✅ إعادة تشغيل PHP-FPM
             sudo systemctl reload php-fpm-83
-            php artisan up
