@@ -15,7 +15,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy to Server
-        id: deploy
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -23,39 +22,17 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd /www/wwwroot/api.tsquarecenter.com
-            
-            # وضع الصيانة
-            php artisan down --message="جاري التحديث... سنعود قريباً" --retry=60
-            
-            # جلب التغييرات
+            php artisan down --message="جاري التحديث..." --retry=60
             git pull origin main
-            
-            # تثبيت الاعتماديات
             composer install --no-dev --optimize-autoloader --no-interaction
-            
-            # تطبيق migrations
             php artisan migrate --force --step
-            
-            # تجميع الـ cache
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
             php artisan event:cache
-            
-            # مسح الـ cache القديم
             php artisan cache:clear
-            
-            # إنشاء رابط storage
             php artisan storage:link
-            
-            # تحسين autoloader
             composer dump-autoload --optimize
-            
-            # إعادة تشغيل PM2
             pm2 restart tsquare-queue tsquare-scheduler
-            
-            # إعادة تشغيل PHP-FPM
             sudo systemctl reload php-fpm-83
-            
-            # إزالة وضع الصيانة
             php artisan up
