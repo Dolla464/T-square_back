@@ -185,6 +185,16 @@ class AdminCourseService
             unset($data['cover_image']);
         }
 
+        $status = $data['status'] ?? $course->status;
+
+        if ($status === 'published') {
+            $data['published_at'] = (!empty($data['published_at']))
+                ? Carbon::parse($data['published_at'])->toDateTimeString()
+                : now();
+        } else {
+            $data['published_at'] = null;
+        }
+
         // 2. استخراج البيانات قبل الـ Unset لضمان عدم ضياعها
         // أضفنا (array) لضمان تحويلها لمصفوفة حتى لو وصلت بشكل غريب
         $tags = isset($data['tags']) ? (array) $data['tags'] : false;
@@ -333,9 +343,10 @@ class AdminCourseService
             }
 
             $attributes = array_filter([
-                'title'       => $item['title'] ?? 'Preview ' . ($index + 1),
+                'title' => $item['title'] ?? 'Preview ' . ($index + 1),
                 'description' => $item['description'] ?? null,
-                'sort_order'  => $item['sort_order'] ?? $index,
+                'sort_order' => $item['sort_order'] ?? $index,
+                'duration_seconds' => $item['duration_seconds'] ?? null,
             ], fn($v) => $v !== null);
 
             $attributes = array_merge($attributes, $videoPayload);
@@ -364,11 +375,11 @@ class AdminCourseService
             }
         }
 
-        // 🔥 الخطوة السحرية: حذف أي سجل في الداتابيز ليس ضمن الـ keptIds 🔥
+        // Delete any record in the database that is not in the keptIds
         $toDelete = $course->previews()->whereNotIn('id', $keptIds)->get();
 
         foreach ($toDelete as $oldPreview) {
-            // حذف الملف الفيزيائي إذا كان مرفوعاً
+            // Delete the physical file if it was uploaded
             if ($oldPreview->video_provider === 'upload' && $oldPreview->video_url) {
                 Storage::disk('public')->delete($oldPreview->video_url);
             }
@@ -481,7 +492,11 @@ class AdminCourseService
     public function getTrashedCourses($perPage = 10)
     {
         $query = Course::onlyTrashed()
-            ->with(['category', 'instructor'])
+            ->select(['id', 'title', 'slug', 'status', 'category_id', 'instructor_id', 'deleted_at'])
+            ->with([
+                'category:id,name,slug,parent_id',
+                'instructor:id,full_name',
+            ])
             ->latest('deleted_at');
 
         // Filter by the selected period from the frontend
@@ -534,7 +549,11 @@ class AdminCourseService
         }
 
         // 2. You can also delete preview videos here
-        $course->previews()->each(fn($p) => Storage::disk('public')->delete($p->video_url));
+        $course->previews()->each(function ($p) {
+            if ($p->video_provider === 'upload' && $p->video_url && !filter_var($p->video_url, FILTER_VALIDATE_URL)) {
+                Storage::disk('public')->delete($p->video_url);
+            }
+        });
 
         return $course->forceDelete();
     }

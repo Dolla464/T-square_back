@@ -74,4 +74,14 @@ class NotificationController extends Controller
 
         return $this->successResponse(null, 'All notifications marked as read');
     }
+
+    /**
+     * عدد الإشعارات غير المقروءة
+     */
+    public function unreadCount(Request $request): JsonResponse
+    {
+        $count = $this->notificationService->getUnreadCount($request->user());
+
+        return $this->successResponse(['unread_count' => $count], 'Unread count retrieved successfully');
+    }
 }

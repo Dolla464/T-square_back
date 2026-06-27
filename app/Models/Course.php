@@ -38,7 +38,6 @@ class Course extends Model
         'instructor_id',
         'published_at',
         'avg_rating',
-        'published_at',
         'status',
         'total_reviews',
         'total_students',
@@ -72,6 +71,15 @@ class Course extends Model
                 // The max function ensures the price is never less than zero if the discount is greater than the base price
                 $course->price = max(0, $priceBefore - $discount);
             }
+        });
+    }
+
+    protected function price(): Attribute
+    {
+        return Attribute::get(function ($value) {
+            if ($value !== null) return $value;
+            if ($this->is_free) return 0;
+            return max(0, ($this->price_before ?? 0) - ($this->discount_price ?? 0));
         });
     }
 

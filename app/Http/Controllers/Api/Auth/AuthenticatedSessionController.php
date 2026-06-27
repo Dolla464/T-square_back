@@ -20,7 +20,7 @@ class AuthenticatedSessionController extends Controller
         $user = $request->user();
         $user->update(['last_login_at' => now()]);
 
-        $token = $request->user()->createToken('T-Square-Access-Token')->plainTextToken;
+        $token = $user->createToken('T-Square-Access-Token')->plainTextToken;
 
         // $request->session()->regenerate();
 
@@ -38,15 +38,17 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): JsonResponse
     {
-        // نتأكد إن فيه يوزر عامل Login بالتوكن فعلاً
-        if ($request->user()) {
-            // مسح التوكن الحالي
-            $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
 
-            return $this->successResponse(null, 'Logged out successfully');
+        if (! $user) {
+            return $this->errorResponse('User not found or already logged out', 401);
         }
 
-        // لو مفيش يوزر (يعني الـ Token غلط أو مش مبعوت)
-        return $this->errorResponse('User not found or already logged out', 401);
+        // Check if there is a token before deleting it and delete it
+        if ($user->currentAccessToken()) {
+            $user->currentAccessToken()->delete();
+        }
+
+        return $this->successResponse(null, 'Logged out successfully');
     }
 }

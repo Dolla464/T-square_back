@@ -517,11 +517,11 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Course> $courses
  * @property-read int|null $courses_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Enrollment> $enrollmentsViaCoursesRelation
+ * @property-read int|null $enrollments_via_courses_relation_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\LearningGroup> $learningGroups
  * @property-read int|null $learning_groups_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\CourseReview> $reviews
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Student> $students
- * @property-read int|null $students_count
  * @property-read \App\Models\User|null $user
  * @method static \Database\Factories\InstructorFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Instructor newModelQuery()
@@ -770,7 +770,7 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Course> $courses
  * @property-read int|null $courses_count
- * @property-read \Illuminate\Database\Eloquent\Collection<int, Tag> $solutions
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Solution> $solutions
  * @property-read int|null $solutions_count
  * @method static \Database\Factories\TagFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Tag newModelQuery()

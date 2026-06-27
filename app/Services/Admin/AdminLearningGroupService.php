@@ -2,8 +2,12 @@
 
 namespace App\Services\Admin;
 
+use App\Models\AttendanceRecord;
+use App\Models\AttendanceSession;
+use App\Models\Course;
 use App\Models\LearningGroup;
 use App\Http\Resources\Admin\LearningGroup\AdminLearningGroupResource;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -14,15 +18,12 @@ class AdminLearningGroupService
      */
     public function getAllGroups($perPage = 10, ?string $search = null): LengthAwarePaginator
     {
-        $query = LearningGroup::with(['course:id,title', 'instructor:id,full_name'])
+        $query = LearningGroup::with(['course:id,title', 'instructor:id,full_name', 'schedules'])
             ->withCount('students');
 
-        // Apply the search filter if the value is present
         if (!empty($search)) {
             $query->where(function ($q) use ($search) {
-                // 1. Search in the group name itself
                 $q->where('group_name', 'LIKE', "%{$search}%")
-                    // 2. Search in the course name related to the group
                     ->orWhereHas('course', function ($courseQuery) use ($search) {
                         $courseQuery->where('title', 'LIKE', "%{$search}%");
                     });
@@ -31,7 +32,6 @@ class AdminLearningGroupService
 
         $groups = $query->latest()->paginate($perPage);
 
-        // Convert the internal Collection to the Resource
         $groups->getCollection()->transform(function ($group) {
             return new AdminLearningGroupResource($group);
         });
@@ -46,22 +46,43 @@ class AdminLearningGroupService
     {
         return LearningGroup::select('id', 'group_name')->get()->map(function ($group) {
             return [
-                'id' => $group->id,
-                'name' => $group->group_name
+                'id'   => $group->id,
+                'name' => $group->group_name,
             ];
         });
     }
 
     /**
-     * Create a new group and load relationships
+     * Create a new group with schedules and auto-generate attendance sessions
      */
     public function createGroup(array $data): AdminLearningGroupResource
     {
-        $group = LearningGroup::create($data);
+        return DB::transaction(function () use ($data) {
+            $course    = Course::findOrFail($data['course_id']);
+            $startDate = Carbon::parse($data['start_date']);
+            $endDate   = $startDate->copy()->addWeeks($course->duration_weeks);
 
-        $group->load(['course:id,title', 'instructor:id,full_name']);
+            $group = LearningGroup::create([
+                'group_name'    => $data['group_name'],
+                'course_id'     => $data['course_id'],
+                'instructor_id' => $data['instructor_id'],
+                'start_date'    => $startDate,
+                'end_date'      => $endDate,
+                'status'        => $data['status'] ?? 'active',
+            ]);
 
-        return new AdminLearningGroupResource($group);
+            if (!empty($data['schedules'])) {
+                foreach ($data['schedules'] as $schedule) {
+                    $group->schedules()->create($schedule);
+                }
+            }
+
+            $this->generateAttendanceSessions($group);
+
+            $group->load(['course:id,title', 'instructor:id,full_name', 'schedules']);
+
+            return new AdminLearningGroupResource($group);
+        });
     }
 
     /**
@@ -69,11 +90,9 @@ class AdminLearningGroupService
      */
     public function getGroupDetails(LearningGroup $group): AdminLearningGroupResource
     {
-        // 1. Load the basic relationships and counts
-        $group->load(['course:id,title', 'instructor:id,full_name']);
+        $group->load(['course:id,title', 'instructor:id,full_name', 'schedules']);
         $group->loadCount('students');
 
-        // 2. Get the students currently assigned to this group based on the enrollments
         $students = DB::table('enrollments')
             ->join('students', 'enrollments.student_id', '=', 'students.id')
             ->join('users', 'students.user_id', '=', 'users.id')
@@ -90,83 +109,84 @@ class AdminLearningGroupService
             ->latest('enrollments.updated_at')
             ->get();
 
-        // 3. Attach the students to the object as a dynamic relationship so the Resource can read it
         $group->setRelation('assigned_students', $students);
 
         return new AdminLearningGroupResource($group);
     }
 
     /**
-     * Update group details and force sync students securely
+     * Update group details, sync schedules, and regenerate attendance sessions
      */
     public function updateGroup(LearningGroup $group, array $data): AdminLearningGroupResource
     {
         return DB::transaction(function () use ($group, $data) {
-            // 1. Update the basic data for the group
-            $group->update([
+            $updateData = [
                 'group_name'    => $data['group_name'],
                 'course_id'     => $data['course_id'],
                 'instructor_id' => $data['instructor_id'],
-            ]);
+            ];
 
-            // 2. Extract the IDs and ensure they are converted to explicit numbers (Integers) to break the issue
-            $incomingStudentIds = isset($data['student_ids']) ? (array)$data['student_ids'] : [];
-            $incomingStudentIds = array_map('intval', array_filter($incomingStudentIds)); 
-            
+            if (isset($data['start_date'])) {
+                $course                  = Course::findOrFail($data['course_id']);
+                $startDate               = Carbon::parse($data['start_date']);
+                $updateData['start_date'] = $startDate;
+                $updateData['end_date']   = $startDate->copy()->addWeeks($course->duration_weeks);
+            }
+
+            if (isset($data['status'])) {
+                $updateData['status'] = $data['status'];
+            }
+
+            $group->update($updateData);
+
+            if (isset($data['schedules'])) {
+                // Deleting schedules cascades to attendance_sessions via DB constraint
+                $group->schedules()->delete();
+
+                foreach ($data['schedules'] as $schedule) {
+                    $group->schedules()->create($schedule);
+                }
+
+                $group->attendanceSessions()->delete();
+                $this->generateAttendanceSessions($group);
+            }
+
+            // ── Student sync (existing logic) ─────────────────────────────────
+            $incomingStudentIds = isset($data['student_ids'])
+                ? array_map('intval', array_filter((array) $data['student_ids']))
+                : [];
+
             $studentStatuses = $data['student_statuses'] ?? [];
 
-            // 3. Detach the students who were deleted from the frontend (set the group_id to null)
             DB::table('enrollments')
                 ->where('group_id', $group->id)
                 ->whereNotIn('student_id', $incomingStudentIds)
-                ->update([
-                    'group_id'   => null,
-                    'updated_at' => now()
-                ]);
+                ->update(['group_id' => null, 'updated_at' => now()]);
 
-            // 4. Link the current and new students to the group explicitly and directly.
-            //    updateOrInsert is used instead of a bare update() so that edge-case
-            //    enrollment rows that don't yet exist are created rather than silently
-            //    skipped (0 affected rows).
-            if (!empty($incomingStudentIds)) {
-                foreach ($incomingStudentIds as $studentId) {
-                    // Resolve completion status — check both int and string key because
-                    // JSON always serialises object keys as strings.
-                    $isCompleted = false;
-                    if (isset($studentStatuses[$studentId])) {
-                        $isCompleted = (bool) $studentStatuses[$studentId];
-                    } elseif (isset($studentStatuses[(string) $studentId])) {
-                        $isCompleted = (bool) $studentStatuses[(string) $studentId];
-                    }
+            foreach ($incomingStudentIds as $studentId) {
+                $isCompleted = (bool) ($studentStatuses[$studentId]
+                    ?? $studentStatuses[(string) $studentId]
+                    ?? false);
 
-                    // updateOrInsert(conditions, values): updates the row if it exists,
-                    // inserts it otherwise — never silently returns 0 affected rows.
-                    DB::table('enrollments')->updateOrInsert(
-                        [
-                            'student_id' => $studentId,
-                            'course_id'  => $group->course_id,
-                        ],
-                        [
-                            'group_id'     => $group->id,
-                            'is_completed' => $isCompleted,
-                            'completed_at' => $isCompleted ? now() : null,
-                            'updated_at'   => now(),
-                        ]
-                    );
-                }
+                DB::table('enrollments')->updateOrInsert(
+                    ['student_id' => $studentId, 'course_id' => $group->course_id],
+                    [
+                        'group_id'     => $group->id,
+                        'is_completed' => $isCompleted,
+                        'completed_at' => $isCompleted ? now() : null,
+                        'updated_at'   => now(),
+                    ]
+                );
             }
 
-            // 5. Update the actual count directly in the learning_groups table based on what was actually recorded
             $actualCount = DB::table('enrollments')->where('group_id', $group->id)->count();
-            
             DB::table('learning_groups')
                 ->where('id', $group->id)
                 ->update(['enrolled_students' => $actualCount]);
 
-            // Reload the relationships for the current model before exiting the Transaction
             $group->refresh();
-            $group->load(['course:id,title', 'instructor:id,full_name', 'students'])->loadCount('students');
-            
+            $group->load(['course:id,title', 'instructor:id,full_name', 'schedules', 'attendanceSessions']);
+
             return new AdminLearningGroupResource($group);
         });
     }
@@ -180,7 +200,41 @@ class AdminLearningGroupService
     }
 
     /**
-     * Get the unassigned students for a specific course (Fixed for Admin & Paid students)
+     * Generate attendance sessions for every schedule day between start and end date
+     */
+    public function generateAttendanceSessions(LearningGroup $group): void
+    {
+        $group->refresh();
+        $group->load('schedules');
+
+        $schedules   = $group->schedules;
+        $currentDate = $group->start_date->copy();
+        $endDate     = $group->end_date->copy();
+
+        // Map our custom day numbering (0=Sat … 6=Fri) to Carbon's dayOfWeek (0=Sun … 6=Sat)
+        // Our: 0=Sat,1=Sun,2=Mon,3=Tue,4=Wed,5=Thu,6=Fri
+        // Carbon: 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+        $dayMap = [0 => 6, 1 => 0, 2 => 1, 3 => 2, 4 => 3, 5 => 4, 6 => 5];
+
+        while ($currentDate->lte($endDate)) {
+            foreach ($schedules as $schedule) {
+                $carbonDay = $dayMap[$schedule->day_of_week] ?? null;
+
+                if ($carbonDay !== null && $currentDate->dayOfWeek === $carbonDay) {
+                    AttendanceSession::create([
+                        'learning_group_id' => $group->id,
+                        'schedule_id'       => $schedule->id,
+                        'session_date'      => $currentDate->copy(),
+                        'status'            => 'upcoming',
+                    ]);
+                }
+            }
+            $currentDate->addDay();
+        }
+    }
+
+    /**
+     * Get the unassigned students for a specific course
      */
     public function getUnassignedCourseStudents(int $groupId): array
     {
@@ -193,11 +247,9 @@ class AdminLearningGroupService
         $students = DB::table('enrollments')
             ->join('students', 'enrollments.student_id', '=', 'students.id')
             ->join('users', 'students.user_id', '=', 'users.id')
-            // 1. Convert the Join to leftJoin to ensure no students are dropped who don't have an orders system (orders)
             ->leftJoin('orders', 'enrollments.order_id', '=', 'orders.id')
             ->where('enrollments.course_id', $group->course_id)
-            ->whereNull('enrollments.group_id') // Must not be enrolled in any group currently
-            // 2. Modify the financial condition: either the order is completed, or the student is added manually by the admin (order_id is null)
+            ->whereNull('enrollments.group_id')
             ->where(function ($query) {
                 $query->where('orders.status', 'completed')
                     ->orWhereNull('enrollments.order_id');
@@ -212,11 +264,7 @@ class AdminLearningGroupService
             ->get()
             ->toArray();
 
-        return [
-            'success' => true,
-            'status' => 200,
-            'data' => $students
-        ];
+        return ['success' => true, 'status' => 200, 'data' => $students];
     }
 
     /**
@@ -239,10 +287,7 @@ class AdminLearningGroupService
             if ($student->order_status === 'completed') {
                 $paidStudentIds[] = $student->id;
             } else {
-                $unpaidStudents[] = [
-                    'id' => $student->id,
-                    'full_name' => $student->full_name
-                ];
+                $unpaidStudents[] = ['id' => $student->id, 'full_name' => $student->full_name];
             }
         }
 
@@ -250,22 +295,19 @@ class AdminLearningGroupService
             DB::table('enrollments')
                 ->where('course_id', $courseId)
                 ->whereIn('student_id', $paidStudentIds)
-                ->update([
-                    'group_id' => $groupId,
-                    'updated_at' => now()
-                ]);
+                ->update(['group_id' => $groupId, 'updated_at' => now()]);
 
             DB::table('learning_groups')
                 ->where('id', $groupId)
                 ->update([
-                    'enrolled_students' => DB::table('enrollments')->where('group_id', $groupId)->count()
+                    'enrolled_students' => DB::table('enrollments')->where('group_id', $groupId)->count(),
                 ]);
         }
 
         return [
-            'success' => true,
+            'success'        => true,
             'assigned_count' => count($paidStudentIds),
-            'unpaid_students' => $unpaidStudents
+            'unpaid_students' => $unpaidStudents,
         ];
     }
 
@@ -291,9 +333,6 @@ class AdminLearningGroupService
                 'updated_at'   => now(),
             ]);
 
-        return [
-            'success'         => true,
-            'completed_count' => $completedCount,
-        ];
+        return ['success' => true, 'completed_count' => $completedCount];
     }
 }

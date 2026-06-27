@@ -9,14 +9,24 @@ class NotificationResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $data = $this->data;
+
         return [
-            'id' => $this->id, // الـ ID ده هو اللي الفرونت هيبعتهولنا عشان نعمل Mark as Read
-            'title' => $this->data['title'] ?? '',
-            'message' => $this->data['message'] ?? '',
-            'url' => $this->data['url'] ?? '',
-            'icon' => $this->data['icon'] ?? '',
-            'is_read' => $this->read_at !== null,
-            'created_at' => $this->created_at->diffForHumans(), // هترجع "منذ ساعتين" مثلاً
+            'id'           => $this->id,
+            'type'         => $data['type'] ?? null,
+            'title'        => $data['title'] ?? '',
+            'message'      => $data['message'] ?? '',
+            'session_id'   => $data['session_id'] ?? null,
+            'group_name'   => $data['group_name'] ?? null,
+            'course_title' => $data['course_title'] ?? null,
+            'qr_code'      => $data['qr_code'] ?? null,
+            'start_time'   => $data['start_time'] ?? null,
+            'room'         => $data['room'] ?? null,
+            'action_url'   => $data['action_url'] ?? null,
+            'is_read'      => $this->read_at !== null,
+            'read_at'      => $this->read_at?->toISOString(),
+            'created_at'   => $this->created_at->toISOString(),
+            'created_at_human' => $this->created_at->diffForHumans(),
         ];
     }
 }
