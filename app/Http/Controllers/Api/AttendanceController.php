@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\StudentScanned;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
@@ -303,6 +304,9 @@ class AttendanceController extends Controller
             ]
         );
 
+        $record->load(['session.learningGroup', 'student.user']);
+        broadcast(new StudentScanned($record))->toOthers();
+
         return $this->successResponse([
             'record_id'  => $record->id,
             'session_id' => $record->session_id,
@@ -348,6 +352,51 @@ class AttendanceController extends Controller
         ], 'QR code retrieved successfully');
     }
 
+    /**
+     * GET /api/instructor/attendance/sessions/{session}/records
+     * Returns attendance records created after the given `since` timestamp (ms).
+     * Used for polling-based real-time updates on the instructor dashboard.
+     */
+    public function getSessionRecords(Request $request, AttendanceSession $session): JsonResponse
+    {
+        $instructor = $request->user()->instructor;
+
+        if (!$instructor) {
+            return $this->errorResponse('Instructor profile not found.', 404);
+        }
+
+        if ($session->learningGroup->instructor_id !== $instructor->id) {
+            return $this->errorResponse('Access denied. You do not own this session.', 403);
+        }
+
+        $query = AttendanceRecord::where('session_id', $session->id)
+            ->with('student')
+            ->orderBy('marked_at', 'desc')
+            ->limit(20);
+
+        $since = $request->query('since');
+        if ($since !== null) {
+            $sinceDate = Carbon::createFromTimestamp((int) $since / 1000);
+            $query->where('marked_at', '>', $sinceDate);
+        }
+
+        $records = $query->get()->map(function ($record) {
+            $student = $record->student;
+
+            return [
+                'record_id'    => $record->id,
+                'student_id'   => $record->student_id,
+                'student_name' => $student?->full_name ?? $student?->user?->name ?? 'Unknown',
+                'session_id'   => $record->session_id,
+                'status'       => $record->status,
+                'marked_at'    => $record->marked_at?->toDateTimeString(),
+                'marked_by'    => $record->marked_by,
+            ];
+        });
+
+        return $this->successResponse($records, 'Records retrieved successfully');
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private function processStudentQr(string $qrCode): JsonResponse
@@ -375,6 +424,10 @@ class AttendanceController extends Controller
             'marked_by' => 'student_qr',
             'marked_at' => Carbon::now(),
         ]);
+
+        // Broadcast real-time update to the session's instructor
+        $record->load(['student', 'session.learningGroup']);
+        broadcast(new StudentScanned($record))->toOthers();
 
         return $this->successResponse([
             'student_id' => $record->student_id,
