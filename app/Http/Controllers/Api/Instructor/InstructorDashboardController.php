@@ -9,6 +9,9 @@ use App\Services\Instructor\InstructorDashboardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Instructor: Dashboard
+ */
 class InstructorDashboardController extends Controller
 {
     public function __construct(private InstructorDashboardService $dashboardService)

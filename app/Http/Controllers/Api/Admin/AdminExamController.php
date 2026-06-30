@@ -11,6 +11,9 @@ use App\Models\Exam;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
+/**
+ * @tags Admin: Exams
+ */
 class AdminExamController extends Controller
 {
     protected AdminExamService $examService;

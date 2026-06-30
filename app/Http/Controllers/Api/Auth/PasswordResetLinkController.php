@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * @tags Authentication
+ */
 class PasswordResetLinkController extends Controller
 {
     /**

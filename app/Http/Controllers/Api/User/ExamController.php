@@ -12,6 +12,9 @@ use App\Services\User\ExamService;
 use Illuminate\Http\Request;
 use App\Traits\ApiResponseTrait;
 
+/**
+ * @tags Exams
+ */
 class ExamController extends Controller
 {
     use ApiResponseTrait;

@@ -10,6 +10,9 @@ use App\Services\Admin\AdminSettingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Admin: Media
+ */
 class AdminDiscoveryMediaController extends Controller
 {
     protected AdminSettingService $settingService;

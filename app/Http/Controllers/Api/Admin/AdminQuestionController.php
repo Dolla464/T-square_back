@@ -10,6 +10,9 @@ use App\Services\Admin\AdminQuestionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
+/**
+ * @tags Admin: Questions
+ */
 class AdminQuestionController extends Controller
 {
     protected AdminQuestionService $questionService;

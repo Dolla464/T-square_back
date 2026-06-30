@@ -24,12 +24,41 @@ return [
         /*
          * API version.
          */
-        'version' => env('API_VERSION', '0.0.1'),
+        'version' => env('API_VERSION', '1.0.0'),
 
         /*
          * Description rendered on the home page of the API documentation (`/docs/api`).
          */
-        'description' => '',
+        'description' => <<<'MD'
+# T-Square LMS API
+
+A comprehensive Learning Management System (LMS) REST API built with Laravel 13 + Sanctum.
+
+## Authentication
+All protected endpoints require a **Bearer token** obtained from `POST /api/login`.
+Include it in the `Authorization` header:
+```
+Authorization: Bearer {token}
+```
+
+## Roles
+| Role | Description |
+|---|---|
+| `admin` | Full system access |
+| `instructor` | Manage own groups, attendance, schedule |
+| `student` | Enroll in courses, take exams, view certificates |
+| `receptionist` | (Coming soon) |
+
+## Response Format
+All endpoints return JSON in this shape:
+```json
+{
+  "status": "success | error",
+  "message": "Human readable message",
+  "data": { ... }
+}
+```
+MD,
     ],
 
     /*
@@ -39,12 +68,12 @@ return [
         /*
          * Define the title of the documentation's website. App name is used when this config is `null`.
          */
-        'title' => null,
+        'title' => 'T-Square LMS API Docs',
 
         /*
          * Define the theme of the documentation. Available options are `light`, `dark`, and `system`.
          */
-        'theme' => 'light',
+        'theme' => 'dark',
 
         /*
          * Hide the `Try It` feature. Enabled by default.
@@ -129,7 +158,7 @@ return [
 
     'middleware' => [
         'web',
-        RestrictedDocsAccess::class,
+        // RestrictedDocsAccess::class, // Remove to allow public access to docs
     ],
 
     'extensions' => [],

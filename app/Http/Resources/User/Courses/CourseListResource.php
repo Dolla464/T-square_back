@@ -23,6 +23,7 @@ class CourseListResource extends JsonResource
             'short_description' => $this->short_description,
             'duration_hours' => $this->duration_hours,
             'duration_weeks' => $this->duration_weeks,
+            'is_free' => (bool) $this->is_free,
             'price' => [
                 'original' => (int) $this->price_before,
                 'discount' => (int) $this->discount_price,

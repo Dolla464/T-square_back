@@ -36,6 +36,13 @@ class AdminPaymentResource extends JsonResource
                 continue;
             }
 
+            if (in_array($field, ['created_at', 'status_changed_at'], true)) {
+                $value = $this->resource->{$field};
+                $data[$field] = $value?->toISOString();
+
+                continue;
+            }
+
             // dot-notation fields like student.full_name, student.user.email
             $data[$field] = data_get($this->resource, $field);
         }

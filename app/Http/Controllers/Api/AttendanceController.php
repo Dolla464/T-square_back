@@ -6,14 +6,22 @@ use App\Events\StudentScanned;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
+use App\Services\Attendance\AttendanceSessionService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
+/**
+ * @tags Attendance
+ */
 class AttendanceController extends Controller
 {
+    public function __construct(
+        private AttendanceSessionService $attendanceSessionService
+    ) {}
+
     /**
      * POST /api/attendance/scan
      * For hardware QR-scanner devices: validate the QR code and record attendance.
@@ -214,53 +222,10 @@ class AttendanceController extends Controller
             return $this->errorResponse('Access denied. You do not own this session.', 403);
         }
 
-        $session->load([
-            'schedule',
-            'learningGroup:id,group_name,course_id,instructor_id',
-            'learningGroup.course:id,title',
-            'attendanceRecords',
-        ]);
-
-        // Get all students enrolled in the group
-        $students = $session->learningGroup->students()->get();
-
-        // Map students with their attendance record
-        $studentList = $students->map(function ($student) use ($session) {
-            $record = $session->attendanceRecords
-                ->where('student_id', $student->id)
-                ->first();
-
-            return [
-                'student_id' => $student->id,
-                'full_name'  => $student->full_name ?? $student->user?->name ?? 'Unknown',
-                'email'      => $student->email ?? $student->user?->email ?? null,
-                'avatar'     => $student->avatar ?? $student->user?->avatar ?? null,
-                'status'     => $record?->status ?? 'not_marked',
-                'marked_at'  => $record?->marked_at?->toDateTimeString(),
-                'marked_by'  => $record?->marked_by,
-                'notes'      => $record?->notes,
-            ];
-        });
-
-        $presentCount = $studentList->whereIn('status', ['present', 'late'])->count();
-
-        return $this->successResponse([
-            'session_id'   => $session->id,
-            'group_name'   => $session->learningGroup->group_name,
-            'course_title' => $session->learningGroup->course->title ?? null,
-            'session_date' => $session->session_date->format('Y-m-d'),
-            'start_time'   => $session->schedule->start_time->format('H:i'),
-            'end_time'     => $session->schedule->end_time->format('H:i'),
-            'room'         => $session->schedule->room,
-            'status'       => $session->status,
-            'qr_code'      => $session->qr_code,
-            'attendance'   => [
-                'total'   => $studentList->count(),
-                'present' => $presentCount,
-                'absent'  => $studentList->count() - $presentCount,
-            ],
-            'students'     => $studentList->values(),
-        ], 'Session details retrieved successfully');
+        return $this->successResponse(
+            $this->attendanceSessionService->getSessionDetails($session),
+            'Session details retrieved successfully'
+        );
     }
 
     /**

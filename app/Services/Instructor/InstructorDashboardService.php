@@ -6,10 +6,15 @@ use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\Enrollment;
 use App\Models\LearningGroup;
+use App\Services\Attendance\GroupAttendanceSummaryService;
 use Carbon\Carbon;
 
 class InstructorDashboardService
 {
+    public function __construct(
+        private GroupAttendanceSummaryService $groupAttendanceSummaryService
+    ) {}
+
     // ── Overview Stats ────────────────────────────────────────────────────────
 
     public function getStats(int $instructorId): array
@@ -127,54 +132,7 @@ class InstructorDashboardService
 
     public function getGroupDetails(LearningGroup $group): array
     {
-        $group->load(['course:id,title', 'attendanceSessions']);
-
-        $totalSessions     = $group->attendanceSessions->count();
-        $completedSessions = $group->attendanceSessions->where('status', 'completed')->count();
-        $sessionIds        = $group->attendanceSessions->pluck('id');
-
-        $completionPercentage = $totalSessions > 0
-            ? round(($completedSessions / $totalSessions) * 100, 1)
-            : 0;
-
-        $students     = $group->students()->with('user:id,email')->get();
-        $attendanceCounts = AttendanceRecord::whereIn('session_id', $sessionIds)
-            ->whereIn('status', ['present', 'late'])
-            ->selectRaw('student_id, COUNT(*) as count')
-            ->groupBy('student_id')
-            ->pluck('count', 'student_id');
-        $studentsData = $students->map(function ($student) use ($attendanceCounts, $totalSessions) {
-            $attendedSessions = $attendanceCounts[$student->id] ?? 0;
-
-            $attendancePercentage = $totalSessions > 0
-                ? round(($attendedSessions / $totalSessions) * 100, 1)
-                : 0;
-
-            return [
-                'student_id'           => $student->id,
-                'full_name'            => $student->full_name ?? $student->user?->name ?? 'Unknown',
-                'email'                => $student->user?->email ?? null,
-                'avatar'               => $student->avatar ?? null,
-                'attended_sessions'    => $attendedSessions,
-                'attendance_percentage' => $attendancePercentage,
-            ];
-        });
-
-        return [
-            'id'             => $group->id,
-            'group_name'     => $group->group_name,
-            'course_title'   => $group->course->title ?? null,
-            'start_date'     => $group->start_date?->format('Y-m-d'),
-            'end_date'       => $group->end_date?->format('Y-m-d'),
-            'status'         => $group->status,
-            'students_count' => $students->count(),
-            'completion'     => [
-                'percentage'          => $completionPercentage,
-                'completed_sessions'  => $completedSessions,
-                'total_sessions'      => $totalSessions,
-            ],
-            'students' => $studentsData->values()->all(),
-        ];
+        return $this->groupAttendanceSummaryService->getGroupDetails($group);
     }
 
     // ── Schedule ──────────────────────────────────────────────────────────────

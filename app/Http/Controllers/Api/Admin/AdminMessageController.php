@@ -10,6 +10,9 @@ use App\Models\Message;
 use App\Services\Admin\AdminMessageService;
 use Illuminate\Http\JsonResponse;
 
+/**
+ * @tags Admin: Messages
+ */
 class AdminMessageController extends Controller
 {
     public function __construct(

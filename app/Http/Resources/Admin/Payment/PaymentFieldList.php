@@ -31,6 +31,8 @@ class PaymentFieldList
             'notes',
             'billing_email',
             'billing_phone',
+            'created_at',
+            'status_changed_at',
         ]);
     }
 }

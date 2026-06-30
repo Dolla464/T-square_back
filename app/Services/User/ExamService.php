@@ -36,6 +36,10 @@ class ExamService
         // Get the available exams and count the student's attempts for each exam in the same query
         return $student->availableExams()
             ->where('is_active', true)
+            ->whereHas('course.enrollments', function ($q) use ($student) {
+                $q->where('student_id', $student->id)
+                    ->withCompletedOrder();
+            })
             ->with('course')
             ->withCount(['attempts' => function ($q) use ($student) {
                 $q->where('student_id', $student->id);
@@ -62,12 +66,7 @@ class ExamService
         // 2. If no ongoing attempt is found, fetch the exam data and check the entry conditions
         $exam = Exam::findOrFail($examId);
 
-        // Check the enrollment (Enrollment)
-        $isEnrolled = Enrollment::where('student_id', $studentId)
-            ->where('course_id', $exam->course_id)
-            ->exists();
-
-        if (!$isEnrolled) {
+        if (! $this->hasCompletedEnrollment($studentId, $exam->course_id)) {
             abort(403, 'Sorry, you are not enrolled in this course to take the exam.');
         }
 
@@ -256,6 +255,15 @@ class ExamService
                 'enrollment_id' => $enrollmentId,
             ]);
         }
+    }
+
+    private function hasCompletedEnrollment(int $studentId, int $courseId): bool
+    {
+        return Enrollment::query()
+            ->where('student_id', $studentId)
+            ->where('course_id', $courseId)
+            ->withCompletedOrder()
+            ->exists();
     }
 
     public function getStudentResults($studentId, ?int $examId = null)

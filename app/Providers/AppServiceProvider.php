@@ -11,6 +11,9 @@ use App\Observers\CourseReviewObserver;
 use App\Observers\EnrollmentObserve;
 use App\Observers\OrderObserver;
 use Carbon\Carbon;
+use Dedoc\Scramble\Scramble;
+use Dedoc\Scramble\Support\Generator\OpenApi;
+use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\URL;
@@ -65,5 +68,13 @@ class AppServiceProvider extends ServiceProvider
         Course::observe(CourseObserver::class);
         Order::observe(OrderObserver::class);
         CourseReview::observe(CourseReviewObserver::class);
+
+        // Scramble API Documentation
+        Scramble::configure()
+            ->withDocumentTransformers(function (OpenApi $openApi) {
+                $openApi->secure(
+                    SecurityScheme::http('bearer', 'Bearer')
+                );
+            });
     }
 }

@@ -67,6 +67,7 @@ class CourseService
                 'price_before',
                 'discount_price',
                 'price',
+                'is_free',
                 'category_id',
                 'instructor_id',
                 'attendance_type'

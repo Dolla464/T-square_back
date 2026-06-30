@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -53,6 +54,11 @@ class Enrollment extends Model
     {
         return $this->hasOne(Certificate::class, 'student_id', 'student_id')
             ->where('course_id', $this->course_id);
+    }
+
+    public function scopeWithCompletedOrder(Builder $query): Builder
+    {
+        return $query->whereHas('order', fn ($q) => $q->where('status', 'completed'));
     }
 
     /**

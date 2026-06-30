@@ -10,6 +10,9 @@ use App\Services\Admin\AdminStudentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Admin: Students
+ */
 class AdminStudentController extends Controller
 {
     private AdminStudentService $studentService;

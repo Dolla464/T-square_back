@@ -10,6 +10,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
+/**
+ * @tags Notifications
+ */
 class NotificationController extends Controller
 {
     // تعريف الـ Service

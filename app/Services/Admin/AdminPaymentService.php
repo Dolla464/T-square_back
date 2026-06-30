@@ -9,6 +9,7 @@ use App\Models\Order;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class AdminPaymentService
@@ -22,18 +23,26 @@ class AdminPaymentService
             ->with($this->relationsForFields($fields))
             ->latest();
 
-        if (! empty($filters['search'])) {
-            $search = trim((string) $filters['search']);
-            $query->whereHas('student', function (Builder $q) use ($search) {
-                $q->where('full_name', 'like', "%{$search}%");
-            });
-        }
-
-        if (! empty($filters['status'])) {
-            $query->where('status', $filters['status']);
-        }
+        $this->applyFilters($query, $filters);
 
         return $query->paginate($perPage);
+    }
+
+    /**
+     * @return Collection<int, Order>
+     */
+    public function getOrdersForExport(array $filters = []): Collection
+    {
+        $fields = PaymentFieldList::fieldsForDetail();
+
+        $query = Order::query()
+            ->select($this->selectColumns($fields))
+            ->with($this->relationsForFields($fields))
+            ->latest();
+
+        $this->applyFilters($query, $filters);
+
+        return $query->get();
     }
 
     public function show(int $id): Order
@@ -102,6 +111,28 @@ class AdminPaymentService
     public function destroy(int $id): void
     {
         Order::query()->findOrFail($id)->delete();
+    }
+
+    private function applyFilters(Builder $query, array $filters): void
+    {
+        if (! empty($filters['search'])) {
+            $search = trim((string) $filters['search']);
+            $query->whereHas('student', function (Builder $q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%");
+            });
+        }
+
+        if (! empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (! empty($filters['date_from'])) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (! empty($filters['date_to'])) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
     }
 
     /**

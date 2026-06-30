@@ -9,6 +9,9 @@ use App\Services\User\CertificateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @tags Certificates
+ */
 class CertificateController extends Controller
 {
     protected $certificateService;

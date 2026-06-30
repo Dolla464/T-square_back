@@ -7,6 +7,9 @@ use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @tags Public
+ */
 class SettingController extends Controller
 {
     use ApiResponseTrait;

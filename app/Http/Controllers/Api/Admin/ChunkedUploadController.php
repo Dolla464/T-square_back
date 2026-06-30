@@ -9,6 +9,9 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
+/**
+ * @tags Admin: Courses
+ */
 class ChunkedUploadController extends Controller
 {
     /**

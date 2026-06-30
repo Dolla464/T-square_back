@@ -10,6 +10,9 @@ use App\Services\Admin\AdminInstructorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Admin: Instructors
+ */
 class AdminInstructorController extends Controller
 {
     private AdminInstructorService $instructorService;

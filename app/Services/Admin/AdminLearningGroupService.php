@@ -140,15 +140,8 @@ class AdminLearningGroupService
             $group->update($updateData);
 
             if (isset($data['schedules'])) {
-                // Deleting schedules cascades to attendance_sessions via DB constraint
-                $group->schedules()->delete();
-
-                foreach ($data['schedules'] as $schedule) {
-                    $group->schedules()->create($schedule);
-                }
-
-                $group->attendanceSessions()->delete();
-                $this->generateAttendanceSessions($group);
+                $activeSchedules = $this->syncGroupSchedules($group, $data['schedules']);
+                $this->regenerateFutureSessions($group, $activeSchedules);
             }
 
             // ── Student sync (existing logic) ─────────────────────────────────
@@ -200,37 +193,171 @@ class AdminLearningGroupService
     }
 
     /**
-     * Generate attendance sessions for every schedule day between start and end date
+     * Generate attendance sessions for every schedule day between start and end date.
      */
     public function generateAttendanceSessions(LearningGroup $group): void
     {
         $group->refresh();
         $group->load('schedules');
 
-        $schedules   = $group->schedules;
-        $currentDate = $group->start_date->copy();
-        $endDate     = $group->end_date->copy();
+        $this->generateAttendanceSessionsFrom(
+            $group,
+            $group->start_date->copy(),
+            $group->end_date->copy(),
+            $group->schedules,
+            skipExisting: false
+        );
+    }
 
-        // Map our custom day numbering (0=Sat … 6=Fri) to Carbon's dayOfWeek (0=Sun … 6=Sat)
-        // Our: 0=Sat,1=Sun,2=Mon,3=Tue,4=Wed,5=Thu,6=Fri
-        // Carbon: 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
-        $dayMap = [0 => 6, 1 => 0, 2 => 1, 3 => 2, 4 => 3, 5 => 4, 6 => 5];
+    /**
+     * Generate sessions for a date range using the given schedule rows.
+     */
+    public function generateAttendanceSessionsFrom(
+        LearningGroup $group,
+        Carbon $fromDate,
+        Carbon $toDate,
+        $schedules,
+        bool $skipExisting = false
+    ): void {
+        $dayMap      = self::dayOfWeekMap();
+        $currentDate = $fromDate->copy();
 
-        while ($currentDate->lte($endDate)) {
+        while ($currentDate->lte($toDate)) {
             foreach ($schedules as $schedule) {
                 $carbonDay = $dayMap[$schedule->day_of_week] ?? null;
 
-                if ($carbonDay !== null && $currentDate->dayOfWeek === $carbonDay) {
-                    AttendanceSession::create([
-                        'learning_group_id' => $group->id,
-                        'schedule_id'       => $schedule->id,
-                        'session_date'      => $currentDate->copy(),
-                        'status'            => 'upcoming',
-                    ]);
+                if ($carbonDay === null || $currentDate->dayOfWeek !== $carbonDay) {
+                    continue;
                 }
+
+                if ($skipExisting) {
+                    $exists = AttendanceSession::where('learning_group_id', $group->id)
+                        ->where('schedule_id', $schedule->id)
+                        ->whereDate('session_date', $currentDate->toDateString())
+                        ->exists();
+
+                    if ($exists) {
+                        continue;
+                    }
+                }
+
+                AttendanceSession::create([
+                    'learning_group_id' => $group->id,
+                    'schedule_id'       => $schedule->id,
+                    'session_date'      => $currentDate->copy(),
+                    'status'            => 'upcoming',
+                ]);
             }
+
             $currentDate->addDay();
         }
+    }
+
+    /**
+     * Sync weekly schedule rows in-place (no mass delete) to preserve historical sessions.
+     *
+     * @return \Illuminate\Support\Collection Active schedule rows used for future generation
+     */
+    private function syncGroupSchedules(LearningGroup $group, array $newSchedules): \Illuminate\Support\Collection
+    {
+        $group->load('schedules');
+
+        $existing = $group->schedules->keyBy('day_of_week');
+        $newByDay = collect($newSchedules)->keyBy(fn ($s) => (int) $s['day_of_week']);
+        $activeIds = [];
+
+        foreach ($newSchedules as $scheduleData) {
+            $day = (int) $scheduleData['day_of_week'];
+
+            if ($existing->has($day)) {
+                $schedule = $existing->get($day);
+                $schedule->update([
+                    'start_time' => $scheduleData['start_time'],
+                    'end_time'   => $scheduleData['end_time'],
+                    'room'       => $scheduleData['room'] ?? null,
+                ]);
+                $activeIds[] = $schedule->id;
+            } else {
+                $created = $group->schedules()->create($scheduleData);
+                $activeIds[] = $created->id;
+            }
+        }
+
+        foreach ($existing as $day => $schedule) {
+            if ($newByDay->has($day)) {
+                continue;
+            }
+
+            if ($this->scheduleHasProtectedSessions($schedule)) {
+                continue;
+            }
+
+            $schedule->delete();
+        }
+
+        return $group->schedules()->whereIn('id', $activeIds)->get();
+    }
+
+    /**
+     * Replace future upcoming sessions only; past and non-upcoming sessions are untouched.
+     */
+    private function regenerateFutureSessions(LearningGroup $group, $activeSchedules): void
+    {
+        $group->refresh();
+
+        $cutoff  = Carbon::today();
+        $endDate = $group->end_date->copy();
+        $cutoffStr = $cutoff->toDateString();
+        $endStr    = $endDate->toDateString();
+
+        AttendanceSession::where('learning_group_id', $group->id)
+            ->where('status', 'upcoming')
+            ->whereRaw('COALESCE(override_date, session_date) > ?', [$endStr])
+            ->delete();
+
+        AttendanceSession::where('learning_group_id', $group->id)
+            ->where('status', 'upcoming')
+            ->whereRaw('COALESCE(override_date, session_date) >= ?', [$cutoffStr])
+            ->delete();
+
+        if ($activeSchedules->isEmpty()) {
+            return;
+        }
+
+        $fromDate = $cutoff->copy()->max($group->start_date);
+
+        if ($fromDate->gt($endDate)) {
+            return;
+        }
+
+        $this->generateAttendanceSessionsFrom(
+            $group,
+            $fromDate,
+            $endDate,
+            $activeSchedules,
+            skipExisting: true
+        );
+    }
+
+    /**
+     * A session is protected if it is in the past or no longer upcoming.
+     */
+    private function scheduleHasProtectedSessions($schedule): bool
+    {
+        $cutoff = Carbon::today()->toDateString();
+
+        return AttendanceSession::where('schedule_id', $schedule->id)
+            ->where(function ($q) use ($cutoff) {
+                $q->whereRaw('COALESCE(override_date, session_date) < ?', [$cutoff])
+                    ->orWhere('status', '!=', 'upcoming');
+            })
+            ->exists();
+    }
+
+    /** Map custom day (0=Sat … 6=Fri) to Carbon dayOfWeek. */
+    private static function dayOfWeekMap(): array
+    {
+        return [0 => 6, 1 => 0, 2 => 1, 3 => 2, 4 => 3, 5 => 4, 6 => 5];
     }
 
     /**
@@ -247,13 +374,10 @@ class AdminLearningGroupService
         $students = DB::table('enrollments')
             ->join('students', 'enrollments.student_id', '=', 'students.id')
             ->join('users', 'students.user_id', '=', 'users.id')
-            ->leftJoin('orders', 'enrollments.order_id', '=', 'orders.id')
+            ->join('orders', 'enrollments.order_id', '=', 'orders.id')
             ->where('enrollments.course_id', $group->course_id)
             ->whereNull('enrollments.group_id')
-            ->where(function ($query) {
-                $query->where('orders.status', 'completed')
-                    ->orWhereNull('enrollments.order_id');
-            })
+            ->where('orders.status', 'completed')
             ->select(
                 'students.id',
                 'students.full_name',
@@ -334,5 +458,32 @@ class AdminLearningGroupService
             ]);
 
         return ['success' => true, 'completed_count' => $completedCount];
+    }
+
+    /**
+     * Get enrolled students for a group (used by export).
+     */
+    public function getGroupStudentsForExport(LearningGroup $group): array
+    {
+        $group->load(['course:id,title', 'instructor:id,full_name']);
+
+        $students = DB::table('enrollments')
+            ->join('students', 'enrollments.student_id', '=', 'students.id')
+            ->join('users', 'students.user_id', '=', 'users.id')
+            ->where('enrollments.group_id', $group->id)
+            ->select(
+                'students.id',
+                'students.full_name',
+                'users.email',
+                'students.phone',
+                'enrollments.is_completed',
+            )
+            ->orderBy('students.full_name')
+            ->get();
+
+        return [
+            'group'    => $group,
+            'students' => $students,
+        ];
     }
 }

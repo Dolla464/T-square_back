@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\AdminCategoryController;
+use App\Http\Controllers\Api\Admin\AdminScheduleController;
 use App\Http\Controllers\Api\Admin\ChunkedUploadController;
 use App\Http\Controllers\Api\Admin\AdminCertificateController;
 use App\Http\Controllers\Api\Admin\AdminCourseController;
@@ -102,7 +103,18 @@ Route::middleware(['auth:sanctum', 'role:admin'])
             // Schedule & attendance
             Route::get('{learningGroup}/schedule',   [AdminLearningGroupController::class, 'getSchedule'])->name('learning-groups.schedule');
             Route::get('{learningGroup}/sessions',   [AdminLearningGroupController::class, 'getSessions'])->name('learning-groups.sessions');
+            Route::get('{learningGroup}/attendance-summary', [AdminLearningGroupController::class, 'getAttendanceSummary'])->name('learning-groups.attendance-summary');
+            Route::get('{learningGroup}/sessions/{session}/attendance/export', [AdminLearningGroupController::class, 'exportSessionAttendance'])->name('learning-groups.sessions.attendance.export');
+            Route::get('{learningGroup}/sessions/{session}/attendance', [AdminLearningGroupController::class, 'getSessionAttendance'])->name('learning-groups.sessions.attendance');
+            Route::get('{learningGroup}/students/{student}/attendance/export', [AdminLearningGroupController::class, 'exportStudentCourseAttendance'])->name('learning-groups.students.attendance.export');
+            Route::get('{learningGroup}/students/{student}/attendance', [AdminLearningGroupController::class, 'getStudentCourseAttendance'])->name('learning-groups.students.attendance');
             Route::get('{learningGroup}/attendance', [AdminLearningGroupController::class, 'getAttendanceReport'])->name('learning-groups.attendance');
+            Route::get('{learningGroup}/students/export', [AdminLearningGroupController::class, 'exportStudents'])->name('learning-groups.students.export');
+            // Exam results
+            Route::get('{learningGroup}/exams', [AdminLearningGroupController::class, 'getGroupExams'])->name('learning-groups.exams');
+            Route::get('{learningGroup}/exams/{exam}/results/export', [AdminLearningGroupController::class, 'exportExamResults'])->name('learning-groups.exams.results.export');
+            Route::get('{learningGroup}/exams/{exam}/results', [AdminLearningGroupController::class, 'getExamResults'])->name('learning-groups.exams.results');
+            Route::get('{learningGroup}/students/{student}/exam-results', [AdminLearningGroupController::class, 'getStudentExamResults'])->name('learning-groups.students.exam-results');
         });
         Route::apiResource('learning-groups', AdminLearningGroupController::class);
 
@@ -129,6 +141,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])
             ->except(['store', 'update']);
 
         // Payments — no manual store; handled via payment gateway callbacks
+        Route::get('payments/export', [AdminPaymentController::class, 'export'])->name('payments.export');
         Route::apiResource('payments', AdminPaymentController::class)
             ->except(['store']);
 
@@ -142,6 +155,15 @@ Route::middleware(['auth:sanctum', 'role:admin'])
 
         // Solutions (full CRUD)
         Route::apiResource('solutions', AdminSolutionController::class);
+
+        // Centre-wide Schedule
+        Route::prefix('schedule')->name('schedule.')->group(function () {
+            // Export must be declared BEFORE {session} wildcard to avoid route conflict
+            Route::get('export', [AdminScheduleController::class, 'export'])->name('export');
+            Route::get('/', [AdminScheduleController::class, 'index'])->name('index');
+            Route::put('{session}', [AdminScheduleController::class, 'reschedule'])->name('reschedule');
+            Route::delete('{session}', [AdminScheduleController::class, 'cancel'])->name('cancel');
+        });
 
         // Discovery media & website media
         Route::get('/discovery-media', [AdminDiscoveryMediaController::class, 'index'])->name('discovery-media.index');

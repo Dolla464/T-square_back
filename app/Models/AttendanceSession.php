@@ -15,10 +15,15 @@ class AttendanceSession extends Model
         'session_date',
         'qr_code',
         'status',
+        'override_date',
+        'override_start_time',
+        'override_end_time',
+        'cancellation_reason',
     ];
 
     protected $casts = [
-        'session_date' => 'date',
+        'session_date'      => 'date',
+        'override_date'     => 'date',
     ];
 
     public function learningGroup()

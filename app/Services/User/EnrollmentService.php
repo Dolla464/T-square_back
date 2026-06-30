@@ -58,18 +58,32 @@ class EnrollmentService
                 ]);
             }
             if (! $isPaidCourse) {
+                $student->loadMissing('user');
+
+                $order = Order::query()->create([
+                    'student_id' => $student->id,
+                    'total_amount' => 0,
+                    'status' => 'pending',
+                    'billing_name' => $payload['billing_name'] ?? $student->user?->name ?? $student->full_name,
+                    'billing_email' => $payload['billing_email'] ?? $student->user?->email,
+                    'billing_phone' => $payload['billing_phone'] ?? $student->phone,
+                    'notes' => $payload['notes'] ?? null,
+                ]);
+
                 $enrollment = Enrollment::query()->create([
                     'student_id' => $student->id,
                     'course_id' => $course->id,
-                    'order_id' => null,
+                    'order_id' => $order->id,
                     'price_paid' => 0,
                     'is_completed' => false,
                     'completed_at' => null,
                 ]);
 
+                $order->update(['status' => 'completed']);
+
                 return [
                     'enrollment' => $enrollment,
-                    'order' => null,
+                    'order' => $order->fresh(),
                     'whatsapp_link' => $whatsappLink,
                 ];
             }

@@ -4,25 +4,49 @@ namespace App\Observers;
 
 use App\Events\CoursePurchased;
 use App\Models\Order;
+use Illuminate\Support\Facades\DB;
 
 class OrderObserver
 {
     /**
-     * Handle the Order "updated" event.
+     * Handle the Order "saved" event (create + update).
+     * wasChanged() is valid here — saved runs after persistence.
+     * Dispatches CoursePurchased only once when status transitions to completed,
+     * after the surrounding DB transaction commits.
      */
-    public function updated(Order $order): void
+    public function saved(Order $order): void
     {
-        // 1. نتأكد إن الحالة اتغيرت لـ completed
-        if ($order->wasChanged('status') && $order->status === 'completed') {
+        if ($order->status !== 'completed') {
+            return;
+        }
 
-            // 2. نجيب كل الاشتراكات اللي جوه الطلب ده (لأن ممكن الطلب يكون فيه أكتر من كورس)
-            $enrollments = $order->enrollments()->with(['course', 'student'])->get();
+        if (! $order->wasChanged('status')) {
+            return;
+        }
 
-            // 3. نلف عليهم ونطلق الحدث لكل كورس
-            foreach ($enrollments as $enrollment) {
-                // الحدث ده هو اللي هيروح للـ Queue يزود الفلوس، يزود الطلاب، ويبعت الإشعارات!
-                event(new CoursePurchased($enrollment));
+        if ($order->getOriginal('status') === 'completed') {
+            return;
+        }
+
+        $orderId = $order->id;
+
+        DB::afterCommit(function () use ($orderId) {
+            $fresh = Order::query()->find($orderId);
+
+            if (! $fresh || $fresh->status !== 'completed') {
+                return;
             }
+
+            $this->dispatchCoursePurchased($fresh);
+        });
+    }
+
+    private function dispatchCoursePurchased(Order $order): void
+    {
+        $enrollments = $order->enrollments()->with(['course', 'student'])->get();
+
+        foreach ($enrollments as $enrollment) {
+            event(new CoursePurchased($enrollment));
         }
     }
 }

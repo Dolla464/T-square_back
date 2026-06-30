@@ -20,14 +20,26 @@ class LearningGroupRequest extends FormRequest
      */
     public function rules(): array
     {
+        $isUpdate = $this->route('learning_group') !== null;
+
+        // New groups must start today or later; existing groups may keep a past start_date.
+        $startDateRule = $isUpdate
+            ? 'required|date'
+            : 'required|date|after_or_equal:today';
+
+        // Schedules are optional on update when only other fields change (future-only sync).
+        $schedulesRule = $isUpdate
+            ? 'nullable|array|min:1'
+            : 'required|array|min:1';
+
         return [
             'group_name'   => 'required|string|max:255',
             'course_id'    => 'required|exists:courses,id',
             'instructor_id' => 'required|exists:instructors,id',
-            'start_date'   => 'required|date|after_or_equal:today',
+            'start_date'   => $startDateRule,
             'status'       => 'nullable|in:active,completed,cancelled',
 
-            'schedules'               => 'required|array|min:1',
+            'schedules'               => $schedulesRule,
             'schedules.*.day_of_week' => 'required|integer|between:0,6',
             'schedules.*.start_time'  => 'required|date_format:H:i',
             'schedules.*.end_time'    => 'required|date_format:H:i|after:schedules.*.start_time',

@@ -8,6 +8,9 @@ use App\Services\User\CourseReviewService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 
+/**
+ * @tags Reviews
+ */
 class CourseReviewController extends Controller
 { 
     use ApiResponseTrait;
