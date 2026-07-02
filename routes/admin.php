@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\AdminCategoryController;
+use App\Http\Controllers\Api\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\Admin\AdminScheduleController;
 use App\Http\Controllers\Api\Admin\ChunkedUploadController;
 use App\Http\Controllers\Api\Admin\AdminCertificateController;
@@ -30,6 +31,16 @@ Route::middleware(['auth:sanctum', 'role:admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
+
+        // Dashboard overview
+        Route::prefix('dashboard')->name('dashboard.')->group(function () {
+            Route::get('stats', [AdminDashboardController::class, 'getStats'])->name('stats');
+            Route::get('revenue-chart', [AdminDashboardController::class, 'getRevenueChart'])->name('revenue-chart');
+            Route::get('course-sales', [AdminDashboardController::class, 'getCourseSales'])->name('course-sales');
+            Route::get('recent-enrollments', [AdminDashboardController::class, 'getRecentEnrollments'])->name('recent-enrollments');
+            Route::get('recent-orders', [AdminDashboardController::class, 'getRecentOrders'])->name('recent-orders');
+            Route::get('top-courses', [AdminDashboardController::class, 'getTopCourses'])->name('top-courses');
+        });
 
         // Update a single general setting (site_name, contact_email, whatsapp,
         // facebook_url, maintenance_mode) — one { key, value } pair per request.
@@ -130,9 +141,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])
         Route::apiResource('students', AdminStudentController::class)
             ->except(['store', 'update']);
 
-        // Messages (read-only – index + show)
+        // Messages
         Route::apiResource('messages', AdminMessageController::class)
-            ->only(['index', 'show']);
+            ->only(['index', 'show', 'destroy']);
 
         // Reviews
         Route::put('reviews/{review}', [AdminReviewController::class, 'update'])

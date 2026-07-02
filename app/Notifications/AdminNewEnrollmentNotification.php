@@ -38,13 +38,14 @@ class AdminNewEnrollmentNotification extends Notification implements ShouldQueue
     public function toDatabase(object $notifiable): array
     {
         return [
+            'type' => 'admin_enrollment',
             'title' => 'New Enrollment',
             'message' => $this->student->full_name.' enrolled in "'.$this->course->title.'".',
             'student_id' => $this->student->id,
             'course_id' => $this->course->id,
             'enrollment_id' => $this->enrollment->id,
-            'url' => '/admin/courses/'.$this->course->id.'/enrollments',
-            'icon' => 'users',
+            'action_url' => '/admin/courses?course='.$this->course->id,
+            'icon' => 'people',
         ];
     }
 }

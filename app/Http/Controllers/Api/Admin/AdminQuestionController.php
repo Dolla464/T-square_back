@@ -30,13 +30,13 @@ class AdminQuestionController extends Controller
     {
         $request->validate(['exam_id' => 'required|exists:exams,id']);
 
-        $questions = $this->questionService->getQuestionsByExam($request->exam_id, 10);
+        $questions = $this->questionService->getQuestionsByExam($request->exam_id);
 
         return response()->json([
             'status' => 'success',
             'message' => 'Questions fetched successfully',
             'questions_count' => $questions->count(),
-            'data' => AdminQuestionResource::collection($questions)
+            'data' => AdminQuestionResource::collection($questions),
         ], 200);
     }
 
@@ -92,11 +92,17 @@ class AdminQuestionController extends Controller
     }
 
     /**
-     * Display the deleted questions only
+     * Display the deleted questions only.
+     * Optional query param: exam_id
      */
-    public function trash(): JsonResponse
+    public function trash(Request $request): JsonResponse
     {
-        $trashedQuestions = $this->questionService->getTrashedQuestions();
+        $request->validate([
+            'exam_id' => 'nullable|exists:exams,id',
+        ]);
+
+        $examId = $request->query('exam_id') ? (int) $request->query('exam_id') : null;
+        $trashedQuestions = $this->questionService->getTrashedQuestions($examId);
 
         return $this->successResponse(
             AdminQuestionResource::collection($trashedQuestions),

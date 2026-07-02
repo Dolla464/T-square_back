@@ -84,8 +84,8 @@ class Course extends Model
     }
 
     /**
-     * Update the rating statistics for the course
-     * It is called from the CourseReview model when saving or deleting
+     * Recalculate course rating stats from linked reviews.
+     * Called from CourseReview after save/delete.
      */
     public function updateRatingStats()
     {

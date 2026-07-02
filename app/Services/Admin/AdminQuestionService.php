@@ -8,14 +8,14 @@ use Illuminate\Support\Facades\DB;
 class AdminQuestionService
 {
     /**
-     * Get questions by exam id with their choices
+     * Get questions by exam id with their choices.
      */
-    public function getQuestionsByExam(int $examId, int $perPage = 10)
+    public function getQuestionsByExam(int $examId)
     {
         return Question::where('exam_id', $examId)
             ->with('choices')
             ->latest()
-            ->paginate($perPage); // Convert to pagination
+            ->get();
     }
 
     /**
@@ -71,12 +71,13 @@ class AdminQuestionService
     }
 
     /**
-     * Get the deleted questions only with their choices
+     * Get trashed questions, optionally scoped to an exam.
      */
-    public function getTrashedQuestions()
+    public function getTrashedQuestions(?int $examId = null)
     {
         return Question::onlyTrashed()
             ->with('choices')
+            ->when($examId, fn ($query) => $query->where('exam_id', $examId))
             ->latest()
             ->get();
     }

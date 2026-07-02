@@ -2,12 +2,18 @@
 
 namespace App\Services\User;
 
+use App\Mail\EnrollmentCertificateMail;
 use App\Models\Certificate;
+use App\Models\CourseReview;
 use App\Models\Enrollment;
 use App\Models\ExamAttempt;
+use App\Notifications\CertificateReady;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -50,6 +56,30 @@ class CertificateService
         ]);
     }
 
+    public function studentHasReviewForEnrollment(Enrollment $enrollment): bool
+    {
+        return CourseReview::query()
+            ->where('course_id', $enrollment->course_id)
+            ->where('student_id', $enrollment->student_id)
+            ->exists();
+    }
+
+    public function enrollmentCanIssueCertificate(Enrollment $enrollment): bool
+    {
+        if (! $enrollment->is_completed) {
+            return false;
+        }
+
+        if ($this->studentHasReviewForEnrollment($enrollment)) {
+            return true;
+        }
+
+        return Certificate::query()
+            ->where('student_id', $enrollment->student_id)
+            ->where('course_id', $enrollment->course_id)
+            ->exists();
+    }
+
     /**
      * Issue a new certificate for an enrollment
      */
@@ -65,6 +95,12 @@ class CertificateService
 
         if ($existingCert && ! $force) {
             return $existingCert;
+        }
+
+        if (! $existingCert && ! $this->studentHasReviewForEnrollment($enrollment)) {
+            throw new AccessDeniedHttpException(
+                'A review must be submitted before a certificate can be issued.'
+            );
         }
 
         if ($existingCert && $force) {
@@ -101,6 +137,44 @@ class CertificateService
             'certificate_num' => $certificateNum,
             'issued_at' => now(),
         ]);
+    }
+
+    public function issueCertificateAndNotify(Enrollment $enrollment): bool
+    {
+        try {
+            $certificate = $this->issueCertificate($enrollment);
+            $enrollment->loadMissing(['student.user', 'course']);
+
+            $email = $enrollment->student?->user?->email;
+
+            if ($email) {
+                Mail::to($email)->send(new EnrollmentCertificateMail($enrollment, $certificate->certificate_url));
+
+                $user = $enrollment->student?->user;
+                if ($user && ! $this->userAlreadyNotifiedAboutCertificate($user, $enrollment->id)) {
+                    $user->notify(new CertificateReady($enrollment));
+                }
+
+                Log::info('Certificate email sent after review submission', [
+                    'enrollment_id' => $enrollment->id,
+                    'student_id' => $enrollment->student_id,
+                    'email' => $email,
+                ]);
+            } else {
+                Log::warning('Certificate email skipped after review: no user email', [
+                    'enrollment_id' => $enrollment->id,
+                    'student_id' => $enrollment->student_id,
+                ]);
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::error('Certificate generation/email failed after review: '.$e->getMessage(), [
+                'enrollment_id' => $enrollment->id,
+            ]);
+
+            return false;
+        }
     }
 
     /**
@@ -238,5 +312,13 @@ class CertificateService
         $course->loadMissing('instructor');
         
         return $course->instructor?->full_name ?? 'Instructor';
+    }
+
+    private function userAlreadyNotifiedAboutCertificate(object $user, int $enrollmentId): bool
+    {
+        return $user->notifications()
+            ->where('type', CertificateReady::class)
+            ->where('data->enrollment_id', $enrollmentId)
+            ->exists();
     }
 }

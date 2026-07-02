@@ -50,4 +50,14 @@ class AdminMessageController extends Controller
             'Message retrieved successfully'
         );
     }
+
+    /**
+     * Remove the specified message from storage.
+     */
+    public function destroy(Message $message): JsonResponse
+    {
+        $this->messageService->destroy($message);
+
+        return $this->successResponse(null, 'Message deleted successfully');
+    }
 }

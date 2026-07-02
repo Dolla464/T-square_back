@@ -45,13 +45,15 @@ class SessionRescheduledNotification extends Notification implements ShouldQueue
             'title'        => 'Session Rescheduled',
             'message'      => "The session for group '{$group?->group_name}' ({$course?->title}) has been rescheduled. New time: {$newDateStr} {$newStartStr}–{$newEndStr}.",
             'session_id'   => $this->session->id,
+            'course_id'    => $course?->id,
             'group_name'   => $group?->group_name,
             'course_title' => $course?->title,
             'old_date'     => $oldDateStr,
             'old_time'     => "{$oldStartStr}–{$oldEndStr}",
             'new_date'     => $newDateStr,
             'new_time'     => "{$newStartStr}–{$newEndStr}",
-            'action_url'   => '/notifications',
+            'icon'         => 'calendar-event',
+            'action_url'   => null,
         ];
     }
 

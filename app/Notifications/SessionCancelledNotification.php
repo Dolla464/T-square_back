@@ -37,11 +37,13 @@ class SessionCancelledNotification extends Notification implements ShouldQueue
             'message'      => "The session for group '{$group?->group_name}' ({$course?->title}) on {$dateStr} has been cancelled."
                 . ($this->reason ? " Reason: {$this->reason}" : ''),
             'session_id'   => $this->session->id,
+            'course_id'    => $course?->id,
             'group_name'   => $group?->group_name,
             'course_title' => $course?->title,
             'session_date' => $dateStr,
             'reason'       => $this->reason,
-            'action_url'   => '/notifications',
+            'icon'         => 'calendar-x',
+            'action_url'   => null,
         ];
     }
 

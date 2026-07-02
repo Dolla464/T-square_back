@@ -5,9 +5,13 @@ namespace App\Services\Admin;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\Course;
+use App\Models\CourseReview;
+use App\Models\Enrollment;
 use App\Models\LearningGroup;
 use App\Http\Resources\Admin\LearningGroup\AdminLearningGroupResource;
+use App\Notifications\CourseReviewRequired;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -42,14 +46,21 @@ class AdminLearningGroupService
     /**
      * Get the selection data for the frontend
      */
-    public function getSelection()
+    public function getSelection(?int $courseId = null, ?string $status = null)
     {
-        return LearningGroup::select('id', 'group_name')->get()->map(function ($group) {
-            return [
-                'id'   => $group->id,
-                'name' => $group->group_name,
-            ];
-        });
+        return LearningGroup::query()
+            ->when($courseId, fn ($query) => $query->where('course_id', $courseId))
+            ->when($status, fn ($query) => $query->where('status', $status))
+            ->select('id', 'group_name', 'course_id')
+            ->orderBy('group_name')
+            ->get()
+            ->map(function ($group) {
+                return [
+                    'id'        => $group->id,
+                    'name'      => $group->group_name,
+                    'course_id' => $group->course_id,
+                ];
+            });
     }
 
     /**
@@ -78,6 +89,15 @@ class AdminLearningGroupService
             }
 
             $this->generateAttendanceSessions($group);
+
+            if (! empty($data['student_ids'])) {
+                $this->syncGroupStudents($group, $data);
+            }
+
+            $group->refresh();
+            $newStatus = $group->status;
+            $syncResult = $this->syncEnrollmentsWithGroupStatus($group, 'active', $newStatus);
+            $group->sync_meta = $syncResult;
 
             $group->load(['course:id,title', 'instructor:id,full_name', 'schedules']);
 
@@ -120,6 +140,8 @@ class AdminLearningGroupService
     public function updateGroup(LearningGroup $group, array $data): AdminLearningGroupResource
     {
         return DB::transaction(function () use ($group, $data) {
+            $oldStatus = $group->status;
+
             $updateData = [
                 'group_name'    => $data['group_name'],
                 'course_id'     => $data['course_id'],
@@ -144,44 +166,137 @@ class AdminLearningGroupService
                 $this->regenerateFutureSessions($group, $activeSchedules);
             }
 
-            // ── Student sync (existing logic) ─────────────────────────────────
-            $incomingStudentIds = isset($data['student_ids'])
-                ? array_map('intval', array_filter((array) $data['student_ids']))
-                : [];
-
-            $studentStatuses = $data['student_statuses'] ?? [];
-
-            DB::table('enrollments')
-                ->where('group_id', $group->id)
-                ->whereNotIn('student_id', $incomingStudentIds)
-                ->update(['group_id' => null, 'updated_at' => now()]);
-
-            foreach ($incomingStudentIds as $studentId) {
-                $isCompleted = (bool) ($studentStatuses[$studentId]
-                    ?? $studentStatuses[(string) $studentId]
-                    ?? false);
-
-                DB::table('enrollments')->updateOrInsert(
-                    ['student_id' => $studentId, 'course_id' => $group->course_id],
-                    [
-                        'group_id'     => $group->id,
-                        'is_completed' => $isCompleted,
-                        'completed_at' => $isCompleted ? now() : null,
-                        'updated_at'   => now(),
-                    ]
-                );
+            if (isset($data['student_ids'])) {
+                $this->syncGroupStudents($group, $data);
             }
 
-            $actualCount = DB::table('enrollments')->where('group_id', $group->id)->count();
-            DB::table('learning_groups')
-                ->where('id', $group->id)
-                ->update(['enrolled_students' => $actualCount]);
-
             $group->refresh();
+            $newStatus = $group->status;
+            $syncResult = $this->syncEnrollmentsWithGroupStatus($group, $oldStatus, $newStatus);
+            $group->sync_meta = $syncResult;
+
             $group->load(['course:id,title', 'instructor:id,full_name', 'schedules', 'attendanceSessions']);
 
             return new AdminLearningGroupResource($group);
         });
+    }
+
+    /**
+     * Sync enrollments when group status changes or when a completed group is saved.
+     *
+     * @return array{enrollments_completed: int, enrollments_reopened: int, notifications_sent: int}
+     */
+    public function syncEnrollmentsWithGroupStatus(
+        LearningGroup $group,
+        string $oldStatus,
+        string $newStatus
+    ): array {
+        $result = [
+            'enrollments_completed' => 0,
+            'enrollments_reopened'  => 0,
+            'notifications_sent'    => 0,
+        ];
+
+        if ($newStatus === 'completed') {
+            $incompleteEnrollments = Enrollment::query()
+                ->where('group_id', $group->id)
+                ->where('is_completed', false)
+                ->get();
+
+            $newlyCompleted = new Collection;
+
+            foreach ($incompleteEnrollments as $enrollment) {
+                $enrollment->markAsCompleted();
+                $newlyCompleted->push($enrollment->fresh());
+                $result['enrollments_completed']++;
+            }
+
+            if ($oldStatus !== 'completed' && $newlyCompleted->isNotEmpty()) {
+                $result['notifications_sent'] = $this->notifyStudentsReviewRequired($group, $newlyCompleted);
+            }
+        }
+
+        if ($oldStatus === 'completed' && $newStatus === 'active') {
+            $completedEnrollments = Enrollment::query()
+                ->where('group_id', $group->id)
+                ->where('is_completed', true)
+                ->get();
+
+            foreach ($completedEnrollments as $enrollment) {
+                $enrollment->update([
+                    'is_completed' => false,
+                    'completed_at' => null,
+                ]);
+                $result['enrollments_reopened']++;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Notify students who were newly marked completed to submit a review.
+     */
+    private function notifyStudentsReviewRequired(LearningGroup $group, Collection $enrollments): int
+    {
+        $sent = 0;
+
+        foreach ($enrollments as $enrollment) {
+            $enrollment->loadMissing(['student.user', 'course']);
+
+            $hasReview = CourseReview::query()
+                ->where('course_id', $enrollment->course_id)
+                ->where('student_id', $enrollment->student_id)
+                ->exists();
+
+            if ($hasReview) {
+                continue;
+            }
+
+            $user = $enrollment->student?->user;
+
+            if ($user) {
+                $user->notify(new CourseReviewRequired($enrollment, $group));
+                $sent++;
+            }
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Assign students to the group and apply per-student completion flags from the payload.
+     */
+    private function syncGroupStudents(LearningGroup $group, array $data): void
+    {
+        $incomingStudentIds = array_map('intval', array_filter((array) ($data['student_ids'] ?? [])));
+        $studentStatuses = $data['student_statuses'] ?? [];
+
+        DB::table('enrollments')
+            ->where('group_id', $group->id)
+            ->whereNotIn('student_id', $incomingStudentIds)
+            ->update(['group_id' => null, 'updated_at' => now()]);
+
+        foreach ($incomingStudentIds as $studentId) {
+            $isCompleted = (bool) ($studentStatuses[$studentId]
+                ?? $studentStatuses[(string) $studentId]
+                ?? false);
+
+            DB::table('enrollments')->updateOrInsert(
+                ['student_id' => $studentId, 'course_id' => $group->course_id],
+                [
+                    'group_id'     => $group->id,
+                    'is_completed' => $isCompleted,
+                    'completed_at' => $isCompleted ? now() : null,
+                    'updated_at'   => now(),
+                ]
+            );
+        }
+
+        $actualCount = DB::table('enrollments')->where('group_id', $group->id)->count();
+        DB::table('learning_groups')
+            ->where('id', $group->id)
+            ->update(['enrolled_students' => $actualCount]);
     }
 
     /**

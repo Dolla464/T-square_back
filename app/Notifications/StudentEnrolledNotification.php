@@ -37,12 +37,13 @@ class StudentEnrolledNotification extends Notification implements ShouldQueue
     public function toDatabase(object $notifiable): array
     {
         return [
+            'type' => 'enrollment',
             'title' => 'Enrollment Confirmed',
             'message' => 'You have successfully enrolled in "'.$this->course->title.'".',
             'course_id' => $this->course->id,
             'enrollment_id' => $this->enrollment->id,
-            'url' => '/courses/'.$this->course->id,
-            'icon' => 'book-open',
+            'action_url' => '/student/course/'.$this->course->id,
+            'icon' => 'book',
         ];
     }
 }

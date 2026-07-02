@@ -88,4 +88,12 @@ Route::middleware('auth:sanctum')
                 Route::get('{enrollment}/download', 'download')->name('download');
                 Route::get('{enrollment}', 'show')->name('show');
             });
+
+        Route::controller(CourseReviewController::class)
+            ->prefix('reviews')
+            ->name('reviews.')
+            ->group(function () {
+                Route::get('eligibility/{courseId}', 'eligibility')->name('eligibility');
+                Route::post('/', 'store')->name('store');
+            });
     });

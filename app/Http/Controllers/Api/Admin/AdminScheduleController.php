@@ -26,8 +26,9 @@ class AdminScheduleController extends Controller
      *
      * Query params:
      *   date           string  Y-m-d  filter by effective session date (day mode)
-     *   date_from      string  Y-m-d  week range start (Sat)
-     *   date_to        string  Y-m-d  week range end (Fri)
+     *   date_from      string  Y-m-d  range start (week Sat or month 1st)
+     *   date_to        string  Y-m-d  range end (week Fri or month last day)
+     *   view_mode      string         day|week|month — used for export labels only
      *   instructor_id  int            filter by instructor
      *   status         string         filter by session status
      *   group_id       int            filter by group
@@ -35,7 +36,7 @@ class AdminScheduleController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $filters = $request->only(['date', 'date_from', 'date_to', 'instructor_id', 'status', 'group_id']);
+        $filters = $request->only(['date', 'date_from', 'date_to', 'instructor_id', 'status', 'group_id', 'view_mode']);
         $perPage = (int) $request->get('per_page', 15);
 
         $sessions = $this->scheduleService->getAllSessions($filters, $perPage);
@@ -96,7 +97,7 @@ class AdminScheduleController extends Controller
      */
     public function export(Request $request): JsonResponse
     {
-        $filters = $request->only(['date', 'date_from', 'date_to', 'instructor_id', 'status', 'group_id']);
+        $filters = $request->only(['date', 'date_from', 'date_to', 'instructor_id', 'status', 'group_id', 'view_mode']);
         $format  = $request->get('format', 'pdf');
 
         $sessions = $this->scheduleService->getSessionsForExport($filters);
@@ -179,8 +180,9 @@ class AdminScheduleController extends Controller
         $active = [];
 
         if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+            $rangeLabel = ($filters['view_mode'] ?? '') === 'month' ? 'Month' : 'Week';
             $active[] = [
-                'label' => 'Week',
+                'label' => $rangeLabel,
                 'value' => $filters['date_from'] . ' → ' . $filters['date_to'],
             ];
         } elseif (!empty($filters['date'])) {

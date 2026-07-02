@@ -51,6 +51,7 @@ class StudentExamAttemptStatusNotification extends Notification implements Shoul
         $isPassed = $this->attempt->status === 'passed';
 
         return [
+            'type' => 'exam_result',
             'title' => 'Exam Attempt Result',
             'message' => $isPassed
                 ? 'You passed your exam attempt.'
@@ -59,8 +60,8 @@ class StudentExamAttemptStatusNotification extends Notification implements Shoul
             'attempt_id' => $this->attempt->id,
             'status' => $this->attempt->status,
             'score' => $this->attempt->score,
-            'url' => '/exams/my-results',
-            'icon' => $isPassed ? 'check-circle' : 'x-circle',
+            'action_url' => '/student/quizzes',
+            'icon' => $isPassed ? 'patch-check' : 'x-circle',
         ];
     }
 }

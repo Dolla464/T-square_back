@@ -73,9 +73,15 @@ class AdminLearningGroupController extends Controller
         return $this->successResponse(null, 'Learning group deleted successfully');
     }
 
-    public function selection(): JsonResponse
+    public function selection(Request $request): JsonResponse
     {
-        $groups = $this->adminLearningGroupService->getSelection();
+        $courseId = $request->query('course_id');
+        $status = $request->query('status');
+
+        $groups = $this->adminLearningGroupService->getSelection(
+            $courseId !== null && $courseId !== '' ? (int) $courseId : null,
+            $status !== null && $status !== '' ? (string) $status : null
+        );
 
         return $this->successResponse($groups, 'Learning groups retrieved for selection successfully');
     }

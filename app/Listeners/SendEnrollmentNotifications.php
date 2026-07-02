@@ -24,7 +24,7 @@ class SendEnrollmentNotifications implements ShouldQueue
             $student->user->notify(new StudentEnrolledNotification($course, $enrollment));
         }
 
-        $admins = User::query()->where('role', 'admin')->get();
+        $admins = User::role('admin')->get();
 
         if ($admins->isNotEmpty()) {
             Notification::send($admins, new AdminNewEnrollmentNotification($course, $student, $enrollment));

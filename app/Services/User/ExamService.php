@@ -3,8 +3,6 @@
 namespace App\Services\User;
 
 use App\Events\StudentExamAttemptCompleted;
-use App\Mail\CertificateMail;
-use App\Notifications\CertificateReady;
 use App\Models\Answer;
 use App\Models\Choice;
 use App\Models\Enrollment;
@@ -13,18 +11,9 @@ use App\Models\ExamAttempt;
 use App\Models\Question;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class ExamService
 {
-    protected $certificateService;
-
-    public function __construct(CertificateService $certificateService)
-    {
-        $this->certificateService = $certificateService;
-    }
-
     /**
      * Get all available exams for a student
      *
@@ -160,19 +149,12 @@ class ExamService
         }
 
         if ($attempt->status !== 'ongoing') {
-            return [
-                'score' => $attempt->score,
-                'total_marks' => $attempt->exam->total_marks,
-                'passing_mark' => $attempt->exam->passing_mark,
-                'is_passed' => $attempt->score >= $attempt->exam->passing_mark,
-                'status' => $attempt->status,
-            ];
+            return $this->buildAttemptResult($attempt, $attempt->score);
         }
 
         $result = DB::transaction(function () use ($attempt) {
             $totalScore = $attempt->answers()->sum('marks_earned');
             $isPassed = $totalScore >= $attempt->exam->passing_mark;
-            $certificateEnrollmentId = null;
 
             $attempt->update([
                 'score' => $totalScore,
@@ -180,81 +162,39 @@ class ExamService
                 'finished_at' => now(),
             ]);
 
-            // The update must be here before the return of the transaction
             if ($isPassed && $attempt->exam->is_final) {
-                // 1. Update the Enrollment (Use Eloquent to trigger observers)
                 $enrollment = Enrollment::where('student_id', '=', $attempt->student_id, 'and')
                     ->where('course_id', '=', $attempt->exam->course_id, 'and')
                     ->first();
 
-                if ($enrollment) {
-                    if (!$enrollment->is_completed) {
-                        $enrollment->markAsCompleted();
-                    }
-
-                    $certificateEnrollmentId = $enrollment->id; // Store the enrollment ID for the certificate
+                if ($enrollment && ! $enrollment->is_completed) {
+                    $enrollment->markAsCompleted();
                 }
             }
 
-            // Now we return the result to the controller
-            return [
-                'score' => $totalScore,
-                'total_marks' => $attempt->exam->total_marks,
-                'passing_mark' => $attempt->exam->passing_mark,
-                'is_passed' => $isPassed,
-                'status' => $isPassed ? 'passed' : 'failed',
-                'certificate_enrollment_id' => $certificateEnrollmentId,
-            ];
+            return $this->buildAttemptResult($attempt, $totalScore, $isPassed);
         });
-
-        if ($result['certificate_enrollment_id']) {
-            $this->issueCertificateAndSendEmail($result['certificate_enrollment_id'], $attempt);
-        }
 
         $attempt->refresh()->loadMissing(['student.user', 'exam.course']);
         StudentExamAttemptCompleted::dispatch($attempt);
 
-        unset($result['certificate_enrollment_id']);
-
         return $result;
     }
 
-    private function issueCertificateAndSendEmail(int $enrollmentId, ExamAttempt $attempt): void
+    private function buildAttemptResult(ExamAttempt $attempt, $score, ?bool $isPassed = null): array
     {
-        try {
-            $enrollment = Enrollment::with(['student', 'course'])->find($enrollmentId);
+        $isPassed ??= $score >= $attempt->exam->passing_mark;
 
-            if (! $enrollment) {
-                return;
-            }
-
-            $attempt->refresh()->load(['student.user', 'exam.course']);
-            $certificate = $this->certificateService->issueCertificate($enrollment);
-            $pdfPath = $certificate->certificate_url;
-            $email = $attempt->student->user?->email;
-
-            if ($email) {
-                Mail::to($email)->send(new CertificateMail($attempt, $pdfPath));
-
-                $enrollment->student?->notify(new CertificateReady($enrollment));
-
-                Log::info('Certificate email sent', [
-                    'attempt_id' => $attempt->id,
-                    'student_id' => $attempt->student_id,
-                    'email' => $email,
-                ]);
-            } else {
-                Log::warning('Certificate email skipped: no user email', [
-                    'attempt_id' => $attempt->id,
-                    'student_id' => $attempt->student_id,
-                ]);
-            }
-        } catch (\Throwable $e) {
-            Log::error('Certificate generation/email failed: ' . $e->getMessage(), [
-                'attempt_id' => $attempt->id,
-                'enrollment_id' => $enrollmentId,
-            ]);
-        }
+        return [
+            'score' => $score,
+            'total_marks' => $attempt->exam->total_marks,
+            'passing_mark' => $attempt->exam->passing_mark,
+            'is_passed' => $isPassed,
+            'status' => $isPassed ? 'passed' : 'failed',
+            'is_final' => (bool) $attempt->exam->is_final,
+            'course_id' => $attempt->exam->course_id,
+            'requires_review' => $isPassed && $attempt->exam->is_final,
+        ];
     }
 
     private function hasCompletedEnrollment(int $studentId, int $courseId): bool

@@ -1,7 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\Instructor\InstructorCourseController;
 use App\Http\Controllers\Api\Instructor\InstructorDashboardController;
+use App\Http\Controllers\Api\Instructor\InstructorExamController;
+use App\Http\Controllers\Api\Instructor\InstructorLearningGroupController;
+use App\Http\Controllers\Api\Instructor\InstructorQuestionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,6 +31,36 @@ Route::middleware(['auth:sanctum', 'role:instructor'])
                 ->name('group-details');
             Route::get('schedule', [InstructorDashboardController::class, 'getSchedule'])
                 ->name('schedule');
+        });
+
+        // ── Instructor Courses (for exam creation dropdown) ───────────────────
+        Route::get('courses', [InstructorCourseController::class, 'index'])
+            ->name('courses.index');
+
+        // ── Exams ───────────────────────────────────────────────────────────
+        Route::prefix('exams')->name('exams.')->group(function () {
+            Route::get('trash', [InstructorExamController::class, 'trash'])->name('trash');
+            Route::post('{id}/restore', [InstructorExamController::class, 'restore'])->name('restore');
+            Route::delete('{id}/force-delete', [InstructorExamController::class, 'forceDelete'])->name('force-delete');
+            Route::patch('{id}/toggle-status', [InstructorExamController::class, 'toggleStatus'])->name('toggle-status');
+        });
+        Route::apiResource('exams', InstructorExamController::class);
+
+        // ── Questions ───────────────────────────────────────────────────────
+        Route::prefix('questions')->name('questions.')->group(function () {
+            Route::get('trash', [InstructorQuestionController::class, 'trash'])->name('trash');
+            Route::post('{id}/restore', [InstructorQuestionController::class, 'restore'])->name('restore');
+            Route::delete('{id}/force-delete', [InstructorQuestionController::class, 'forceDelete'])->name('force-delete');
+        });
+        Route::apiResource('questions', InstructorQuestionController::class);
+
+        // ── Learning Groups (exam results only) ─────────────────────────────
+        Route::prefix('learning-groups')->name('learning-groups.')->group(function () {
+            Route::get('selection', [InstructorLearningGroupController::class, 'selection'])->name('selection');
+            Route::get('{learningGroup}/exams', [InstructorLearningGroupController::class, 'getGroupExams'])->name('exams');
+            Route::get('{learningGroup}/exams/{exam}/results/export', [InstructorLearningGroupController::class, 'exportExamResults'])->name('exams.results.export');
+            Route::get('{learningGroup}/exams/{exam}/results', [InstructorLearningGroupController::class, 'getExamResults'])->name('exams.results');
+            Route::get('{learningGroup}/students/{student}/exam-results', [InstructorLearningGroupController::class, 'getStudentExamResults'])->name('students.exam-results');
         });
 
         // Today's sessions for the authenticated instructor

@@ -91,6 +91,9 @@ class ExamController extends Controller
                 'is_passed' => $result['is_passed'],
                 'status' => $result['status'],
                 'percentage' => $percentage . '%',
+                'is_final' => $result['is_final'],
+                'course_id' => $result['course_id'],
+                'requires_review' => $result['requires_review'],
                 'feedback' => $result['is_passed']
                     ? 'Congratulations. You passed this exam.'
                     : 'Sorry. You failed this exam. Try again.',

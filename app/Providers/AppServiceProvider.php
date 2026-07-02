@@ -3,11 +3,9 @@
 namespace App\Providers;
 
 use App\Models\Course;
-use App\Models\CourseReview;
 use App\Models\Enrollment;
 use App\Models\Order;
 use App\Observers\CourseObserver;
-use App\Observers\CourseReviewObserver;
 use App\Observers\EnrollmentObserve;
 use App\Observers\OrderObserver;
 use Carbon\Carbon;
@@ -67,7 +65,6 @@ class AppServiceProvider extends ServiceProvider
         // Observers
         Course::observe(CourseObserver::class);
         Order::observe(OrderObserver::class);
-        CourseReview::observe(CourseReviewObserver::class);
 
         // Scramble API Documentation
         Scramble::configure()

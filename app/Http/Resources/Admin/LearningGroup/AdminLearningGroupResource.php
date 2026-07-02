@@ -55,6 +55,8 @@ class AdminLearningGroupResource extends JsonResource
             }),
 
             'created_at' => $this->created_at?->format('Y-m-d'),
+
+            'sync' => $this->when(isset($this->sync_meta), fn () => $this->sync_meta),
         ];
     }
 }

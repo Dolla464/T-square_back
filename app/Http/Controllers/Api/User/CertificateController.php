@@ -48,8 +48,18 @@ class CertificateController extends Controller
             ->with(['student', 'course'])
             ->where('student_id', $student->id)
             ->where('is_completed', true)
+            ->where(function ($query) use ($student) {
+                $query->whereHas('certificate')
+                    ->orWhereIn('course_id', function ($subQuery) use ($student) {
+                        $subQuery->select('course_id')
+                            ->from('course_reviews')
+                            ->where('student_id', $student->id);
+                    });
+            })
             ->latest('completed_at')
-            ->get();
+            ->get()
+            ->filter(fn (Enrollment $enrollment) => $this->certificateService->enrollmentCanIssueCertificate($enrollment))
+            ->values();
 
         return CertificateResource::collection($enrollments);
     }
@@ -83,7 +93,7 @@ class CertificateController extends Controller
         }
         $enrollment->load(['student', 'course']);
 
-        if ($enrollment->is_completed) {
+        if ($enrollment->is_completed && $this->certificateService->enrollmentCanIssueCertificate($enrollment)) {
             $this->certificateService->issueCertificate($enrollment);
         }
 
@@ -125,6 +135,13 @@ class CertificateController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Sorry, the certificate is not available because the course is not completed yet.',
+            ], 403);
+        }
+
+        if (! $this->certificateService->enrollmentCanIssueCertificate($enrollment)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Please submit a course review before accessing your certificate.',
             ], 403);
         }
 
@@ -175,6 +192,13 @@ class CertificateController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Sorry, the certificate is not available because the course is not completed yet.',
+            ], 403);
+        }
+
+        if (! $this->certificateService->enrollmentCanIssueCertificate($enrollment)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Please submit a course review before downloading your certificate.',
             ], 403);
         }
 

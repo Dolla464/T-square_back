@@ -33,17 +33,21 @@ class NotificationController extends Controller
     {
         $user = $request->user();
 
-        // 1. جلب البيانات من الـ Service
-        $notifications = $this->notificationService->getUserNotifications($user);
+        $notifications = $this->notificationService->getUserNotifications(
+            $user,
+            $request->integer('per_page', 15)
+        );
         $unreadCount = $this->notificationService->getUnreadCount($user);
 
-        // 2. إرجاع الـ Resource للفرونت إند
-        return NotificationResource::collection($notifications)->additional([
+        $resource = NotificationResource::collection($notifications);
+        $payload = $resource->response()->getData(true);
+        $meta = $payload['meta'] ?? [];
+        $meta['unread_count'] = $unreadCount;
+
+        return $resource->additional([
             'status' => 'success',
             'message' => 'Notifications retrieved successfully',
-            'meta' => [
-                'unread_count' => $unreadCount,
-            ],
+            'meta' => $meta,
         ]);
     }
 
