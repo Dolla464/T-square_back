@@ -92,13 +92,16 @@ class AdminLearningGroupService
             $this->generateAttendanceSessions($group);
 
             if (! empty($data['student_ids'])) {
-                $this->syncGroupStudents($group, $data);
+                $studentSync = $this->syncGroupStudents($group, $data);
             }
 
             $group->refresh();
             $newStatus = $group->status;
             $syncResult = $this->syncEnrollmentsWithGroupStatus($group, 'active', $newStatus);
-            $group->sync_meta = $syncResult;
+            $group->sync_meta = array_merge(
+                $syncResult,
+                $studentSync ?? ['skipped_student_ids' => []]
+            );
 
             $group->load(['course:id,title', 'instructor:id,full_name', 'schedules']);
 
@@ -118,12 +121,12 @@ class AdminLearningGroupService
     public function getGroupDetails(LearningGroup $group): AdminLearningGroupResource
     {
         $group->load(['course:id,title', 'instructor:id,full_name', 'schedules']);
-        $group->loadCount('students');
 
         $students = DB::table('enrollments')
             ->join('students', 'enrollments.student_id', '=', 'students.id')
             ->join('users', 'students.user_id', '=', 'users.id')
             ->where('enrollments.group_id', $group->id)
+            ->where('enrollments.course_id', $group->course_id)
             ->select(
                 'students.id',
                 'students.full_name',
@@ -135,6 +138,27 @@ class AdminLearningGroupService
             )
             ->latest('enrollments.updated_at')
             ->get();
+
+        // #region agent log
+        file_put_contents(
+            base_path('debug-0d7cb1.log'),
+            json_encode([
+                'sessionId' => '0d7cb1',
+                'hypothesisId' => 'F',
+                'location' => 'AdminLearningGroupService.php:getGroupDetails',
+                'message' => 'group students loaded',
+                'data' => [
+                    'groupId' => $group->id,
+                    'courseId' => $group->course_id,
+                    'studentCount' => $students->count(),
+                    'uniqueStudentIds' => $students->pluck('id')->unique()->values()->all(),
+                ],
+                'timestamp' => (int) round(microtime(true) * 1000),
+                'runId' => 'post-fix',
+            ]) . "\n",
+            FILE_APPEND
+        );
+        // #endregion
 
         $group->setRelation('assigned_students', $students);
 
@@ -174,13 +198,16 @@ class AdminLearningGroupService
             }
 
             if (isset($data['student_ids'])) {
-                $this->syncGroupStudents($group, $data);
+                $studentSync = $this->syncGroupStudents($group, $data);
             }
 
             $group->refresh();
             $newStatus = $group->status;
             $syncResult = $this->syncEnrollmentsWithGroupStatus($group, $oldStatus, $newStatus);
-            $group->sync_meta = $syncResult;
+            $group->sync_meta = array_merge(
+                $syncResult,
+                $studentSync ?? ['skipped_student_ids' => []]
+            );
 
             $group->load(['course:id,title', 'instructor:id,full_name', 'schedules', 'attendanceSessions']);
 
@@ -207,6 +234,7 @@ class AdminLearningGroupService
         if ($newStatus === 'completed') {
             $incompleteEnrollments = Enrollment::query()
                 ->where('group_id', $group->id)
+                ->where('course_id', $group->course_id)
                 ->where('is_completed', false)
                 ->get();
 
@@ -226,6 +254,7 @@ class AdminLearningGroupService
         if ($oldStatus === 'completed' && $newStatus === 'active') {
             $completedEnrollments = Enrollment::query()
                 ->where('group_id', $group->id)
+                ->where('course_id', $group->course_id)
                 ->where('is_completed', true)
                 ->get();
 
@@ -273,14 +302,18 @@ class AdminLearningGroupService
 
     /**
      * Assign students to the group and apply per-student completion flags from the payload.
+     *
+     * @return array{skipped_student_ids: int[]}
      */
-    private function syncGroupStudents(LearningGroup $group, array $data): void
+    private function syncGroupStudents(LearningGroup $group, array $data): array
     {
         $incomingStudentIds = array_map('intval', array_filter((array) ($data['student_ids'] ?? [])));
         $studentStatuses = $data['student_statuses'] ?? [];
+        $skippedStudentIds = [];
 
         DB::table('enrollments')
             ->where('group_id', $group->id)
+            ->where('course_id', $group->course_id)
             ->whereNotIn('student_id', $incomingStudentIds)
             ->update(['group_id' => null, 'updated_at' => now()]);
 
@@ -289,21 +322,63 @@ class AdminLearningGroupService
                 ?? $studentStatuses[(string) $studentId]
                 ?? false);
 
-            DB::table('enrollments')->updateOrInsert(
-                ['student_id' => $studentId, 'course_id' => $group->course_id],
-                [
+            // #region agent log
+            $existingEnrollment = DB::table('enrollments')
+                ->where('student_id', $studentId)
+                ->where('course_id', $group->course_id)
+                ->first();
+            file_put_contents(
+                base_path('debug-0d7cb1.log'),
+                json_encode([
+                    'sessionId' => '0d7cb1',
+                    'hypothesisId' => 'A',
+                    'location' => 'AdminLearningGroupService.php:syncGroupStudents',
+                    'message' => 'before enrollment update',
+                    'data' => [
+                        'studentId' => $studentId,
+                        'courseId' => $group->course_id,
+                        'groupId' => $group->id,
+                        'enrollmentExists' => $existingEnrollment !== null,
+                        'willInsert' => false,
+                        'enrollment' => $existingEnrollment ? [
+                            'id' => $existingEnrollment->id,
+                            'price_paid' => $existingEnrollment->price_paid,
+                            'order_id' => $existingEnrollment->order_id,
+                            'group_id' => $existingEnrollment->group_id,
+                        ] : null,
+                    ],
+                    'timestamp' => (int) round(microtime(true) * 1000),
+                    'runId' => 'post-fix',
+                ]) . "\n",
+                FILE_APPEND
+            );
+            // #endregion
+
+            $updated = DB::table('enrollments')
+                ->where('student_id', $studentId)
+                ->where('course_id', $group->course_id)
+                ->update([
                     'group_id'     => $group->id,
                     'is_completed' => $isCompleted,
                     'completed_at' => $isCompleted ? now() : null,
                     'updated_at'   => now(),
-                ]
-            );
+                ]);
+
+            if (!$updated) {
+                $skippedStudentIds[] = $studentId;
+            }
         }
 
-        $actualCount = DB::table('enrollments')->where('group_id', $group->id)->count();
+        $actualCount = DB::table('enrollments')
+            ->where('group_id', $group->id)
+            ->where('course_id', $group->course_id)
+            ->count();
+
         DB::table('learning_groups')
             ->where('id', $group->id)
             ->update(['enrolled_students' => $actualCount]);
+
+        return ['skipped_student_ids' => $skippedStudentIds];
     }
 
     /**
@@ -546,7 +621,10 @@ class AdminLearningGroupService
             DB::table('learning_groups')
                 ->where('id', $groupId)
                 ->update([
-                    'enrolled_students' => DB::table('enrollments')->where('group_id', $groupId)->count(),
+                    'enrolled_students' => DB::table('enrollments')
+                        ->where('group_id', $groupId)
+                        ->where('course_id', $courseId)
+                        ->count(),
                 ]);
         }
 
@@ -593,6 +671,7 @@ class AdminLearningGroupService
             ->join('students', 'enrollments.student_id', '=', 'students.id')
             ->join('users', 'students.user_id', '=', 'users.id')
             ->where('enrollments.group_id', $group->id)
+            ->where('enrollments.course_id', $group->course_id)
             ->select(
                 'students.id',
                 'students.full_name',

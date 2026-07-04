@@ -106,6 +106,7 @@ Route::middleware('auth:sanctum')
                 Route::get('today', 'today')->name('today');
                 Route::get('schedule', 'schedule')->name('schedule');
                 Route::get('qr', 'qr')->name('qr');
+                Route::post('check-in', 'checkIn')->name('check-in');
                 Route::get('groups/{learningGroup}', 'groupHistory')->name('groups.history');
             });
     });
