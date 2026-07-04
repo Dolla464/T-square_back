@@ -10,6 +10,7 @@ use App\Models\Enrollment;
 use App\Models\LearningGroup;
 use App\Http\Resources\Admin\LearningGroup\AdminLearningGroupResource;
 use App\Notifications\CourseReviewRequired;
+use App\Notifications\InstructorGroupAssignedNotification;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -100,6 +101,12 @@ class AdminLearningGroupService
             $group->sync_meta = $syncResult;
 
             $group->load(['course:id,title', 'instructor:id,full_name', 'schedules']);
+
+            // Notify the assigned instructor about the new group
+            $instructorUser = $group->instructor?->user;
+            if ($instructorUser) {
+                $instructorUser->notify(new InstructorGroupAssignedNotification($group));
+            }
 
             return new AdminLearningGroupResource($group);
         });

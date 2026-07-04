@@ -23,23 +23,39 @@ class SessionActivated extends Notification implements ShouldQueue
 
     public function toDatabase(object $notifiable): array
     {
-        $group = $this->session->learningGroup;
+        $group  = $this->session->learningGroup;
         $course = $group?->course;
 
-        return [
-            'type' => 'session_activated',
-            'title' => 'Session Activated',
-            'message' => "Your session '{$course?->title}' ({$group?->group_name}) is now active.",
-            'session_id' => $this->session->id,
-            'course_id' => $course?->id,
-            'group_name' => $group?->group_name,
+        $isStudent = $notifiable->hasRole('student');
+
+        $message = $isStudent
+            ? "Your session for '{$course?->title}' ({$group?->group_name}) is now active. You can register your attendance."
+            : "Your session '{$course?->title}' ({$group?->group_name}) is now active.";
+
+        $actionUrl = $isStudent
+            ? '/student/course/'.$course?->id
+            : '/instructor/attendance?session='.$this->session->id;
+
+        $payload = [
+            'type'         => 'session_activated',
+            'title'        => 'Session Activated',
+            'message'      => $message,
+            'session_id'   => $this->session->id,
+            'course_id'    => $course?->id,
+            'group_name'   => $group?->group_name,
             'course_title' => $course?->title,
-            'qr_code' => $this->session->qr_code,
-            'start_time' => $this->session->schedule?->start_time?->format('H:i'),
-            'room' => $this->session->schedule?->room,
-            'icon' => 'calendar-check',
-            'action_url' => '/instructor/attendance?session='.$this->session->id,
+            'start_time'   => $this->session->schedule?->start_time?->format('H:i'),
+            'room'         => $this->session->schedule?->room,
+            'icon'         => 'calendar-check',
+            'action_url'   => $actionUrl,
         ];
+
+        // Only expose QR code to the instructor
+        if (! $isStudent) {
+            $payload['qr_code'] = $this->session->qr_code;
+        }
+
+        return $payload;
     }
 
     public function toBroadcast(object $notifiable): BroadcastMessage

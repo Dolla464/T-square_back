@@ -3,11 +3,13 @@
 namespace App\Console\Commands;
 
 use App\Models\AttendanceSession;
+use App\Models\User;
 use App\Notifications\SessionActivated;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
 class ActivateAttendanceSessions extends Command
@@ -50,10 +52,27 @@ class ActivateAttendanceSessions extends Command
                     'qr_code' => $qrCode,
                 ]);
 
+                $session->loadMissing(['learningGroup.instructor.user', 'learningGroup.course', 'schedule']);
+
                 // Notify instructor
                 $instructor = $session->learningGroup?->instructor;
                 if ($instructor?->user) {
                     $instructor->user->notify(new SessionActivated($session));
+                }
+
+                // Notify enrolled students
+                $group = $session->learningGroup;
+                if ($group) {
+                    $studentUserIds = DB::table('enrollments')
+                        ->join('students', 'enrollments.student_id', '=', 'students.id')
+                        ->join('users', 'students.user_id', '=', 'users.id')
+                        ->where('enrollments.group_id', $group->id)
+                        ->pluck('users.id');
+
+                    if ($studentUserIds->isNotEmpty()) {
+                        $students = User::whereIn('id', $studentUserIds)->get();
+                        Notification::send($students, new SessionActivated($session));
+                    }
                 }
 
                 $activated++;

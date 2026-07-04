@@ -242,7 +242,13 @@ class AdminLearningGroupController extends Controller
         $sessions = $learningGroup->attendanceSessions()
             ->with('schedule')
             ->orderBy('session_date')
-            ->get();
+            ->get()
+            ->transform(function ($session) {
+                $session->session_date = $session->session_date?->format('Y-m-d');
+                $session->override_date = $session->override_date?->format('Y-m-d');
+
+                return $session;
+            });
 
         return $this->successResponse($sessions, 'Sessions retrieved successfully');
     }

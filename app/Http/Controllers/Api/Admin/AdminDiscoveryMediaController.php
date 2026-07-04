@@ -36,13 +36,8 @@ class AdminDiscoveryMediaController extends Controller
 
     public function upload(UploadDiscoveryMediaRequest $request): JsonResponse
     {
-        $request->validate([
-            'images' => 'required|array',
-            'action' => 'required|string|in:append,replace',
-            'key' => 'required|string|in:discovery_media,about_media,hero_image',
-        ]);
         $settingsKey = $request->input('key');
-        $isSingle = ($settingsKey === 'hero_image'); // If it's hero_image it will be true automatically
+        $isSingle = ($settingsKey === 'hero_image');
 
         $finalData = $this->settingService->handleWebsiteMediaUpload(
             $request->file('images'),

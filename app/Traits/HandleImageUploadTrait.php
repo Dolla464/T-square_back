@@ -12,55 +12,126 @@ use Illuminate\Support\Str;
 trait HandleImageUploadTrait
 {
     /**
-     * Upload, resize, and convert an image to WebP format.
+     * Resolve a storage URL or path to a relative path on the public disk.
+     */
+    protected function resolveStoragePath(string $urlOrPath): ?string
+    {
+        if ($urlOrPath === '') {
+            return null;
+        }
+
+        $storagePublicUrl = Storage::disk('public')->url('');
+
+        if (str_starts_with($urlOrPath, $storagePublicUrl)) {
+            return ltrim(substr($urlOrPath, strlen($storagePublicUrl)), '/');
+        }
+
+        if (str_starts_with($urlOrPath, '/storage/')) {
+            return ltrim(substr($urlOrPath, strlen('/storage/')), '/');
+        }
+
+        if (preg_match('#/storage/(.+)$#', $urlOrPath, $matches)) {
+            return $matches[1];
+        }
+
+        if (! str_starts_with($urlOrPath, 'http://') && ! str_starts_with($urlOrPath, 'https://')) {
+            return ltrim($urlOrPath, '/');
+        }
+
+        return null;
+    }
+
+    /**
+     * Delete files from the public disk using URLs or relative paths.
      *
-     * @param UploadedFile $file
-     * @param string $folder
-     * @param string|null $oldPath
-     * @param int $maxSize
-     * @return string
+     * @param  array<int, string>  $urlsOrPaths
+     */
+    protected function deleteStorageImages(array $urlsOrPaths): void
+    {
+        foreach ($urlsOrPaths as $urlOrPath) {
+            if (empty($urlOrPath) || ! is_string($urlOrPath)) {
+                continue;
+            }
+
+            $relativePath = $this->resolveStoragePath($urlOrPath);
+
+            if ($relativePath && Storage::disk('public')->exists($relativePath)) {
+                Storage::disk('public')->delete($relativePath);
+            }
+        }
+    }
+
+    /**
+     * Upload multiple images with all-or-nothing rollback on failure.
+     *
+     * @param  array<int, UploadedFile>  $files
+     * @return array<int, string>
+     *
      * @throws \Exception
      */
-    public function uploadImage(UploadedFile $file, string $folder, ?string $oldPath = null, int $maxSize = 800): string
-    {
-        // 1. Ensure required GD functions are available
+    public function uploadImagesBatch(
+        array $files,
+        string $folder,
+        int $maxSize = 800,
+        bool $returnUrls = false
+    ): array {
+        $uploadedPaths = [];
+
+        try {
+            foreach ($files as $file) {
+                if (! $file instanceof UploadedFile) {
+                    throw new \Exception('Invalid file in upload batch.');
+                }
+
+                $uploadedPaths[] = $this->uploadImage($file, $folder, null, $maxSize, $returnUrls);
+                \gc_collect_cycles();
+            }
+        } catch (\Throwable $e) {
+            $this->deleteStorageImages($uploadedPaths);
+            throw $e;
+        }
+
+        return $uploadedPaths;
+    }
+
+    /**
+     * Upload, resize, and convert an image to WebP format.
+     *
+     * @throws \Exception
+     */
+    public function uploadImage(
+        UploadedFile $file,
+        string $folder,
+        ?string $oldPath = null,
+        int $maxSize = 800,
+        bool $returnUrl = false
+    ): string {
         if (! \function_exists('imagewebp') || (! \function_exists('imagecreatefromjpeg') && ! \function_exists('imagecreatefrompng') && ! \function_exists('imagecreatefromwebp'))) {
             throw new \Exception('GD extension with WebP support is required.');
         }
 
-        // 2. Delete the old image if it exists
-        // نُحوّل الـ URL الكامل إلى مسار نسبي (لقواعد البيانات القديمة التي خزنت URL كامل)
         if ($oldPath) {
-            $storagePublicUrl = Storage::disk('public')->url('');
-            if (str_starts_with($oldPath, $storagePublicUrl)) {
-                $oldPath = ltrim(substr($oldPath, strlen($storagePublicUrl)), '/');
-            } elseif (str_starts_with($oldPath, 'http://') || str_starts_with($oldPath, 'https://')) {
-                // URL كامل لكن من domain مختلف أو نمط مختلف - نتجاهله آمنًا
-                $oldPath = null;
+            $resolvedOldPath = $this->resolveStoragePath($oldPath);
+
+            if ($resolvedOldPath && Storage::disk('public')->exists($resolvedOldPath)) {
+                Storage::disk('public')->delete($resolvedOldPath);
             }
         }
 
-        if ($oldPath && Storage::disk('public')->exists($oldPath)) {
-            Storage::disk('public')->delete($oldPath);
-        }
-
-        // 3. Ensure target directory exists
-        if (!Storage::disk('public')->exists($folder)) {
+        if (! Storage::disk('public')->exists($folder)) {
             Storage::disk('public')->makeDirectory($folder);
         }
-        
-        // 4. Prepare the name and path
-        $generatedName = uniqid() . '_' . Str::random(5) . '.webp';
+
+        $generatedName = uniqid().'_'.Str::random(5).'.webp';
         $fullPath = "{$folder}/{$generatedName}";
 
-        // 5. Read the original image
         $imagePath = $file->getRealPath();
 
         if ($imagePath === false || ! file_exists($imagePath)) {
             throw new \Exception('Uploaded file is not readable or no longer available.');
         }
 
-        $info = \getimagesize($imagePath);
+        $info = @\getimagesize($imagePath);
 
         if ($info === false) {
             throw new \Exception('Could not read image information. The file may be corrupted.');
@@ -76,7 +147,17 @@ trait HandleImageUploadTrait
             default => throw new \Exception('Image type not supported'),
         };
 
-        // 6. Resize if necessary while maintaining aspect ratio
+        if ($source === false) {
+            throw new \Exception('Could not load the image for processing.');
+        }
+
+        if (\function_exists('imagepalettetotruecolor')) {
+            \imagepalettetotruecolor($source);
+        }
+
+        \imagealphablending($source, true);
+        \imagesavealpha($source, true);
+
         if ($width > $maxSize || $height > $maxSize) {
             if ($width > $height) {
                 $newWidth = $maxSize;
@@ -87,8 +168,7 @@ trait HandleImageUploadTrait
             }
 
             $resizedImage = \imagecreatetruecolor($newWidth, $newHeight);
-            
-            // Maintain transparency for PNG/WebP
+
             \imagealphablending($resizedImage, false);
             \imagesavealpha($resizedImage, true);
 
@@ -98,19 +178,21 @@ trait HandleImageUploadTrait
             $source = $resizedImage;
         }
 
-        // 7. Convert to WebP using Buffer
         ob_start();
-        \imagewebp($source, null, 80); // quality 80%
+        \imagewebp($source, null, 80);
         $webpContent = ob_get_clean();
         \imagedestroy($source);
 
-        // 8. Save the image and verify
+        if ($webpContent === false || $webpContent === '') {
+            throw new \Exception('Failed to convert the image to WebP.');
+        }
+
         $saved = Storage::disk('public')->put($fullPath, $webpContent);
-        
-        if (!$saved) {
+
+        if (! $saved) {
             throw new \Exception('Failed to save the image to disk.');
         }
 
-        return $fullPath;
+        return $returnUrl ? Storage::url($fullPath) : $fullPath;
     }
 }

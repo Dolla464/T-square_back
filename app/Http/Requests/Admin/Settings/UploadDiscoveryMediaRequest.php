@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Admin\Settings;
 
+use App\Models\Setting;
+use App\Services\Admin\AdminSettingService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -23,10 +25,39 @@ class UploadDiscoveryMediaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Determine the operation type: replace or append
+            'key' => 'required|string|in:discovery_media,about_media,hero_image',
             'action' => 'required|in:replace,append',
-            'images' => 'required|array|min:1|max:35',
-            'images.*' => 'required|image|mimes:jpeg,png,jpg,webp|max:3072', // Maximum 3MB for the image
+            'images' => 'required|array|min:1|max:10',
+            'images.*' => 'required|image|mimes:jpeg,png,jpg,webp|max:3072',
         ];
+    }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator): void {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            if ($this->input('key') !== 'discovery_media' || $this->input('action') !== 'append') {
+                return;
+            }
+
+            $currentImages = Setting::get('discovery_media', []);
+            $currentCount = is_array($currentImages) ? count($currentImages) : 0;
+            $incomingCount = count($this->file('images', []));
+
+            if ($currentCount + $incomingCount > AdminSettingService::DISCOVERY_MEDIA_MAX) {
+                $remaining = max(0, AdminSettingService::DISCOVERY_MEDIA_MAX - $currentCount);
+
+                $validator->errors()->add(
+                    'images',
+                    "Discovery gallery cannot exceed ".AdminSettingService::DISCOVERY_MEDIA_MAX." images. You can upload up to {$remaining} more image(s)."
+                );
+            }
+        });
     }
 }
