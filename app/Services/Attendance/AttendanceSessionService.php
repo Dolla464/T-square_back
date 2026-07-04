@@ -4,6 +4,7 @@ namespace App\Services\Attendance;
 
 use App\Models\AttendanceSession;
 use App\Models\LearningGroup;
+use Carbon\Carbon;
 
 class AttendanceSessionService
 {
@@ -68,9 +69,22 @@ class AttendanceSessionService
         $endRaw   = $session->override_end_time ?? $session->schedule?->end_time;
 
         return [
-            'start_time' => $this->formatTime($startRaw),
-            'end_time'   => $this->formatTime($endRaw),
+            'start_time'   => $this->formatTime($startRaw),
+            'end_time'     => $this->formatTime($endRaw),
             'session_date' => ($session->override_date ?? $session->session_date)?->format('Y-m-d'),
+        ];
+    }
+
+    public function getEffectiveDateTimeRange(AttendanceSession $session): array
+    {
+        $session->loadMissing('schedule');
+        $times = $this->getEffectiveTimes($session);
+        $date  = $times['session_date'] ?? $session->session_date->format('Y-m-d');
+
+        return [
+            'session_date' => $date,
+            'start'        => Carbon::parse("{$date} {$times['start_time']}"),
+            'end'          => Carbon::parse("{$date} {$times['end_time']}"),
         ];
     }
 

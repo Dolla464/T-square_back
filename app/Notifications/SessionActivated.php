@@ -33,8 +33,8 @@ class SessionActivated extends Notification implements ShouldQueue
             : "Your session '{$course?->title}' ({$group?->group_name}) is now active.";
 
         $actionUrl = $isStudent
-            ? '/student/course/'.$course?->id
-            : '/instructor/attendance?session='.$this->session->id;
+            ? '/student/attendance?session=' . $this->session->id
+            : '/instructor/attendance?session=' . $this->session->id;
 
         $payload = [
             'type'         => 'session_activated',

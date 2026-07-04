@@ -64,14 +64,6 @@ require __DIR__ . '/admin.php';
 // Attendance — hardware device QR scanner (no user session required, device authenticates via device_id)
 Route::post('attendance/scan', [AttendanceController::class, 'scan'])->name('attendance.scan');
 
-// Student attendance QR generation (auth:sanctum, student role handled inside controller)
-Route::middleware(['auth:sanctum', 'role:student'])
-    ->prefix('student')
-    ->name('student.')
-    ->group(function () {
-        Route::get('attendance/qr', [AttendanceController::class, 'getStudentQr'])->name('attendance.qr');
-    });
-
 Route::middleware('auth:sanctum')->group(function () {
 
     // Authenticated user identity

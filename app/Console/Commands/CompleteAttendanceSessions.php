@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
+use App\Services\Attendance\AttendanceSessionService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -14,24 +15,27 @@ class CompleteAttendanceSessions extends Command
     protected $signature   = 'attendance:complete';
     protected $description = 'Complete active attendance sessions 30 minutes after their scheduled end time and mark absent students.';
 
-    public function handle(): void
+    public function handle(AttendanceSessionService $attendanceSessionService): void
     {
         $now       = Carbon::now();
-        $threshold = $now->copy()->subMinutes(30);   // end_time must be <= this to trigger completion
+        $threshold = $now->copy()->subMinutes(30);
+        $today     = $now->toDateString();
 
-        // ── Diagnostic header ─────────────────────────────────────────────────
         $this->line('=== attendance:complete diagnostic ===');
         $this->line('Timezone      : ' . config('app.timezone'));
         $this->line('Now           : ' . $now->toDateTimeString());
-        $this->line('Today (date)  : ' . $now->toDateString());
-        $this->line('Threshold     : end_time must be <= ' . $threshold->format('H:i:s') . ' (now - 30 min)');
+        $this->line('Today (date)  : ' . $today);
+        $this->line('Threshold     : effective end_time must be <= ' . $threshold->format('H:i:s') . ' (now - 30 min)');
         $this->line('');
 
-        // ── Show ALL active sessions for today (ignore end_time check) ────────
         $allActive = AttendanceSession::where('status', 'active')
-            ->whereDate('session_date', $now->toDateString())
             ->with('schedule')
-            ->get();
+            ->get()
+            ->filter(function (AttendanceSession $session) use ($attendanceSessionService, $today) {
+                $range = $attendanceSessionService->getEffectiveDateTimeRange($session);
+
+                return $range['session_date'] === $today;
+            });
 
         $this->line("Active sessions for today: {$allActive->count()}");
 
@@ -39,27 +43,31 @@ class CompleteAttendanceSessions extends Command
             $this->warn('  → No active sessions exist for today. Run attendance:activate first.');
         }
 
-        foreach ($allActive as $s) {
-            $rawEnd     = $s->schedule ? $s->schedule->getRawOriginal('end_time') : 'NULL (no schedule)';
-            $rawStart   = $s->schedule ? $s->schedule->getRawOriginal('start_time') : 'NULL';
-            $pastThresh = $s->schedule && $rawEnd <= $threshold->format('H:i:s');
+        foreach ($allActive as $session) {
+            $range      = $attendanceSessionService->getEffectiveDateTimeRange($session);
+            $effectiveEnd = $range['end']->format('H:i:s');
+            $pastThresh = $effectiveEnd <= $threshold->format('H:i:s');
             $label      = $pastThresh
                 ? '✓ WILL COMPLETE'
-                : "✗ too early — end_time={$rawEnd} must be <= {$threshold->format('H:i:s')} (fires at " . (Carbon::createFromFormat('H:i:s', $rawEnd)->addMinutes(30)->format('H:i:s')) . ')';
+                : "✗ too early — end_time={$effectiveEnd} must be <= {$threshold->format('H:i:s')}";
 
-            $this->line("  Session #{$s->id} | schedule_id={$s->schedule_id} | start={$rawStart} | end={$rawEnd} | {$label}");
+            $this->line("  Session #{$session->id} | start={$range['start']->format('H:i:s')} | end={$effectiveEnd} | {$label}");
         }
 
         $this->line('');
 
-        // ── Main query: sessions whose end_time passed 30+ minutes ago ────────
         $sessions = AttendanceSession::where('status', 'active')
-            ->whereDate('session_date', $now->toDateString())
-            ->whereHas('schedule', function ($q) use ($threshold) {
-                $q->whereTime('end_time', '<=', $threshold->format('H:i:s'));
-            })
             ->with(['schedule', 'attendanceRecords'])
-            ->get();
+            ->get()
+            ->filter(function (AttendanceSession $session) use ($attendanceSessionService, $today, $threshold) {
+                $range = $attendanceSessionService->getEffectiveDateTimeRange($session);
+
+                if ($range['session_date'] !== $today) {
+                    return false;
+                }
+
+                return $range['end']->format('H:i:s') <= $threshold->format('H:i:s');
+            });
 
         $this->line("Sessions matched for completion: {$sessions->count()}");
 
@@ -68,7 +76,10 @@ class CompleteAttendanceSessions extends Command
         foreach ($sessions as $session) {
             $this->line("  Completing session #{$session->id} and marking absent students...");
 
-            $presentStudentIds = $session->attendanceRecords->pluck('student_id')->toArray();
+            $presentStudentIds = $session->attendanceRecords
+                ->whereIn('status', ['present', 'late'])
+                ->pluck('student_id')
+                ->toArray();
 
             $enrolledStudentIds = DB::table('enrollments')
                 ->where('group_id', $session->learning_group_id)
@@ -77,7 +88,7 @@ class CompleteAttendanceSessions extends Command
 
             $absentStudentIds = array_diff($enrolledStudentIds, $presentStudentIds);
 
-            $this->line("    Enrolled: " . count($enrolledStudentIds) . " | Present: " . count($presentStudentIds) . " | Absent: " . count($absentStudentIds));
+            $this->line('    Enrolled: ' . count($enrolledStudentIds) . ' | Present: ' . count($presentStudentIds) . ' | Absent: ' . count($absentStudentIds));
 
             foreach ($absentStudentIds as $studentId) {
                 AttendanceRecord::updateOrCreate(

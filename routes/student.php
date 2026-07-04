@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\User\CourseReviewController;
 use App\Http\Controllers\Api\User\EnrollmentController;
 use App\Http\Controllers\Api\User\InstructorController;
 use App\Http\Controllers\Api\User\SolutionsController;
+use App\Http\Controllers\Api\Student\StudentAttendanceController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -95,5 +96,16 @@ Route::middleware('auth:sanctum')
             ->group(function () {
                 Route::get('eligibility/{courseId}', 'eligibility')->name('eligibility');
                 Route::post('/', 'store')->name('store');
+            });
+
+        Route::controller(StudentAttendanceController::class)
+            ->prefix('attendance')
+            ->name('attendance.')
+            ->group(function () {
+                Route::get('summary', 'summary')->name('summary');
+                Route::get('today', 'today')->name('today');
+                Route::get('schedule', 'schedule')->name('schedule');
+                Route::get('qr', 'qr')->name('qr');
+                Route::get('groups/{learningGroup}', 'groupHistory')->name('groups.history');
             });
     });
