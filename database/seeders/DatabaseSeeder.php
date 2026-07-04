@@ -40,9 +40,10 @@ class DatabaseSeeder extends Seeder
 
             // ════════════════════════════════════════
             // ② حسابات النظام الأساسية
-            //    Admin + Student + Instructor للاختبار
+            //    Admin + Student + Instructor + Receptionist للاختبار
             // ════════════════════════════════════════
             AdminUserSeeder::class,
+            ReceptionistSeeder::class,
 
             // ════════════════════════════════════════
             // ③ بيانات ثابتة لا تعتمد على غيرها
@@ -118,9 +119,10 @@ class DatabaseSeeder extends Seeder
         $this->command->table(
             ['الدور', 'الإيميل', 'كلمة المرور'],
             [
-                ['Admin',      'admin@tsquare.com',      'Admin@12345'],
-                ['Instructor', 'instructor@tsquare.com', 'Instructor@12345'],
-                ['Student',    'student@tsquare.com',    'Student@12345'],
+                ['Admin',         'admin@tsquare.com',         'Admin@12345'],
+                ['Instructor',    'instructor@tsquare.com',    'Instructor@12345'],
+                ['Student',       'student@tsquare.com',       'Student@12345'],
+                ['Receptionist',  'receptionist@tsquare.com',  'Receptionist@12345'],
             ]
         );
     }
