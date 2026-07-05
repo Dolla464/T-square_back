@@ -139,27 +139,6 @@ class AdminLearningGroupService
             ->latest('enrollments.updated_at')
             ->get();
 
-        // #region agent log
-        file_put_contents(
-            base_path('debug-0d7cb1.log'),
-            json_encode([
-                'sessionId' => '0d7cb1',
-                'hypothesisId' => 'F',
-                'location' => 'AdminLearningGroupService.php:getGroupDetails',
-                'message' => 'group students loaded',
-                'data' => [
-                    'groupId' => $group->id,
-                    'courseId' => $group->course_id,
-                    'studentCount' => $students->count(),
-                    'uniqueStudentIds' => $students->pluck('id')->unique()->values()->all(),
-                ],
-                'timestamp' => (int) round(microtime(true) * 1000),
-                'runId' => 'post-fix',
-            ]) . "\n",
-            FILE_APPEND
-        );
-        // #endregion
-
         $group->setRelation('assigned_students', $students);
 
         return new AdminLearningGroupResource($group);
@@ -321,38 +300,6 @@ class AdminLearningGroupService
             $isCompleted = (bool) ($studentStatuses[$studentId]
                 ?? $studentStatuses[(string) $studentId]
                 ?? false);
-
-            // #region agent log
-            $existingEnrollment = DB::table('enrollments')
-                ->where('student_id', $studentId)
-                ->where('course_id', $group->course_id)
-                ->first();
-            file_put_contents(
-                base_path('debug-0d7cb1.log'),
-                json_encode([
-                    'sessionId' => '0d7cb1',
-                    'hypothesisId' => 'A',
-                    'location' => 'AdminLearningGroupService.php:syncGroupStudents',
-                    'message' => 'before enrollment update',
-                    'data' => [
-                        'studentId' => $studentId,
-                        'courseId' => $group->course_id,
-                        'groupId' => $group->id,
-                        'enrollmentExists' => $existingEnrollment !== null,
-                        'willInsert' => false,
-                        'enrollment' => $existingEnrollment ? [
-                            'id' => $existingEnrollment->id,
-                            'price_paid' => $existingEnrollment->price_paid,
-                            'order_id' => $existingEnrollment->order_id,
-                            'group_id' => $existingEnrollment->group_id,
-                        ] : null,
-                    ],
-                    'timestamp' => (int) round(microtime(true) * 1000),
-                    'runId' => 'post-fix',
-                ]) . "\n",
-                FILE_APPEND
-            );
-            // #endregion
 
             $updated = DB::table('enrollments')
                 ->where('student_id', $studentId)

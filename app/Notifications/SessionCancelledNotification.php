@@ -43,7 +43,6 @@ class SessionCancelledNotification extends Notification implements ShouldQueue
             'session_date' => $dateStr,
             'reason'       => $this->reason,
             'icon'         => 'calendar-x',
-            'action_url'   => null,
         ];
     }
 

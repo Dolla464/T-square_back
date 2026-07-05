@@ -40,17 +40,15 @@ class ExamListResource extends JsonResource
 
             // The new data for the attempts
             'max_attempts' => $this->max_attempts,
-            'attempts_count' => $attemptsCount, // The student entered how many times
-            'remaining_attempts' => $remainingAttempts, // Remaining attempts (number or 'unlimited')
-
-            // Alternative professional and fast for the has_attempt without additional query
+            'attempts_count' => $attemptsCount,
+            'remaining_attempts' => $remainingAttempts,
             'has_attempt' => $attemptsCount > 0,
-
-            // Data gift for the frontend: it lets him lock the button directly if true
             'is_locked' => $remainingAttempts !== 'unlimited' && $remainingAttempts <= 0,
-
-            // Check if the student has passed any previous attempt for this exam
             'is_passed_before' => $isPassedBefore,
+
+            // Lets the frontend warn the student before they start an empty exam
+            'questions_count' => $this->questions_count ?? $this->questions()->count(),
+            'has_questions' => ($this->questions_count ?? $this->questions()->count()) > 0,
         ];
     }
 }

@@ -5,15 +5,10 @@ namespace App\Notifications;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Student;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class AdminNewEnrollmentNotification extends Notification implements ShouldQueue
+class AdminNewEnrollmentNotification extends Notification
 {
-    use Queueable;
-
     public function __construct(
         public readonly Course $course,
         public readonly Student $student,
@@ -22,17 +17,7 @@ class AdminNewEnrollmentNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
-    }
-
-    public function toMail(object $notifiable): MailMessage
-    {
-        return (new MailMessage)
-            ->subject('New Student Enrollment')
-            ->line('A new student has enrolled in a course.')
-            ->line('Student: '.$this->student->full_name)
-            ->line('Course: '.$this->course->title)
-            ->action('View Enrollments', url('/admin/courses/'.$this->course->id.'/enrollments'));
+        return ['database'];
     }
 
     public function toDatabase(object $notifiable): array
@@ -44,7 +29,6 @@ class AdminNewEnrollmentNotification extends Notification implements ShouldQueue
             'student_id' => $this->student->id,
             'course_id' => $this->course->id,
             'enrollment_id' => $this->enrollment->id,
-            'action_url' => '/admin/courses?course='.$this->course->id,
             'icon' => 'people',
         ];
     }

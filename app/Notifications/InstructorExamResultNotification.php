@@ -42,7 +42,6 @@ class InstructorExamResultNotification extends Notification implements ShouldQue
             'group_name'   => $this->groupName,
             'status'       => $this->attempt->status,
             'score'        => $score,
-            'action_url'   => '/instructor/student-results',
             'icon'         => $isPassed ? 'patch-check' : 'x-circle',
         ];
     }

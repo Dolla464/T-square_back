@@ -30,36 +30,52 @@ class ExamService
                     ->withCompletedOrder();
             })
             ->with('course')
-            ->withCount(['attempts' => function ($q) use ($student) {
-                $q->where('student_id', $student->id);
-            }])
+            ->withCount([
+                'attempts' => function ($q) use ($student) {
+                    $q->where('student_id', $student->id);
+                },
+                'questions',
+            ])
             ->get();
     }
 
     public function startAttempt(int $studentId, int $examId)
     {
-        // 1. Protection: Find an ongoing attempt for the same student and exam
-        $existingAttempt = ExamAttempt::where('student_id', $studentId)
-            ->where('exam_id', $examId)
-            ->where('status', 'ongoing')
-            ->first();
-
-        if ($existingAttempt) {
-            // If an ongoing attempt is found, we load the questions and choices for it
-            return $existingAttempt->load(['questions' => function ($query) {
-                // To ensure the random ordering of the choices within the question
-                $query->with('choices');
-            }]);
-        }
-
-        // 2. If no ongoing attempt is found, fetch the exam data and check the entry conditions
+        // 1. Fetch exam first to validate enrollment and bank size before touching attempts
         $exam = Exam::findOrFail($examId);
 
         if (! $this->hasCompletedEnrollment($studentId, $exam->course_id)) {
             abort(403, 'Sorry, you are not enrolled in this course to take the exam.');
         }
 
-        // Calculate the number of previous attempts to check the allowed limit
+        // 2. Guard: refuse to start/resume when the question bank is empty
+        $bankCount = Question::where('exam_id', $examId)->count();
+        if ($bankCount === 0) {
+            abort(422, 'This exam has no questions yet. Please contact the administrator.');
+        }
+
+        // 3. Check for an existing ongoing attempt
+        $existingAttempt = ExamAttempt::where('student_id', $studentId)
+            ->where('exam_id', $examId)
+            ->where('status', 'ongoing')
+            ->first();
+
+        if ($existingAttempt) {
+            // If the ongoing attempt has no questions (created before the bank was populated),
+            // repopulate it now so the student is not stuck on an empty exam.
+            if ($existingAttempt->questions()->count() === 0) {
+                $limit = $exam->questions_per_attempt ?? 10;
+                $randomQuestionIds = Question::where('exam_id', $examId)
+                    ->inRandomOrder()
+                    ->take($limit)
+                    ->pluck('id');
+                $existingAttempt->questions()->attach($randomQuestionIds);
+            }
+
+            return $existingAttempt->load(['questions.choices', 'answers']);
+        }
+
+        // 4. Calculate the number of previous (closed) attempts to check the allowed limit
         $attemptsCount = ExamAttempt::where('student_id', $studentId)
             ->where('exam_id', $examId)
             ->count();
@@ -68,7 +84,7 @@ class ExamService
             abort(403, 'Sorry, you have exhausted the maximum number of attempts available for this exam!');
         }
 
-        // 3. Create a new attempt record
+        // 5. Create a new attempt record
         $attempt = ExamAttempt::create([
             'student_id' => $studentId,
             'exam_id' => $examId,
@@ -76,22 +92,16 @@ class ExamService
             'started_at' => now(),
         ]);
 
-        // 4. Dynamic question bank: determine the required limit based on what the admin specified in the exam
+        // 6. Randomly sample questions from the bank and freeze them in the pivot table
         $limit = $exam->questions_per_attempt ?? 10;
-
-        // Pull question IDs (IDs) randomly by the required number from the question bank of this exam
         $randomQuestionIds = Question::where('exam_id', $examId)
-            ->inRandomOrder() // Randomize the questions
-            ->take($limit)    // Pull only the required number (e.g. 50 out of 100)
+            ->inRandomOrder()
+            ->take($limit)
             ->pluck('id');
 
-        // 5. Attach the randomly selected questions to the current attempt in the intermediate table to fix them
         $attempt->questions()->attach($randomQuestionIds);
 
-        // 6. Return the attempt loaded with only the selected questions and their random choices
-        return $attempt->load(['questions' => function ($query) {
-            $query->with('choices');
-        }]);
+        return $attempt->load(['questions.choices', 'answers']);
     }
 
     /**
@@ -99,27 +109,29 @@ class ExamService
      */
     public function saveAnswer(int $attemptId, int $questionId, int $choiceId)
     {
-        // Added loading the exam with the attempts_count for the student to ensure the save function
-        $attempt = ExamAttempt::with(['exam' => function ($q) use ($attemptId) {
-            $q->withCount(['attempts' => function ($sq) use ($attemptId) {
-                // Get the number of attempts based on the student who owns this attempt
-                $sq->where('student_id', DB::raw('(SELECT student_id FROM exam_attempts WHERE id = ' . $attemptId . ')'));
-            }]);
-        }, 'exam.questions'])->findOrFail($attemptId);
+        $attempt = ExamAttempt::with([
+            'exam' => function ($q) use ($attemptId) {
+                $q->withCount(['attempts' => function ($sq) use ($attemptId) {
+                    $sq->where('student_id', DB::raw('(SELECT student_id FROM exam_attempts WHERE id = ' . $attemptId . ')'));
+                }]);
+            },
+            'questions',
+        ])->findOrFail($attemptId);
 
         // Protection: Ensure the exam is still in the ongoing state and has not been closed
         if ($attempt->status !== 'ongoing') {
             abort(403, 'This attempt is already closed and cannot be modified.');
         }
 
-        // Additional protection: Ensure the student has not exceeded the attempts during the answer (protection against hacking)
+        // Additional protection: Ensure the student has not exceeded the attempts during the answer
         if ($attempt->exam->max_attempts && $attempt->exam->attempts_count > $attempt->exam->max_attempts) {
             abort(403, 'Sorry, you have exceeded the maximum number of attempts.');
         }
 
-        $question = $attempt->exam->questions->where('id', $questionId)->first();
+        // Validate against the attempt's own question subset, not the full exam bank
+        $question = $attempt->questions->firstWhere('id', $questionId);
         if (! $question) {
-            abort(403, 'This question does not belong to this exam.');
+            abort(403, 'This question does not belong to this attempt.');
         }
 
         $choice = Choice::findOrFail($choiceId);

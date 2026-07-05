@@ -53,7 +53,6 @@ class SessionRescheduledNotification extends Notification implements ShouldQueue
             'new_date'     => $newDateStr,
             'new_time'     => "{$newStartStr}–{$newEndStr}",
             'icon'         => 'calendar-event',
-            'action_url'   => null,
         ];
     }
 

@@ -37,7 +37,6 @@ class InstructorGroupAssignedNotification extends Notification implements Should
             'course_id'    => $course?->id,
             'course_title' => $course?->title,
             'start_date'   => $startDate,
-            'action_url'   => '/instructor/schedule',
             'icon'         => 'people',
         ];
     }

@@ -30,7 +30,6 @@ class CertificateReady extends Notification implements ShouldQueue
             'enrollment_id' => $this->enrollment->id,
             'course_id' => $this->enrollment->course_id,
             'course_title' => $course->title,
-            'action_url' => '/student/certificates',
             'icon' => 'award',
         ];
     }

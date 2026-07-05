@@ -51,8 +51,8 @@ class ExamController extends Controller
 
         $attempt = $this->examService->startAttempt($student->id, $request->exam_id);
 
-        // Load the relationships so the Resource works properly (Eager Loading)
-        $attempt->load('exam.questions.choices');
+        // Load the attempt's own question subset with choices and any saved answers.
+        $attempt->load(['questions.choices', 'answers', 'exam']);
 
         return new ExamAttemptResource($attempt);
     }

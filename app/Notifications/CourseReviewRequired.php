@@ -6,7 +6,6 @@ use App\Models\Enrollment;
 use App\Models\LearningGroup;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class CourseReviewRequired extends Notification implements ShouldQueue
@@ -15,28 +14,12 @@ class CourseReviewRequired extends Notification implements ShouldQueue
 
     public function __construct(
         public readonly Enrollment $enrollment,
-        public readonly LearningGroup $group,
+        public readonly ?LearningGroup $group = null,
     ) {}
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
-    }
-
-    public function toMail(object $notifiable): MailMessage
-    {
-        $this->enrollment->loadMissing('course');
-        $courseTitle = $this->enrollment->course?->title ?? 'your course';
-        $reviewUrl = url('/student/review/'.$this->enrollment->course_id);
-
-        return (new MailMessage)
-            ->subject('Course Completed — Please Leave a Review')
-            ->greeting('Hello '.($notifiable->name ?? 'Student').',')
-            ->line('Your learning group "'.$this->group->group_name.'" has been marked as completed.')
-            ->line('Course: '.$courseTitle)
-            ->line('Please submit a course review to receive your certificate.')
-            ->action('Leave a Review', $reviewUrl)
-            ->line('Thank you for learning with us.');
+        return ['database'];
     }
 
     public function toDatabase(object $notifiable): array
@@ -44,15 +27,18 @@ class CourseReviewRequired extends Notification implements ShouldQueue
         $this->enrollment->loadMissing('course');
         $courseTitle = $this->enrollment->course?->title ?? 'your course';
 
+        $message = $this->group
+            ? 'Your group "'.$this->group->group_name.'" is complete. Leave a review for "'.$courseTitle.'" to get your certificate.'
+            : 'Congratulations! You passed the final exam for "'.$courseTitle.'". Leave a review to get your certificate.';
+
         return [
-            'type' => 'course_review_required',
-            'title' => 'Course Completed',
-            'message' => 'Your group "'.$this->group->group_name.'" is complete. Leave a review for "'.$courseTitle.'" to get your certificate.',
-            'course_id' => $this->enrollment->course_id,
+            'type'          => 'course_review_required',
+            'title'         => 'Course Completed',
+            'message'       => $message,
+            'course_id'     => $this->enrollment->course_id,
             'enrollment_id' => $this->enrollment->id,
-            'group_id' => $this->group->id,
-            'action_url' => '/student/review/'.$this->enrollment->course_id,
-            'icon' => 'star',
+            'group_id'      => $this->group?->id,
+            'icon'          => 'star',
         ];
     }
 }
