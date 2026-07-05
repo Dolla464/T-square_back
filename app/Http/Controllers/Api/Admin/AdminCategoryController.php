@@ -10,6 +10,9 @@ use App\Services\Admin\AdminCategoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Admin: Categories
+ */
 class AdminCategoryController extends Controller
 {
     public function __construct(

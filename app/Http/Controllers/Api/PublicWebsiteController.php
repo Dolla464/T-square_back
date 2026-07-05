@@ -8,6 +8,9 @@ use App\Services\User\PublicWebsiteService;
 use App\Http\Resources\User\PublicWebsite\DiscoveryMediaResource;
 use Illuminate\Http\JsonResponse;
 
+/**
+ * @tags Public
+ */
 class PublicWebsiteController extends Controller
 {
     protected PublicWebsiteService $publicWebsiteService;

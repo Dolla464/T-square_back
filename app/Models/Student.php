@@ -77,6 +77,11 @@ class Student extends Model
         return $this->hasMany(ExamAttempt::class);
     }
 
+    public function attendanceRecords()
+    {
+        return $this->hasMany(AttendanceRecord::class);
+    }
+
     // مراجعات الطالب
     public function reviews()
     {

@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Tag;
 
+/**
+ * @tags Admin: Tags
+ */
 class AdminTagController extends Controller
 {
     public function index()

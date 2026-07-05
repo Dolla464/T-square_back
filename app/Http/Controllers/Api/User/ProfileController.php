@@ -10,6 +10,9 @@ use App\Services\ProfileService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Profile
+ */
 class ProfileController extends Controller
 {
     use ApiResponseTrait;

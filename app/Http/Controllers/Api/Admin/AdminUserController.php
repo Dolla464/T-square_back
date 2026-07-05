@@ -8,6 +8,9 @@ use App\Services\UserService;
 use App\Traits\HandleImageUploadTrait;
 use Illuminate\Auth\Events\Registered;
 
+/**
+ * @tags Admin: Users
+ */
 class AdminUserController extends Controller
 {
     use HandleImageUploadTrait;

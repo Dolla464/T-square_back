@@ -12,6 +12,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
+/**
+ * @tags Admin: Certificates
+ */
 class AdminCertificateController extends Controller
 {
     public function __construct(

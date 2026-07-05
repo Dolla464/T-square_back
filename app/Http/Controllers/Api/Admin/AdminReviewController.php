@@ -13,6 +13,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * @tags Admin: Reviews
+ */
 class AdminReviewController extends Controller
 {
     public function __construct(
@@ -26,12 +29,12 @@ class AdminReviewController extends Controller
     public function index(Request $request): AdminReviewCollection
     {
         // 1. جلب الفلاتر المتاحة من الطلب بالكامل لضمان عدم سقوط أي فلتر (مثل review_status)
-        $filters = $request->only(['search', 'review_status']);
+        $filters = $request->only(['search', 'review_status', 'group_id']);
+        $perPage = (int) $request->query('per_page', 10);
 
-        $reviews = $this->reviewService->index(
-            $request->query('per_page', 10),
-            $filters
-        );
+        $reviews = ! empty($filters['group_id'])
+            ? $this->reviewService->indexByGroup((int) $filters['group_id'], $perPage, $filters)
+            : $this->reviewService->index($perPage, $filters);
 
         // 2. جلب الإحصائيات المكيشة
         $stats = $this->analytics->getRecentStats();
@@ -80,6 +83,8 @@ class AdminReviewController extends Controller
     public function destroy(CourseReview $review): JsonResponse
     {
         $this->reviewService->destroy($review);
+
+        Cache::forget('admin_dashboard_review_stats');
 
         return $this->successResponse(
             null,

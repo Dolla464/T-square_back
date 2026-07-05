@@ -8,6 +8,9 @@ use App\Services\User\InstructorService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 
+/**
+ * @tags Public
+ */
 class InstructorController extends Controller
 {
     use ApiResponseTrait;

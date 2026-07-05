@@ -11,6 +11,9 @@ use App\Services\Admin\AdminSolutionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Admin: Solutions
+ */
 class AdminSolutionController extends Controller
 {
     private AdminSolutionService $solutionService;

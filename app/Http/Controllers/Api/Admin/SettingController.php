@@ -9,6 +9,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
+/**
+ * @tags Admin: Settings
+ */
 class SettingController extends Controller
 {
     use ApiResponseTrait;

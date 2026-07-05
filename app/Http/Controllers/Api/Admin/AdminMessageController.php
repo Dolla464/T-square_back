@@ -10,6 +10,9 @@ use App\Models\Message;
 use App\Services\Admin\AdminMessageService;
 use Illuminate\Http\JsonResponse;
 
+/**
+ * @tags Admin: Messages
+ */
 class AdminMessageController extends Controller
 {
     public function __construct(
@@ -46,5 +49,15 @@ class AdminMessageController extends Controller
             new MessageShowResource($message),
             'Message retrieved successfully'
         );
+    }
+
+    /**
+     * Remove the specified message from storage.
+     */
+    public function destroy(Message $message): JsonResponse
+    {
+        $this->messageService->destroy($message);
+
+        return $this->successResponse(null, 'Message deleted successfully');
     }
 }

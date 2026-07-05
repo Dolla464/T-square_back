@@ -3,8 +3,6 @@
 namespace App\Services\User;
 
 use App\Events\StudentExamAttemptCompleted;
-use App\Mail\CertificateMail;
-use App\Notifications\CertificateReady;
 use App\Models\Answer;
 use App\Models\Choice;
 use App\Models\Enrollment;
@@ -13,18 +11,9 @@ use App\Models\ExamAttempt;
 use App\Models\Question;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class ExamService
 {
-    protected $certificateService;
-
-    public function __construct(CertificateService $certificateService)
-    {
-        $this->certificateService = $certificateService;
-    }
-
     /**
      * Get all available exams for a student
      *
@@ -36,42 +25,57 @@ class ExamService
         // Get the available exams and count the student's attempts for each exam in the same query
         return $student->availableExams()
             ->where('is_active', true)
+            ->whereHas('course.enrollments', function ($q) use ($student) {
+                $q->where('student_id', $student->id)
+                    ->withCompletedOrder();
+            })
             ->with('course')
-            ->withCount(['attempts' => function ($q) use ($student) {
-                $q->where('student_id', $student->id);
-            }])
+            ->withCount([
+                'attempts' => function ($q) use ($student) {
+                    $q->where('student_id', $student->id);
+                },
+                'questions',
+            ])
             ->get();
     }
 
     public function startAttempt(int $studentId, int $examId)
     {
-        // 1. Protection: Find an ongoing attempt for the same student and exam
+        // 1. Fetch exam first to validate enrollment and bank size before touching attempts
+        $exam = Exam::findOrFail($examId);
+
+        if (! $this->hasCompletedEnrollment($studentId, $exam->course_id)) {
+            abort(403, 'Sorry, you are not enrolled in this course to take the exam.');
+        }
+
+        // 2. Guard: refuse to start/resume when the question bank is empty
+        $bankCount = Question::where('exam_id', $examId)->count();
+        if ($bankCount === 0) {
+            abort(422, 'This exam has no questions yet. Please contact the administrator.');
+        }
+
+        // 3. Check for an existing ongoing attempt
         $existingAttempt = ExamAttempt::where('student_id', $studentId)
             ->where('exam_id', $examId)
             ->where('status', 'ongoing')
             ->first();
 
         if ($existingAttempt) {
-            // If an ongoing attempt is found, we load the questions and choices for it
-            return $existingAttempt->load(['questions' => function ($query) {
-                // To ensure the random ordering of the choices within the question
-                $query->with('choices');
-            }]);
+            // If the ongoing attempt has no questions (created before the bank was populated),
+            // repopulate it now so the student is not stuck on an empty exam.
+            if ($existingAttempt->questions()->count() === 0) {
+                $limit = $exam->questions_per_attempt ?? 10;
+                $randomQuestionIds = Question::where('exam_id', $examId)
+                    ->inRandomOrder()
+                    ->take($limit)
+                    ->pluck('id');
+                $existingAttempt->questions()->attach($randomQuestionIds);
+            }
+
+            return $existingAttempt->load(['questions.choices', 'answers']);
         }
 
-        // 2. If no ongoing attempt is found, fetch the exam data and check the entry conditions
-        $exam = Exam::findOrFail($examId);
-
-        // Check the enrollment (Enrollment)
-        $isEnrolled = Enrollment::where('student_id', $studentId)
-            ->where('course_id', $exam->course_id)
-            ->exists();
-
-        if (!$isEnrolled) {
-            abort(403, 'Sorry, you are not enrolled in this course to take the exam.');
-        }
-
-        // Calculate the number of previous attempts to check the allowed limit
+        // 4. Calculate the number of previous (closed) attempts to check the allowed limit
         $attemptsCount = ExamAttempt::where('student_id', $studentId)
             ->where('exam_id', $examId)
             ->count();
@@ -80,7 +84,7 @@ class ExamService
             abort(403, 'Sorry, you have exhausted the maximum number of attempts available for this exam!');
         }
 
-        // 3. Create a new attempt record
+        // 5. Create a new attempt record
         $attempt = ExamAttempt::create([
             'student_id' => $studentId,
             'exam_id' => $examId,
@@ -88,22 +92,16 @@ class ExamService
             'started_at' => now(),
         ]);
 
-        // 4. Dynamic question bank: determine the required limit based on what the admin specified in the exam
+        // 6. Randomly sample questions from the bank and freeze them in the pivot table
         $limit = $exam->questions_per_attempt ?? 10;
-
-        // Pull question IDs (IDs) randomly by the required number from the question bank of this exam
         $randomQuestionIds = Question::where('exam_id', $examId)
-            ->inRandomOrder() // Randomize the questions
-            ->take($limit)    // Pull only the required number (e.g. 50 out of 100)
+            ->inRandomOrder()
+            ->take($limit)
             ->pluck('id');
 
-        // 5. Attach the randomly selected questions to the current attempt in the intermediate table to fix them
         $attempt->questions()->attach($randomQuestionIds);
 
-        // 6. Return the attempt loaded with only the selected questions and their random choices
-        return $attempt->load(['questions' => function ($query) {
-            $query->with('choices');
-        }]);
+        return $attempt->load(['questions.choices', 'answers']);
     }
 
     /**
@@ -111,27 +109,29 @@ class ExamService
      */
     public function saveAnswer(int $attemptId, int $questionId, int $choiceId)
     {
-        // Added loading the exam with the attempts_count for the student to ensure the save function
-        $attempt = ExamAttempt::with(['exam' => function ($q) use ($attemptId) {
-            $q->withCount(['attempts' => function ($sq) use ($attemptId) {
-                // Get the number of attempts based on the student who owns this attempt
-                $sq->where('student_id', DB::raw('(SELECT student_id FROM exam_attempts WHERE id = ' . $attemptId . ')'));
-            }]);
-        }, 'exam.questions'])->findOrFail($attemptId);
+        $attempt = ExamAttempt::with([
+            'exam' => function ($q) use ($attemptId) {
+                $q->withCount(['attempts' => function ($sq) use ($attemptId) {
+                    $sq->where('student_id', DB::raw('(SELECT student_id FROM exam_attempts WHERE id = ' . $attemptId . ')'));
+                }]);
+            },
+            'questions',
+        ])->findOrFail($attemptId);
 
         // Protection: Ensure the exam is still in the ongoing state and has not been closed
         if ($attempt->status !== 'ongoing') {
             abort(403, 'This attempt is already closed and cannot be modified.');
         }
 
-        // Additional protection: Ensure the student has not exceeded the attempts during the answer (protection against hacking)
+        // Additional protection: Ensure the student has not exceeded the attempts during the answer
         if ($attempt->exam->max_attempts && $attempt->exam->attempts_count > $attempt->exam->max_attempts) {
             abort(403, 'Sorry, you have exceeded the maximum number of attempts.');
         }
 
-        $question = $attempt->exam->questions->where('id', $questionId)->first();
+        // Validate against the attempt's own question subset, not the full exam bank
+        $question = $attempt->questions->firstWhere('id', $questionId);
         if (! $question) {
-            abort(403, 'This question does not belong to this exam.');
+            abort(403, 'This question does not belong to this attempt.');
         }
 
         $choice = Choice::findOrFail($choiceId);
@@ -161,19 +161,12 @@ class ExamService
         }
 
         if ($attempt->status !== 'ongoing') {
-            return [
-                'score' => $attempt->score,
-                'total_marks' => $attempt->exam->total_marks,
-                'passing_mark' => $attempt->exam->passing_mark,
-                'is_passed' => $attempt->score >= $attempt->exam->passing_mark,
-                'status' => $attempt->status,
-            ];
+            return $this->buildAttemptResult($attempt, $attempt->score);
         }
 
         $result = DB::transaction(function () use ($attempt) {
             $totalScore = $attempt->answers()->sum('marks_earned');
             $isPassed = $totalScore >= $attempt->exam->passing_mark;
-            $certificateEnrollmentId = null;
 
             $attempt->update([
                 'score' => $totalScore,
@@ -181,81 +174,48 @@ class ExamService
                 'finished_at' => now(),
             ]);
 
-            // The update must be here before the return of the transaction
             if ($isPassed && $attempt->exam->is_final) {
-                // 1. Update the Enrollment (Use Eloquent to trigger observers)
                 $enrollment = Enrollment::where('student_id', '=', $attempt->student_id, 'and')
                     ->where('course_id', '=', $attempt->exam->course_id, 'and')
                     ->first();
 
-                if ($enrollment) {
-                    if (!$enrollment->is_completed) {
-                        $enrollment->markAsCompleted();
-                    }
-
-                    $certificateEnrollmentId = $enrollment->id; // Store the enrollment ID for the certificate
+                if ($enrollment && ! $enrollment->is_completed) {
+                    $enrollment->markAsCompleted();
                 }
             }
 
-            // Now we return the result to the controller
-            return [
-                'score' => $totalScore,
-                'total_marks' => $attempt->exam->total_marks,
-                'passing_mark' => $attempt->exam->passing_mark,
-                'is_passed' => $isPassed,
-                'status' => $isPassed ? 'passed' : 'failed',
-                'certificate_enrollment_id' => $certificateEnrollmentId,
-            ];
+            return $this->buildAttemptResult($attempt, $totalScore, $isPassed);
         });
-
-        if ($result['certificate_enrollment_id']) {
-            $this->issueCertificateAndSendEmail($result['certificate_enrollment_id'], $attempt);
-        }
 
         $attempt->refresh()->loadMissing(['student.user', 'exam.course']);
         StudentExamAttemptCompleted::dispatch($attempt);
 
-        unset($result['certificate_enrollment_id']);
-
         return $result;
     }
 
-    private function issueCertificateAndSendEmail(int $enrollmentId, ExamAttempt $attempt): void
+    private function buildAttemptResult(ExamAttempt $attempt, $score, ?bool $isPassed = null): array
     {
-        try {
-            $enrollment = Enrollment::with(['student', 'course'])->find($enrollmentId);
+        $isPassed ??= $score >= $attempt->exam->passing_mark;
 
-            if (! $enrollment) {
-                return;
-            }
+        return [
+            'score' => $score,
+            'total_marks' => $attempt->exam->total_marks,
+            'passing_mark' => $attempt->exam->passing_mark,
+            'is_passed' => $isPassed,
+            'status' => $isPassed ? 'passed' : 'failed',
+            'is_final' => (bool) $attempt->exam->is_final,
+            'course_id' => $attempt->exam->course_id,
+            'requires_review' => $isPassed && $attempt->exam->is_final,
+        ];
+    }
 
-            $attempt->refresh()->load(['student.user', 'exam.course']);
-            $certificate = $this->certificateService->issueCertificate($enrollment);
-            $pdfPath = $certificate->certificate_url;
-            $email = $attempt->student->user?->email;
-
-            if ($email) {
-                Mail::to($email)->send(new CertificateMail($attempt, $pdfPath));
-
-                $enrollment->student?->notify(new CertificateReady($enrollment));
-
-                Log::info('Certificate email sent', [
-                    'attempt_id' => $attempt->id,
-                    'student_id' => $attempt->student_id,
-                    'email' => $email,
-                ]);
-            } else {
-                Log::warning('Certificate email skipped: no user email', [
-                    'attempt_id' => $attempt->id,
-                    'student_id' => $attempt->student_id,
-                ]);
-            }
-        } catch (\Throwable $e) {
-            Log::error('Certificate generation/email failed: ' . $e->getMessage(), [
-                'attempt_id' => $attempt->id,
-                'enrollment_id' => $enrollmentId,
-            ]);
-        }
+    private function hasCompletedEnrollment(int $studentId, int $courseId): bool
+    {
+        return Enrollment::query()
+            ->where('student_id', $studentId)
+            ->where('course_id', $courseId)
+            ->withCompletedOrder()
+            ->exists();
     }
 
     public function getStudentResults($studentId, ?int $examId = null)

@@ -12,6 +12,9 @@ use App\Services\User\ExamService;
 use Illuminate\Http\Request;
 use App\Traits\ApiResponseTrait;
 
+/**
+ * @tags Exams
+ */
 class ExamController extends Controller
 {
     use ApiResponseTrait;
@@ -48,8 +51,8 @@ class ExamController extends Controller
 
         $attempt = $this->examService->startAttempt($student->id, $request->exam_id);
 
-        // Load the relationships so the Resource works properly (Eager Loading)
-        $attempt->load('exam.questions.choices');
+        // Load the attempt's own question subset with choices and any saved answers.
+        $attempt->load(['questions.choices', 'answers', 'exam']);
 
         return new ExamAttemptResource($attempt);
     }
@@ -88,6 +91,9 @@ class ExamController extends Controller
                 'is_passed' => $result['is_passed'],
                 'status' => $result['status'],
                 'percentage' => $percentage . '%',
+                'is_final' => $result['is_final'],
+                'course_id' => $result['course_id'],
+                'requires_review' => $result['requires_review'],
                 'feedback' => $result['is_passed']
                     ? 'Congratulations. You passed this exam.'
                     : 'Sorry. You failed this exam. Try again.',

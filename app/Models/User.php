@@ -45,17 +45,11 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
-    public function getRoleAttribute()
+    public function getRoleAttribute(): string
     {
-        // بدلاً من الاستعلام عن الجداول، اسأل سباتي
-        if ($this->hasRole('admin')) {
-            return 'admin';
-        }
-        if ($this->hasRole('instructor')) {
-            return 'instructor';
-        }
-
-        return 'student';
+        return $this->getRoleNames()->first()
+            ?? $this->getRawOriginal('role')
+            ?? 'student';
     }
 
     public function instructor()

@@ -7,6 +7,9 @@ use App\Traits\ApiResponseTrait; // افترضت أنك تستخدم هذا ال
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Authentication
+ */
 class EmailVerificationNotificationController extends Controller
 {
     use ApiResponseTrait;

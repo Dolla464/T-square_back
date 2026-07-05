@@ -38,25 +38,25 @@ class CourseUpdateRequest extends FormRequest
             'tags' => ['sometimes', 'nullable', 'array'],
             'tags.*' => ['integer', 'exists:tags,id'],
 
-            // Learnings (المصفوفة التي أضفناها مؤخراً)
+            // Learnings
             'learnings' => ['sometimes', 'nullable', 'array'],
             'learnings.*' => ['nullable', 'string', 'max:500'],
 
             // Previews
             'previews' => ['nullable', 'array'],
-            'previews.*.id' => ['sometimes', 'nullable'], // تركناها مرنة للتعامل مع الـ IDs الجديدة أو القديمة
+            'previews.*.id' => ['sometimes', 'nullable'],
             'previews.*.title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'previews.*.description' => ['nullable', 'string'],
             'previews.*.video' => ['nullable', 'file', 'mimetypes:video/mp4,video/webm,video/ogg,video/quicktime', 'max:512000'],
             'previews.*.video_url' => ['nullable', 'string'],
             'previews.*.video_provider' => ['nullable', 'string', 'in:youtube,vimeo,upload,external,html5'], // أضفنا html5 احتياطاً
             'previews.*.sort_order' => ['nullable', 'integer', 'min:0'],
-            'previews.*.duration_seconds' => ['nullable'], // مضافة لاستقبال المدة المحسوبة من الفرونت
+            'previews.*.duration_seconds' => ['nullable'],
         ];
     }
 
     /**
-     * تجهيز البيانات قبل الـ Validation لضمان التعامل الصحيح مع الـ Booleans القادمة من FormData
+     * Prepare the data for validation.
      */
     protected function prepareForValidation()
     {
@@ -64,8 +64,7 @@ class CourseUpdateRequest extends FormRequest
             'is_featured' => filter_var($this->is_featured, FILTER_VALIDATE_BOOLEAN),
             'is_free'     => filter_var($this->is_free, FILTER_VALIDATE_BOOLEAN),
         ]);
-        
-        // تنظيف القيم التي قد تُرسل كنصوص "null" أو "undefined" من React
+
         if ($this->has('published_at') && ($this->published_at === 'null' || !$this->published_at)) {
             $this->merge(['published_at' => null]);
         }

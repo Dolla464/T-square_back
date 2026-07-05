@@ -2,11 +2,8 @@
 
 namespace App\Models;
 
-use App\Observers\CourseReviewObserver;
-use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 
-#[ObservedBy([CourseReviewObserver::class])]
 class CourseReview extends Model
 {
     protected $fillable = [
@@ -19,20 +16,20 @@ class CourseReview extends Model
         'rating',
         'overall_comment',
         'review_status',
+        'status',
     ];
 
     public const REVIEW_STATUS_ACCEPTED = 'accepted';
     public const REVIEW_STATUS_PENDING = 'pending';
     public const REVIEW_STATUS_REJECTED = 'rejected';
 
-    /**
-     * الـ Boot Method: هو المحرك اللي بيراقب الأحداث في الموديل
-     */
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_INACTIVE = 'inactive';
+
     protected static function boot()
     {
         parent::boot();
 
-        // ١. قبل إنشاء التقييم أو تحديثه: احسب المتوسط الكلي
         static::saving(function ($review) {
             $review->rating = (
                 $review->content_rating +
@@ -40,23 +37,20 @@ class CourseReview extends Model
                 $review->center_rating
             ) / 3;
 
-            // لو مفيش status حطه active تلقائي
             $review->review_status ??= self::REVIEW_STATUS_PENDING;
+
+            $review->status = match ($review->review_status) {
+                self::REVIEW_STATUS_ACCEPTED => self::STATUS_ACTIVE,
+                default => self::STATUS_INACTIVE,
+            };
         });
 
-        // ٢. بعد الحفظ (إنشاء أو تعديل): حدث إحصائيات الكورس والمحاضر
-        static::saved(function ($review) {
-            $review->updateAggregatedStats();
-        });
-
-        // ٣. بعد المسح: حدث الإحصائيات أيضاً
-        static::deleted(function ($review) {
-            $review->updateAggregatedStats();
-        });
+        static::saved(fn ($review) => $review->updateAggregatedStats());
+        static::deleted(fn ($review) => $review->updateAggregatedStats());
     }
 
     /**
-     * دالة مركزية لتحديث إحصائيات الكورس والمحاضر
+     * Update cached rating stats on the related course and instructor.
      */
     public function updateAggregatedStats()
     {
@@ -72,11 +66,13 @@ class CourseReview extends Model
     }
 
     /**
-     * Scope للتقييمات النشطة فقط
+     * Scope للتقييمات المعروضة علناً (مقبولة + active)
      */
     public function scopeActive($query)
     {
-        return $query->where('review_status', self::REVIEW_STATUS_ACCEPTED);
+        return $query
+            ->where('review_status', self::REVIEW_STATUS_ACCEPTED)
+            ->where('status', self::STATUS_ACTIVE);
     }
 
     // العلاقات

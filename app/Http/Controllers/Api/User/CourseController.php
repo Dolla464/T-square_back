@@ -9,6 +9,9 @@ use App\Services\User\CourseService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Courses
+ */
 class CourseController extends Controller
 {
     use ApiResponseTrait;

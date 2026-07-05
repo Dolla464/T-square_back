@@ -11,6 +11,9 @@ use App\Services\User\EnrollmentService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 
+/**
+ * @tags Enrollments
+ */
 class EnrollmentController extends Controller
 {
     use ApiResponseTrait;
@@ -86,7 +89,7 @@ class EnrollmentController extends Controller
             if ($enrollment->order_id) {
                 $isEnrolled = $enrollment->order?->status === 'completed';
             } else {
-                // Free course, if the enrollment exists, it means the student is enrolled and accepted automatically
+                // Legacy enrollments without an order (run backfill migration)
                 $isEnrolled = true;
             }
         }

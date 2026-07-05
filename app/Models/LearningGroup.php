@@ -9,38 +9,52 @@ class LearningGroup extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['group_name', 'course_id', 'instructor_id'];
+    protected $fillable = [
+        'group_name',
+        'course_id',
+        'instructor_id',
+        'start_date',
+        'end_date',
+        'status',
+    ];
 
-    // المجموعة تنتمي لكورس واحد
+    protected $casts = [
+        'start_date' => 'date',
+        'end_date'   => 'date',
+    ];
+
     public function course()
     {
         return $this->belongsTo(Course::class);
     }
 
-    // المجموعة تابعة لمدرب واحد
     public function instructor()
     {
         return $this->belongsTo(Instructor::class, 'instructor_id');
     }
 
+    public function schedules()
+    {
+        return $this->hasMany(LearningGroupSchedule::class);
+    }
+
+    public function attendanceSessions()
+    {
+        return $this->hasMany(AttendanceSession::class);
+    }
+
     /**
      * Students enrolled in this group, reached through the enrollments pivot.
-     *
-     * SQL produced:
-     *   SELECT students.*
-     *   FROM students
-     *   INNER JOIN enrollments ON enrollments.student_id = students.id
-     *   WHERE enrollments.group_id = ?
      */
     public function students()
     {
         return $this->hasManyThrough(
             Student::class,
             Enrollment::class,
-            'group_id',    // FK on enrollments referencing learning_groups.id
-            'id',          // PK on students (joined via enrollments.student_id)
-            'id',          // PK on learning_groups
-            'student_id'   // FK on enrollments referencing students.id
+            'group_id',
+            'id',
+            'id',
+            'student_id'
         );
     }
 }

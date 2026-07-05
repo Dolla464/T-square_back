@@ -49,6 +49,14 @@ class AdminMessageService
     }
 
     /**
+     * Delete the specified message.
+     */
+    public function destroy(Message $message): void
+    {
+        $message->delete();
+    }
+
+    /**
      * Translate a date_filter string into a Carbon cut-off date.
      */
     private function resolveDateFilter(string $filter): Carbon

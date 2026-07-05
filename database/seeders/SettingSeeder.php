@@ -15,7 +15,7 @@ class SettingSeeder extends Seeder
         $settings = [
             ['key' => 'site_name', 'value' => 'T-Square LMS', 'type' => 'string', 'group_name' => 'general'],
             ['key' => 'site_logo', 'value' => 'logo.png', 'type' => 'image', 'group_name' => 'general'],
-            ['key' => 'contact_email', 'value' => 'info@tsquare.com', 'type' => 'string', 'group_name' => 'general'],
+            ['key' => 'contact_email', 'value' => 'info@tsquarecenter.com', 'type' => 'string', 'group_name' => 'general'],
 
             // social media urls
             ['key' => 'facebook_url', 'value' => 'https://www.facebook.com/share/14ecHoEFDts/', 'type' => 'string', 'group_name' => 'social'],

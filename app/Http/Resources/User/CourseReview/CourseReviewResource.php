@@ -18,7 +18,7 @@ class CourseReviewResource extends JsonResource
             'id' => $this->id,
             'rating' => $this->rating,
             'overall_comment' => $this->overall_comment,
-            'status' => $this->status,
+            'review_status' => $this->review_status,
 
             'student' => [
                 'full_name' => $this->student?->full_name,

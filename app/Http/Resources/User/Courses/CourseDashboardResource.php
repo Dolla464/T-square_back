@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\User\Courses;
 
+use App\Models\CourseReview;
+use App\Services\User\CertificateService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -77,11 +79,24 @@ class CourseDashboardResource extends JsonResource
                 'sort_order' => $preview->sort_order,
             ])->values(), []),
 
-            // ── حالة الـ Enrollment ─────────────────────────────────────────
-            'enrollment' => $enrollment ? [
-                'status' => $enrollment->is_completed ? 'completed' : 'in_progress',
-                'completed_at' => $enrollment->completed_at?->toDateTimeString(),
-            ] : null,
+        // ── حالة الـ Enrollment ─────────────────────────────────────────
+            'enrollment' => $enrollment ? (function () use ($enrollment) {
+                $review = CourseReview::query()
+                    ->where('course_id', $this->id)
+                    ->where('student_id', $enrollment->student_id)
+                    ->first(['review_status']);
+
+                $hasReview = $review !== null;
+                $certificateService = app(CertificateService::class);
+
+                return [
+                    'status' => $enrollment->is_completed ? 'completed' : 'in_progress',
+                    'completed_at' => $enrollment->completed_at?->toDateTimeString(),
+                    'has_review' => $hasReview,
+                    'review_status' => $review?->review_status,
+                    'certificate_available' => $certificateService->enrollmentCanIssueCertificate($enrollment),
+                ];
+            })() : null,
         ];
     }
 }

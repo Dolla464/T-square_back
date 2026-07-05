@@ -7,6 +7,9 @@ use App\Traits\ApiResponseTrait;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request; // استخدم Request العادي
 
+/**
+ * @tags Authentication
+ */
 class VerifyEmailController extends Controller
 {
     use ApiResponseTrait;

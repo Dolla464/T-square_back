@@ -9,6 +9,9 @@ use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Throwable;
 
+/**
+ * @tags Public
+ */
 class ContactUsController extends Controller
 {
     use ApiResponseTrait;

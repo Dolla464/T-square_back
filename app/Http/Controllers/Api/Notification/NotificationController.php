@@ -10,6 +10,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
+/**
+ * @tags Notifications
+ */
 class NotificationController extends Controller
 {
     // تعريف الـ Service
@@ -30,17 +33,21 @@ class NotificationController extends Controller
     {
         $user = $request->user();
 
-        // 1. جلب البيانات من الـ Service
-        $notifications = $this->notificationService->getUserNotifications($user);
+        $notifications = $this->notificationService->getUserNotifications(
+            $user,
+            $request->integer('per_page', 15)
+        );
         $unreadCount = $this->notificationService->getUnreadCount($user);
 
-        // 2. إرجاع الـ Resource للفرونت إند
-        return NotificationResource::collection($notifications)->additional([
+        $resource = NotificationResource::collection($notifications);
+        $payload = $resource->response()->getData(true);
+        $meta = $payload['meta'] ?? [];
+        $meta['unread_count'] = $unreadCount;
+
+        return $resource->additional([
             'status' => 'success',
             'message' => 'Notifications retrieved successfully',
-            'meta' => [
-                'unread_count' => $unreadCount,
-            ],
+            'meta' => $meta,
         ]);
     }
 
@@ -73,5 +80,15 @@ class NotificationController extends Controller
         $this->notificationService->markAllAsRead($user);
 
         return $this->successResponse(null, 'All notifications marked as read');
+    }
+
+    /**
+     * عدد الإشعارات غير المقروءة
+     */
+    public function unreadCount(Request $request): JsonResponse
+    {
+        $count = $this->notificationService->getUnreadCount($request->user());
+
+        return $this->successResponse(['unread_count' => $count], 'Unread count retrieved successfully');
     }
 }

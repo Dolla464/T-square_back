@@ -9,6 +9,9 @@ use App\Services\User\SolutionService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Solutions
+ */
 class SolutionsController extends Controller
 {
     use ApiResponseTrait;

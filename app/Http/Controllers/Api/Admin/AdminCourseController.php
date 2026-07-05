@@ -9,6 +9,9 @@ use App\Http\Resources\Admin\Course\AdminCourseResource;
 use App\Services\Admin\AdminCourseService;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Admin: Courses
+ */
 class AdminCourseController extends Controller
 {
     protected $courseService;

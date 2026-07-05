@@ -7,6 +7,9 @@ use App\Services\User\CategoryService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Public
+ */
 class CategoryController extends Controller
 {
     use ApiResponseTrait;

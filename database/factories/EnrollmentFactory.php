@@ -30,9 +30,10 @@ class EnrollmentFactory extends Factory
     }
 
     /**
-     * حالة خاصة: اشتراك بدون أوردر (مثل الكورسات المجانية أو إضافة يدوية من الأدمن)
+     * Legacy state: enrollments without an order (pre-migration).
+     * New free enrollments always get a completed zero-amount order.
      */
-    public function manual(): static
+    public function withoutOrder(): static
     {
         return $this->state(fn (array $attributes) => [
             'order_id' => null,
