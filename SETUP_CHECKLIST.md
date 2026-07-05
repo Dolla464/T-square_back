@@ -168,6 +168,21 @@ tail -f storage/logs/laravel.log
 
 ---
 
+## ملاحظة — Upload Timeout في الـ Frontend
+
+الـ axios instance في الفرونت (`src/api/axios.js`) عنده `timeout: 150000` (150 ثانية) على كل الـ requests.
+
+لـ upload requests بالتحديد (فيديوهات وميديا) تأكد إن الـ upload calls بتستخدم `timeout: 0` (unlimited):
+
+| الملف | الـ function |
+|---|---|
+| `src/modules/admin-dashboard/services/coursesServices.js` | `uploadChunk` → `timeout: 0` |
+| `src/modules/admin-dashboard/services/settingsService.js` | `uploadWebsiteMedia` → `timeout: 0` |
+
+بدون ده، أي upload بياخد أكثر من 150 ثانية هيتلغي من الفرونت حتى لو السيرفر شغال.
+
+---
+
 ## بعد كده — الـ Deployment التلقائي
 
 من هنا وبعدين، أي تعديل بتعمله:
