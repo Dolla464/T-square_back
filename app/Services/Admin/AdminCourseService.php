@@ -38,6 +38,11 @@ class AdminCourseService
             'total_students',
             'category_id',
             'instructor_id',
+            'price',
+            'price_before',
+            'discount_price',
+            'is_free',
+            'is_featured',
         ])
             ->with([
                 'instructor:id,full_name',

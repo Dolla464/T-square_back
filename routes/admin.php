@@ -154,10 +154,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])
         Route::apiResource('reviews', AdminReviewController::class)
             ->except(['store', 'update']);
 
-        // Payments — no manual store; handled via payment gateway callbacks
+        // Payments — export must be declared before the {payment} wildcard
         Route::get('payments/export', [AdminPaymentController::class, 'export'])->name('payments.export');
-        Route::apiResource('payments', AdminPaymentController::class)
-            ->except(['store']);
+        Route::apiResource('payments', AdminPaymentController::class);
 
         // Certificates
         Route::get('certificates/{certificate}/view', [AdminCertificateController::class, 'viewFile'])
