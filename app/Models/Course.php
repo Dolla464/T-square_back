@@ -105,6 +105,16 @@ class Course extends Model
         return $query->where('status', 'published');
     }
 
+    public function scopeWithActiveCategory($query)
+    {
+        return $query->whereHas('category', fn ($q) => $q->where('status', 'active'));
+    }
+
+    public function scopePubliclyVisible($query)
+    {
+        return $query->active()->withActiveCategory();
+    }
+
     public function scopeFeatured($query)
     {
         return $query->where('is_featured', true);

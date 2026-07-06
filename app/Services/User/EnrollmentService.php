@@ -24,6 +24,14 @@ class EnrollmentService
             throw (new ModelNotFoundException)->setModel(Course::class, [$payload['course_id']]);
         }
 
+        $course->loadMissing('category:id,status');
+
+        if ($course->category?->status !== 'active') {
+            throw ValidationException::withMessages([
+                'course_id' => ['This course is not available for enrollment.'],
+            ]);
+        }
+
         $isPaidCourse = ! (bool) $course->is_free && (float) $course->price > 0;
 
         // prepare whatsapp

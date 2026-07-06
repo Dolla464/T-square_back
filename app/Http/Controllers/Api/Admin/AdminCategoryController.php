@@ -104,12 +104,22 @@ class AdminCategoryController extends Controller
     public function tree(): JsonResponse
     {
         $categories = Category::query()->whereNull('parent_id', 'and', false)
-            ->select(['id', 'name', 'slug'])
+            ->select(['id', 'name', 'slug', 'status', 'created_at'])
+            ->withCount('children')
             ->with(['children' => function ($query) {
                 $query->select(['id', 'name', 'slug', 'parent_id'])
                     ->with('children:id,name,slug,parent_id');
             }])
-            ->get();
+            ->get()
+            ->map(fn (Category $category) => [
+                'id'             => $category->id,
+                'name'           => $category->name,
+                'slug'           => $category->slug,
+                'status'         => $category->status,
+                'created_at'     => $category->created_at?->format('Y-m-d'),
+                'children_count' => $category->children_count,
+                'children'       => $category->children,
+            ]);
 
         return $this->successResponse($categories, 'Categories tree retrieved successfully');
     }

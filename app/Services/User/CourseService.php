@@ -13,7 +13,7 @@ class CourseService
     {
         $perPage = $filters['per_page'] ?? 12;
 
-        return Course::active()
+        return Course::publiclyVisible()
             ->with([
                 'category:id,name,slug',
                 'instructor:id,user_id,avatar',
@@ -41,7 +41,7 @@ class CourseService
      */
     public function getCourseDetails($slug)
     {
-        $course = Course::active()
+        $course = Course::publiclyVisible()
             ->with(['category', 'instructor.user', 'learnings', 'previews', 'tags:id,name,slug'])
             ->where('slug', $slug)
             ->first();
@@ -54,7 +54,7 @@ class CourseService
         }
 
         // Get 3 similar courses from the same category (excluding the current course)
-        $relatedCourses = Course::active()
+        $relatedCourses = Course::publiclyVisible()
             // Added 'instructor_id' here to ensure the with([instructor]) works without issues
             ->select([
                 'id',
