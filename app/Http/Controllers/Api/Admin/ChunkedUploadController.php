@@ -34,35 +34,63 @@ class ChunkedUploadController extends Controller
      */
     public function store(Request $request, Course $course): JsonResponse
     {
-        $request->validate([
-            'chunk'         => ['required', 'file', 'max:5120'],
-            'chunk_index'   => ['required', 'integer', 'min:0'],
-            'total_chunks'  => ['required', 'integer', 'min:1'],
-            'filename'      => ['required', 'string', 'max:255'],
-            'preview_index' => ['required', 'integer', 'min:0'],
-        ]);
+        try {
+            $request->validate([
+                'chunk'         => ['required', 'file', 'max:5120'],
+                'chunk_index'   => ['required', 'integer', 'min:0'],
+                'total_chunks'  => ['required', 'integer', 'min:1'],
+                'filename'      => ['required', 'string', 'max:255'],
+                'preview_index' => ['required', 'integer', 'min:0'],
+            ]);
 
-        $filename     = basename($request->input('filename'));
-        $chunkIndex   = (int) $request->input('chunk_index');
-        $previewIndex = (int) $request->input('preview_index');
-        $courseId     = $course->id;
+            $uploaded = $request->file('chunk');
+            if (! $uploaded || ! $uploaded->isValid()) {
+                $code = $uploaded?->getError() ?? UPLOAD_ERR_NO_FILE;
 
-        // Validate extension before accepting any chunk bytes
-        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-        if (! in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
-            return response()->json(['error' => 'Invalid video file type. Allowed: mp4, webm, ogg, mov.'], 422);
+                return response()->json([
+                    'error'        => 'Chunk upload failed or was incomplete.',
+                    'upload_error' => $code,
+                ], 422);
+            }
+
+            $filename     = basename($request->input('filename'));
+            $chunkIndex   = (int) $request->input('chunk_index');
+            $previewIndex = (int) $request->input('preview_index');
+            $courseId     = $course->id;
+
+            $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+            if (! in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
+                return response()->json(['error' => 'Invalid video file type. Allowed: mp4, webm, ogg, mov.'], 422);
+            }
+
+            $tempDir = "chunks/{$courseId}/{$previewIndex}";
+
+            // Stream the temp upload to disk — avoids loading the whole chunk into memory.
+            Storage::disk('local')->putFileAs(
+                $tempDir,
+                $uploaded,
+                "chunk_{$chunkIndex}",
+            );
+
+            return response()->json([
+                'status'      => 'chunk_received',
+                'chunk_index' => $chunkIndex,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            \Log::error('Chunked upload store failed', [
+                'course_id'     => $course->id,
+                'chunk_index'   => $request->input('chunk_index'),
+                'preview_index' => $request->input('preview_index'),
+                'message'       => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'error'   => 'Failed to store chunk on server.',
+                'message' => config('app.debug') ? $e->getMessage() : 'Internal storage error.',
+            ], 500);
         }
-
-        // Temp storage key: chunks/{courseId}/{previewIndex}/chunk_{i}
-        $tempDir  = "chunks/{$courseId}/{$previewIndex}";
-        $chunkKey = "{$tempDir}/chunk_{$chunkIndex}";
-
-        Storage::put($chunkKey, $request->file('chunk')->getContent());
-
-        return response()->json([
-            'status'      => 'chunk_received',
-            'chunk_index' => $chunkIndex,
-        ]);
     }
 
     /**
