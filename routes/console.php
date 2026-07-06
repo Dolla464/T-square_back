@@ -11,6 +11,9 @@ Artisan::command('inspire', function () {
 // Remove stale video chunk folders every day at 02:00
 Schedule::command('chunks:cleanup')->dailyAt('02:00');
 
+// Remove uploaded preview video files that have no matching DB record (orphans older than 24 h)
+Schedule::command('previews:cleanup-orphans')->dailyAt('02:30');
+
 // Attendance automation
 // Activate upcoming sessions 30 minutes before start_time — runs every 15 minutes
 Schedule::command('attendance:activate')->everyFifteenMinutes()->withoutOverlapping()->appendOutputTo(storage_path('logs/attendance-activate.log'));

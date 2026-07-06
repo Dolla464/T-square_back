@@ -125,9 +125,11 @@ trait HandleImageUploadTrait
         $generatedName = uniqid().'_'.Str::random(5).'.webp';
         $fullPath = "{$folder}/{$generatedName}";
 
-        $imagePath = $file->getRealPath();
+        // Use getPathname() instead of getRealPath() – getRealPath() returns false on
+        // Windows / Laravel Herd because PHP's realpath() fails on the upload temp path.
+        $imagePath = $file->getPathname();
 
-        if ($imagePath === false || ! file_exists($imagePath)) {
+        if ($imagePath === false || $imagePath === '' || ! file_exists($imagePath)) {
             throw new \Exception('Uploaded file is not readable or no longer available.');
         }
 

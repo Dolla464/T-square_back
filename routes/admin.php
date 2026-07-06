@@ -78,6 +78,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])
             // {course:id} forces binding by primary key because Course::getRouteKeyName() returns 'slug'.
             Route::post('{course:id}/previews/chunked-upload', [ChunkedUploadController::class, 'store'])
                 ->name('previews.chunked-upload');
+            // Finalize: assemble previously uploaded chunks into the final video file.
+            Route::post('{course:id}/previews/finalize-upload', [ChunkedUploadController::class, 'finalize'])
+                ->name('previews.finalize-upload');
         });
         Route::apiResource('courses', AdminCourseController::class);
 

@@ -8,11 +8,11 @@ use Illuminate\Support\Facades\Storage;
 class CleanupChunksCommand extends Command
 {
     protected $signature   = 'chunks:cleanup';
-    protected $description = 'Delete temp chunk folders older than 24 hours from storage/app/chunks/';
+    protected $description = 'Delete temp chunk folders older than 24 hours from the local disk chunks/ directory';
 
     public function handle(): int
     {
-        $chunksRoot = storage_path('app/chunks');
+        $chunksRoot = Storage::disk('local')->path('chunks');
 
         if (! is_dir($chunksRoot)) {
             $this->info('No chunks directory found. Nothing to clean.');

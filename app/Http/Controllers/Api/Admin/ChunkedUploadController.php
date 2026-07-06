@@ -14,39 +14,44 @@ use Illuminate\Support\Str;
  */
 class ChunkedUploadController extends Controller
 {
+    /** Allowed video extensions (must match frontend accept list). */
+    private const ALLOWED_EXTENSIONS = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'];
+
     /**
-     * Receive one video chunk and, on the final chunk, assemble the full file.
+     * Receive one video chunk and persist it to temporary storage.
      *
      * POST /api/admin/courses/{course}/previews/chunked-upload
      *
      * Multipart fields:
-     *   chunk         – the binary slice (max 2 MB)
+     *   chunk         – the binary slice (max 5 MB)
      *   chunk_index   – 0-based position of this slice
-     *   total_chunks  – how many slices in total
-     *   filename      – original file name (used to preserve the extension)
+     *   total_chunks  – total number of slices
+     *   filename      – original file name (used to validate the extension)
      *   preview_index – which lesson/preview row this video belongs to
      *
-     * Returns on intermediate chunks:
+     * Returns:
      *   { status: "chunk_received", chunk_index: N }
-     *
-     * Returns on the last chunk:
-     *   { status: "complete", video_url, duration_seconds, video_provider, size }
      */
     public function store(Request $request, Course $course): JsonResponse
     {
         $request->validate([
-            'chunk'         => ['required', 'file', 'max:2048'],
+            'chunk'         => ['required', 'file', 'max:5120'],
             'chunk_index'   => ['required', 'integer', 'min:0'],
             'total_chunks'  => ['required', 'integer', 'min:1'],
             'filename'      => ['required', 'string', 'max:255'],
             'preview_index' => ['required', 'integer', 'min:0'],
         ]);
 
-        $chunkIndex   = (int) $request->input('chunk_index');
-        $totalChunks  = (int) $request->input('total_chunks');
         $filename     = basename($request->input('filename'));
+        $chunkIndex   = (int) $request->input('chunk_index');
         $previewIndex = (int) $request->input('preview_index');
         $courseId     = $course->id;
+
+        // Validate extension before accepting any chunk bytes
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        if (! in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
+            return response()->json(['error' => 'Invalid video file type. Allowed: mp4, webm, ogg, mov.'], 422);
+        }
 
         // Temp storage key: chunks/{courseId}/{previewIndex}/chunk_{i}
         $tempDir  = "chunks/{$courseId}/{$previewIndex}";
@@ -54,21 +59,50 @@ class ChunkedUploadController extends Controller
 
         Storage::put($chunkKey, $request->file('chunk')->getContent());
 
-        // Not the last chunk – acknowledge and wait for the rest
-        if ($chunkIndex < $totalChunks - 1) {
-            return response()->json([
-                'status'      => 'chunk_received',
-                'chunk_index' => $chunkIndex,
-            ]);
+        return response()->json([
+            'status'      => 'chunk_received',
+            'chunk_index' => $chunkIndex,
+        ]);
+    }
+
+    /**
+     * Assemble previously uploaded chunks into the final video file.
+     *
+     * POST /api/admin/courses/{course}/previews/finalize-upload
+     *
+     * JSON / form fields:
+     *   filename      – original file name (extension preserved)
+     *   total_chunks  – how many chunks were uploaded
+     *   preview_index – identifies the temp chunk folder
+     *
+     * Returns:
+     *   { status: "complete", video_url, duration_seconds, video_provider, size }
+     */
+    public function finalize(Request $request, Course $course): JsonResponse
+    {
+        $request->validate([
+            'filename'      => ['required', 'string', 'max:255'],
+            'total_chunks'  => ['required', 'integer', 'min:1'],
+            'preview_index' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $filename     = basename($request->input('filename'));
+        $totalChunks  = (int) $request->input('total_chunks');
+        $previewIndex = (int) $request->input('preview_index');
+        $courseId     = $course->id;
+
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION)) ?: 'mp4';
+
+        // Guard extension again (belt-and-suspenders)
+        if (! in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
+            return response()->json(['error' => 'Invalid video file type.'], 422);
         }
 
-        // ── All chunks received: assemble ────────────────────────────────────
-        $extension   = strtolower(pathinfo($filename, PATHINFO_EXTENSION)) ?: 'mp4';
-        $finalName   = time() . '_' . Str::random(6) . '.' . $extension;
-        $finalFolder = 'courses/previews';
-        $finalPath   = "{$finalFolder}/{$finalName}";
+        $tempDir = "chunks/{$courseId}/{$previewIndex}";
 
-        // Ensure destination directory exists on the public disk
+        $finalName    = time() . '_' . Str::random(6) . '.' . $ext;
+        $finalFolder  = 'courses/previews';
+        $finalPath    = "{$finalFolder}/{$finalName}";
         $finalFullPath = Storage::disk('public')->path($finalPath);
         $finalDir      = dirname($finalFullPath);
 
@@ -82,12 +116,12 @@ class ChunkedUploadController extends Controller
         }
 
         for ($i = 0; $i < $totalChunks; $i++) {
-            $chunkFilePath = Storage::path("{$tempDir}/chunk_{$i}");
+            $chunkFilePath = Storage::disk('local')->path("{$tempDir}/chunk_{$i}");
 
             if (! file_exists($chunkFilePath)) {
                 fclose($outputStream);
                 @unlink($finalFullPath);
-                return response()->json(['error' => "Missing chunk {$i}. Re-upload required."], 422);
+                return response()->json(['error' => "Missing chunk {$i}. Please re-upload."], 422);
             }
 
             $inputStream = fopen($chunkFilePath, 'rb');
@@ -98,9 +132,18 @@ class ChunkedUploadController extends Controller
 
         fclose($outputStream);
 
+        // Verify the assembled file is actually a video (defence against spoofed extensions)
+        $detectedMime = mime_content_type($finalFullPath) ?: '';
+        if (! str_starts_with($detectedMime, 'video/')) {
+            @unlink($finalFullPath);
+            Storage::deleteDirectory($tempDir);
+            return response()->json(['error' => 'Assembled file is not a valid video.'], 422);
+        }
+
         $size = (int) filesize($finalFullPath);
 
-        // Extract duration with getID3 (mirrors HandleVideoUploadTrait logic)
+        // Extract duration with getID3 for files under 20 MB; larger files rely on
+        // the browser-supplied duration (set via HTML5 Video API before upload starts).
         $duration = null;
 
         try {
@@ -141,7 +184,7 @@ class ChunkedUploadController extends Controller
      */
     private function cleanupOldChunkSessions(int $courseId): void
     {
-        $courseChunksDir = storage_path("app/chunks/{$courseId}");
+        $courseChunksDir = Storage::disk('local')->path("chunks/{$courseId}");
 
         if (! is_dir($courseChunksDir)) {
             return;
