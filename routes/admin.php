@@ -55,9 +55,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])
         Route::post('users', [AdminUserController::class, 'store'])
             ->name('users.store');
 
-        // Tags
-        Route::get('tags', [AdminTagController::class, 'index'])
-            ->name('tags.index');
+        // Tags (full CRUD)
+        Route::apiResource('tags', AdminTagController::class);
 
         // Categories ───────────────────────────────────────────────────────────
         // Static "tree" segment is declared FIRST so that it is never captured
