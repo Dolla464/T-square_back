@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Admin\Payment\StorePaymentRequest;
 use App\Http\Requests\Api\Admin\Payment\UpdatePaymentRequest;
 use App\Http\Resources\Admin\Payment\AdminPaymentCollection;
 use App\Http\Resources\Admin\Payment\AdminPaymentResource;
@@ -88,6 +89,18 @@ class AdminPaymentController extends Controller
         }
 
         return $this->exportPdf($orders, $filters);
+    }
+
+    /**
+     * Store a newly created order + enrollment in storage.
+     */
+    public function store(StorePaymentRequest $request): \Illuminate\Http\JsonResponse
+    {
+        $order = $this->payments->store($request->validated());
+
+        return (new AdminPaymentResource($order))
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**

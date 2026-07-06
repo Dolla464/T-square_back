@@ -55,9 +55,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])
         Route::post('users', [AdminUserController::class, 'store'])
             ->name('users.store');
 
-        // Tags
-        Route::get('tags', [AdminTagController::class, 'index'])
-            ->name('tags.index');
+        // Tags (full CRUD)
+        Route::apiResource('tags', AdminTagController::class);
 
         // Categories ───────────────────────────────────────────────────────────
         // Static "tree" segment is declared FIRST so that it is never captured
@@ -78,6 +77,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])
             // {course:id} forces binding by primary key because Course::getRouteKeyName() returns 'slug'.
             Route::post('{course:id}/previews/chunked-upload', [ChunkedUploadController::class, 'store'])
                 ->name('previews.chunked-upload');
+            // Finalize: assemble previously uploaded chunks into the final video file.
+            Route::post('{course:id}/previews/finalize-upload', [ChunkedUploadController::class, 'finalize'])
+                ->name('previews.finalize-upload');
         });
         Route::apiResource('courses', AdminCourseController::class);
 
@@ -151,10 +153,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])
         Route::apiResource('reviews', AdminReviewController::class)
             ->except(['store', 'update']);
 
-        // Payments — no manual store; handled via payment gateway callbacks
+        // Payments — export must be declared before the {payment} wildcard
         Route::get('payments/export', [AdminPaymentController::class, 'export'])->name('payments.export');
-        Route::apiResource('payments', AdminPaymentController::class)
-            ->except(['store']);
+        Route::apiResource('payments', AdminPaymentController::class);
 
         // Certificates
         Route::get('certificates/{certificate}/view', [AdminCertificateController::class, 'viewFile'])

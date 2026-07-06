@@ -3,6 +3,7 @@
 namespace App\Services\Admin;
 
 use App\Http\Resources\Admin\Course\CourseFieldList;
+use App\Jobs\ExtractVideoDurationJob;
 use App\Models\Course;
 use App\Models\CourseLearning;
 use App\Traits\HandleImageUploadTrait;
@@ -37,6 +38,11 @@ class AdminCourseService
             'total_students',
             'category_id',
             'instructor_id',
+            'price',
+            'price_before',
+            'discount_price',
+            'is_free',
+            'is_featured',
         ])
             ->with([
                 'instructor:id,full_name',
@@ -367,11 +373,20 @@ class AdminCourseService
 
                 if ($needsUpdate) {
                     $course->previews()->where('id', $previewId)->update($attributes);
+                    // Dispatch duration extraction if the video changed and duration is missing
+                    $refreshed = $course->previews()->find($previewId);
+                    if ($refreshed && ($videoPayload['video_provider'] ?? '') === 'upload' && empty($refreshed->duration_seconds)) {
+                        ExtractVideoDurationJob::dispatch($refreshed->id)->onQueue('default');
+                    }
                 }
                 $keptIds[] = $previewId;
             } else {
                 $newPreview = $course->previews()->create($attributes);
                 $keptIds[] = $newPreview->id;
+                // Dispatch duration extraction for newly created uploaded previews with no duration
+                if (($videoPayload['video_provider'] ?? '') === 'upload' && empty($newPreview->duration_seconds)) {
+                    ExtractVideoDurationJob::dispatch($newPreview->id)->onQueue('default');
+                }
             }
         }
 

@@ -4,27 +4,43 @@ namespace App\Observers;
 
 use App\Events\CoursePurchased;
 use App\Models\Order;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class OrderObserver
 {
+    private const CACHE_KEYS = [
+        'admin_dashboard_all_time_payment_stats',
+        'admin_dashboard_overview_stats',
+    ];
+
     /**
      * Handle the Order "saved" event (create + update).
-     * wasChanged() is valid here — saved runs after persistence.
-     * Dispatches CoursePurchased only once when status transitions to completed,
-     * after the surrounding DB transaction commits.
+     *
+     * Always busts the stats caches so the orders page and overview
+     * reflect changes immediately on the next request.
+     *
+     * Dispatches CoursePurchased when:
+     *  - the order was just created with status = completed, OR
+     *  - the order's status transitioned to completed from another value.
      */
     public function saved(Order $order): void
     {
+        $this->bustStatsCaches();
+
         if ($order->status !== 'completed') {
             return;
         }
 
-        if (! $order->wasChanged('status')) {
-            return;
-        }
+        // New record created directly as completed (e.g. admin manual order)
+        $wasJustCreatedAsCompleted = $order->wasRecentlyCreated;
 
-        if ($order->getOriginal('status') === 'completed') {
+        // Existing record whose status just moved to completed
+        $statusTransitionedToCompleted = ! $order->wasRecentlyCreated
+            && $order->wasChanged('status')
+            && $order->getOriginal('status') !== 'completed';
+
+        if (! $wasJustCreatedAsCompleted && ! $statusTransitionedToCompleted) {
             return;
         }
 
@@ -39,6 +55,21 @@ class OrderObserver
 
             $this->dispatchCoursePurchased($fresh);
         });
+    }
+
+    /**
+     * Bust caches when an order is deleted so counts drop immediately.
+     */
+    public function deleted(Order $order): void
+    {
+        $this->bustStatsCaches();
+    }
+
+    private function bustStatsCaches(): void
+    {
+        foreach (self::CACHE_KEYS as $key) {
+            Cache::forget($key);
+        }
     }
 
     private function dispatchCoursePurchased(Order $order): void

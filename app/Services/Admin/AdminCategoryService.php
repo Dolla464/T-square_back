@@ -97,6 +97,10 @@ class AdminCategoryService
     {
         $category->update($data);
 
+        if (isset($data['status']) && is_null($category->parent_id)) {
+            $category->children()->update(['status' => $data['status']]);
+        }
+
         $category->load('parent:id,name,slug');
 
         return new AdminCategoryResource($category);

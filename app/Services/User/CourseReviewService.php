@@ -33,6 +33,7 @@ class CourseReviewService
     private function publicReviewQuery()
     {
         return CourseReview::active()
+            ->whereHas('course.category', fn ($q) => $q->where('status', 'active'))
             ->with([
                 'student:id,avatar,full_name',
                 'course:id,title',

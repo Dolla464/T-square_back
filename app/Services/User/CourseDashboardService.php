@@ -41,7 +41,7 @@ class CourseDashboardService
     private function getStats(int $studentId): array
     {
         // All published courses
-        $totalPlatformCourses = Course::active()->count();
+        $totalPlatformCourses = Course::publiclyVisible()->count();
 
         // The statistics of the student (Query Builder directly without Hydration)
         $enrollmentStats = Enrollment::query()
