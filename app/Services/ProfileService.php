@@ -24,6 +24,10 @@ class ProfileService
                 $user->load([
                     'student:id,user_id,full_name,avatar,gender,phone',
                 ]);
+            } elseif ($relation === 'instructor') {
+                $user->load([
+                    'instructor:id,user_id,full_name,avatar,gender,phone,field,bio,insta_url,linkedin_url,facebook_url',
+                ]);
             } else {
                 $user->load($relation);
             }
@@ -41,9 +45,12 @@ class ProfileService
             if ($relation === 'student') {
                 $this->ensureStudentProfile($user);
                 $user->load('student');
+            } elseif ($relation === 'instructor') {
+                $user->load('instructor');
             }
 
             $profile = $relation ? $user->{$relation} : null;
+            $avatarFolder = $relation === 'instructor' ? 'instructors/avatars' : 'students';
 
             $userData = [];
             if (isset($validated['full_name'])) {
@@ -58,18 +65,30 @@ class ProfileService
             }
 
             if ($profile) {
-                $profileData = array_filter([
+                $profileFields = [
                     'full_name' => $validated['full_name'] ?? null,
                     'gender' => $validated['gender'] ?? null,
-                    // لا نضع avatar هنا مباشرة لأنه قد يكون كائن ملف (File Object)
-                ], fn($value) => ! is_null($value));
+                    'field' => $validated['field'] ?? null,
+                    'bio' => $validated['bio'] ?? null,
+                    'insta_url' => $validated['insta_url'] ?? null,
+                    'linkedin_url' => $validated['linkedin_url'] ?? null,
+                    'facebook_url' => $validated['facebook_url'] ?? null,
+                ];
+
+                $profileData = array_filter(
+                    $profileFields,
+                    fn ($value) => ! is_null($value)
+                );
 
                 if (isset($validated['avatar']) && $validated['avatar'] instanceof UploadedFile) {
-                    // استدعاء الـ Trait (الآن سيعمل بدون Intervention Image)
+                    $existingAvatar = $relation === 'instructor'
+                        ? $profile->getRawOriginal('avatar')
+                        : $profile->avatar;
+
                     $profileData['avatar'] = $this->uploadImage(
                         $validated['avatar'],
-                        'students',
-                        $profile->avatar
+                        $avatarFolder,
+                        $existingAvatar
                     );
                 }
 

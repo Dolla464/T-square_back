@@ -28,6 +28,19 @@ class ProfileResource extends JsonResource
                     'phone'     => $this->student->phone ?? '',
                 ];
             }),
+            'instructor'  => $this->whenLoaded('instructor', function () {
+                return [
+                    'full_name'    => $this->instructor->full_name ?? $this->name,
+                    'avatar'       => $this->instructor->avatar,
+                    'gender'       => $this->instructor->gender ?? 'not_set',
+                    'phone'        => $this->instructor->phone ?? '',
+                    'field'        => $this->instructor->field ?? '',
+                    'bio'          => $this->instructor->bio ?? '',
+                    'insta_url'    => $this->instructor->insta_url ?? '',
+                    'linkedin_url' => $this->instructor->linkedin_url ?? '',
+                    'facebook_url' => $this->instructor->facebook_url ?? '',
+                ];
+            }),
         ];
     }
 }
