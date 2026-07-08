@@ -119,6 +119,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])
             Route::get('{learningGroup}/attendance-summary', [AdminLearningGroupController::class, 'getAttendanceSummary'])->name('learning-groups.attendance-summary');
             Route::get('{learningGroup}/sessions/{session}/attendance/export', [AdminLearningGroupController::class, 'exportSessionAttendance'])->name('learning-groups.sessions.attendance.export');
             Route::get('{learningGroup}/sessions/{session}/attendance', [AdminLearningGroupController::class, 'getSessionAttendance'])->name('learning-groups.sessions.attendance');
+            Route::post('{learningGroup}/sessions/{session}/attendance/mark', [AdminLearningGroupController::class, 'markSessionAttendance'])->name('learning-groups.sessions.attendance.mark');
             Route::get('{learningGroup}/students/{student}/attendance/export', [AdminLearningGroupController::class, 'exportStudentCourseAttendance'])->name('learning-groups.students.attendance.export');
             Route::get('{learningGroup}/students/{student}/attendance', [AdminLearningGroupController::class, 'getStudentCourseAttendance'])->name('learning-groups.students.attendance');
             Route::get('{learningGroup}/attendance', [AdminLearningGroupController::class, 'getAttendanceReport'])->name('learning-groups.attendance');

@@ -22,10 +22,16 @@ class LearningGroupRequest extends FormRequest
     {
         $isUpdate = $this->route('learning_group') !== null;
 
-        // New groups must start today or later; existing groups may keep a past start_date.
-        $startDateRule = $isUpdate
-            ? 'required|date'
-            : 'required|date|after_or_equal:today';
+        // Historical create allows past start_date; normal create requires today or later.
+        $isHistorical = $isUpdate
+            ? false
+            : filter_var($this->input('is_historical'), FILTER_VALIDATE_BOOLEAN);
+
+        $startDateRule = match (true) {
+            $isUpdate      => 'required|date',
+            $isHistorical  => 'required|date|before_or_equal:today',
+            default        => 'required|date|after_or_equal:today',
+        };
 
         // Schedules are optional on update when only other fields change (future-only sync).
         $schedulesRule = $isUpdate
@@ -36,8 +42,9 @@ class LearningGroupRequest extends FormRequest
             'group_name'   => 'required|string|max:255',
             'course_id'    => 'required|exists:courses,id',
             'instructor_id' => 'required|exists:instructors,id',
-            'start_date'   => $startDateRule,
-            'status'       => 'nullable|in:active,completed,cancelled',
+            'start_date'    => $startDateRule,
+            'is_historical' => 'nullable|boolean',
+            'status'        => 'nullable|in:active,completed,cancelled',
 
             'schedules'               => $schedulesRule,
             'schedules.*.day_of_week' => 'required|integer|between:0,6',
@@ -58,8 +65,41 @@ class LearningGroupRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $v) {
+            $this->checkHistoricalStartDate($v);
             $this->checkInstructorScheduleOverlap($v);
         });
+    }
+
+    /**
+     * Reject contradictory is_historical / start_date combinations on create.
+     */
+    private function checkHistoricalStartDate(Validator $v): void
+    {
+        if ($this->route('learning_group') !== null || $v->errors()->isNotEmpty()) {
+            return;
+        }
+
+        $startDate = $this->input('start_date');
+        if (! $startDate) {
+            return;
+        }
+
+        $today = now()->toDateString();
+        $isHistorical = filter_var($this->input('is_historical'), FILTER_VALIDATE_BOOLEAN);
+
+        if ($isHistorical && $startDate > $today) {
+            $v->errors()->add(
+                'start_date',
+                'Historical groups must have a start date on or before today.'
+            );
+        }
+
+        if (! $isHistorical && $startDate < $today) {
+            $v->errors()->add(
+                'start_date',
+                'Start date must be today or a future date.'
+            );
+        }
     }
 
     /**
@@ -129,6 +169,7 @@ class LearningGroupRequest extends FormRequest
             'schedules.*.end_time.date_format' => 'End time must be in H:i format (e.g. 11:00).',
             'schedules.*.end_time.after'       => 'End time must be after start time.',
             'start_date.after_or_equal'        => 'Start date must be today or a future date.',
+            'start_date.before_or_equal'       => 'Historical groups must have a start date on or before today.',
         ];
     }
 }

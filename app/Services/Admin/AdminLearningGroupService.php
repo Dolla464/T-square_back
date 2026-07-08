@@ -70,9 +70,11 @@ class AdminLearningGroupService
     public function createGroup(array $data): AdminLearningGroupResource
     {
         return DB::transaction(function () use ($data) {
-            $course    = Course::findOrFail($data['course_id']);
-            $startDate = Carbon::parse($data['start_date']);
-            $endDate   = $startDate->copy()->addWeeks($course->duration_weeks);
+            $isHistorical = filter_var($data['is_historical'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $course       = Course::findOrFail($data['course_id']);
+            $startDate    = Carbon::parse($data['start_date']);
+            $endDate      = $startDate->copy()->addWeeks($course->duration_weeks);
+            $status       = $this->resolveInitialGroupStatus($data, $startDate, $endDate, $isHistorical);
 
             $group = LearningGroup::create([
                 'group_name'    => $data['group_name'],
@@ -80,7 +82,7 @@ class AdminLearningGroupService
                 'instructor_id' => $data['instructor_id'],
                 'start_date'    => $startDate,
                 'end_date'      => $endDate,
-                'status'        => $data['status'] ?? 'active',
+                'status'        => $status,
             ]);
 
             if (!empty($data['schedules'])) {
@@ -91,6 +93,11 @@ class AdminLearningGroupService
 
             $this->generateAttendanceSessions($group);
 
+            $backfillMeta = [];
+            if ($isHistorical) {
+                $backfillMeta = $this->backfillHistoricalSessions($group);
+            }
+
             if (! empty($data['student_ids'])) {
                 $studentSync = $this->syncGroupStudents($group, $data);
             }
@@ -100,15 +107,17 @@ class AdminLearningGroupService
             $syncResult = $this->syncEnrollmentsWithGroupStatus($group, 'active', $newStatus);
             $group->sync_meta = array_merge(
                 $syncResult,
-                $studentSync ?? ['skipped_student_ids' => []]
+                $studentSync ?? ['skipped_student_ids' => []],
+                $backfillMeta
             );
 
             $group->load(['course:id,title', 'instructor:id,full_name', 'schedules']);
 
-            // Notify the assigned instructor about the new group
-            $instructorUser = $group->instructor?->user;
-            if ($instructorUser) {
-                $instructorUser->notify(new InstructorGroupAssignedNotification($group));
+            if (! $isHistorical) {
+                $instructorUser = $group->instructor?->user;
+                if ($instructorUser) {
+                    $instructorUser->notify(new InstructorGroupAssignedNotification($group));
+                }
             }
 
             return new AdminLearningGroupResource($group);
@@ -502,6 +511,57 @@ class AdminLearningGroupService
     private static function dayOfWeekMap(): array
     {
         return [0 => 6, 1 => 0, 2 => 1, 3 => 2, 4 => 3, 5 => 4, 6 => 5];
+    }
+
+    /**
+     * Resolve initial group status on create; explicit payload status wins.
+     */
+    private function resolveInitialGroupStatus(
+        array $data,
+        Carbon $startDate,
+        Carbon $endDate,
+        bool $isHistorical
+    ): string {
+        if (isset($data['status'])) {
+            return $data['status'];
+        }
+
+        if ($isHistorical && $endDate->lt(Carbon::today())) {
+            return 'completed';
+        }
+
+        return 'active';
+    }
+
+    /**
+     * Mark past attendance sessions as completed for historical group backfill.
+     *
+     * @return array{historical_backfill: array{past_sessions_completed: int, today_upcoming: int, future_upcoming: int}}
+     */
+    public function backfillHistoricalSessions(LearningGroup $group): array
+    {
+        $today = Carbon::today()->toDateString();
+
+        $pastCompleted = AttendanceSession::where('learning_group_id', $group->id)
+            ->where('status', 'upcoming')
+            ->whereDate('session_date', '<', $today)
+            ->update(['status' => 'completed']);
+
+        $counts = AttendanceSession::where('learning_group_id', $group->id)
+            ->selectRaw(
+                'SUM(CASE WHEN DATE(session_date) = ? THEN 1 ELSE 0 END) as today_count,
+                 SUM(CASE WHEN DATE(session_date) > ? THEN 1 ELSE 0 END) as future_count',
+                [$today, $today]
+            )
+            ->first();
+
+        return [
+            'historical_backfill' => [
+                'past_sessions_completed' => $pastCompleted,
+                'today_upcoming'          => (int) ($counts->today_count ?? 0),
+                'future_upcoming'         => (int) ($counts->future_count ?? 0),
+            ],
+        ];
     }
 
     /**

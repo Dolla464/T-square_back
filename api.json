@@ -3365,6 +3365,138 @@
                 }
             }
         },
+        "/admin/learning-groups/{learningGroup}/sessions/{session}/attendance/mark": {
+            "post": {
+                "operationId": "admin.learning-groups.sessions.attendance.mark",
+                "summary": "POST /api/admin/learning-groups/{learningGroup}/sessions/{session}/attendance/mark",
+                "tags": [
+                    "Admin: Learning Groups",
+                    "AdminLearningGroup"
+                ],
+                "parameters": [
+                    {
+                        "name": "learningGroup",
+                        "in": "path",
+                        "required": true,
+                        "description": "The learning group ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "session",
+                        "in": "path",
+                        "required": true,
+                        "description": "The session ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "student_id": {
+                                        "type": "integer"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "present",
+                                            "absent",
+                                            "late"
+                                        ]
+                                    },
+                                    "notes": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 255
+                                    }
+                                },
+                                "required": [
+                                    "student_id",
+                                    "status"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "const": "success"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Attendance marked successfully"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "record_id": {
+                                                    "type": "integer"
+                                                },
+                                                "session_id": {
+                                                    "type": "integer"
+                                                },
+                                                "student_id": {
+                                                    "type": "integer"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                },
+                                                "marked_at": {
+                                                    "type": "string"
+                                                },
+                                                "marked_by": {
+                                                    "type": "string",
+                                                    "const": "admin_manual"
+                                                }
+                                            },
+                                            "required": [
+                                                "record_id",
+                                                "session_id",
+                                                "student_id",
+                                                "status",
+                                                "marked_at",
+                                                "marked_by"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "description": "Validation error or session not eligible for marking"
+                    }
+                }
+            }
+        },
         "/admin/learning-groups/{learningGroup}/students/{student}/attendance/export": {
             "get": {
                 "operationId": "admin.learning-groups.students.attendance.export",
@@ -16484,7 +16616,12 @@
                     },
                     "start_date": {
                         "type": "string",
-                        "format": "date-time"
+                        "format": "date-time",
+                        "description": "On create: must be today or later unless is_historical is true, in which case it must be on or before today. On update: any valid date."
+                    },
+                    "is_historical": {
+                        "type": "boolean",
+                        "description": "Create only. When true, allows a past start_date, marks past sessions as completed without attendance records, derives group status from end_date, and skips instructor assignment notification."
                     },
                     "status": {
                         "type": [

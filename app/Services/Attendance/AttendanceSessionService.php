@@ -5,12 +5,29 @@ namespace App\Services\Attendance;
 use App\Models\AttendanceSession;
 use App\Models\LearningGroup;
 use Carbon\Carbon;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class AttendanceSessionService
 {
     public function assertSessionBelongsToGroup(AttendanceSession $session, LearningGroup $group): bool
     {
         return (int) $session->learning_group_id === (int) $group->id;
+    }
+
+    public function assertAdminCanMarkHistoricalSession(AttendanceSession $session): void
+    {
+        if ($session->status === 'cancelled') {
+            throw new HttpException(422, 'Cannot mark attendance for cancelled sessions.');
+        }
+
+        $times       = $this->getEffectiveTimes($session);
+        $sessionDate = $times['session_date'] ?? $session->session_date->format('Y-m-d');
+        $isPast      = Carbon::parse($sessionDate)->startOfDay()->lt(Carbon::today());
+        $isCompleted = $session->status === 'completed';
+
+        if (! $isCompleted && ! $isPast) {
+            throw new HttpException(422, 'Attendance can only be marked for completed or past sessions.');
+        }
     }
 
     public function getSessionDetails(AttendanceSession $session): array

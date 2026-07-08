@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AdminMarkAttendanceRequest;
 use App\Http\Requests\Admin\LearningGroupRequest;
 use App\Http\Resources\User\Exam\ExamResultResource;
 use App\Models\AttendanceRecord;
@@ -14,7 +15,9 @@ use App\Services\Admin\AdminLearningGroupService;
 use App\Services\Attendance\AttendanceSessionService;
 use App\Services\Attendance\GroupAttendanceSummaryService;
 use App\Services\Exam\GroupExamResultsService;
+use App\Events\StudentScanned;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -284,6 +287,53 @@ class AdminLearningGroupController extends Controller
             $this->attendanceSessionService->getSessionDetails($session),
             'Session attendance retrieved successfully'
         );
+    }
+
+    /**
+     * POST /api/admin/learning-groups/{learningGroup}/sessions/{session}/attendance/mark
+     */
+    public function markSessionAttendance(
+        AdminMarkAttendanceRequest $request,
+        LearningGroup $learningGroup,
+        AttendanceSession $session
+    ): JsonResponse {
+        if (! $this->attendanceSessionService->assertSessionBelongsToGroup($session, $learningGroup)) {
+            return $this->errorResponse('Session not found for this group.', 404);
+        }
+
+        $this->attendanceSessionService->assertAdminCanMarkHistoricalSession($session);
+
+        $studentId = (int) $request->validated('student_id');
+        $isEnrolled = $learningGroup->students()->where('students.id', $studentId)->exists();
+
+        if (! $isEnrolled) {
+            return $this->errorResponse('Student is not enrolled in this group.', 422);
+        }
+
+        $record = AttendanceRecord::updateOrCreate(
+            [
+                'session_id' => $session->id,
+                'student_id' => $studentId,
+            ],
+            [
+                'status'    => $request->validated('status'),
+                'marked_by' => 'admin_manual',
+                'marked_at' => Carbon::now(),
+                'notes'     => $request->validated('notes'),
+            ]
+        );
+
+        $record->load(['session.learningGroup', 'student.user']);
+        broadcast(new StudentScanned($record))->toOthers();
+
+        return $this->successResponse([
+            'record_id'  => $record->id,
+            'session_id' => $record->session_id,
+            'student_id' => $record->student_id,
+            'status'     => $record->status,
+            'marked_at'  => $record->marked_at->toDateTimeString(),
+            'marked_by'  => $record->marked_by,
+        ], 'Attendance marked successfully');
     }
 
     /**
