@@ -3,10 +3,21 @@
 namespace App\Observers;
 
 use App\Models\Course;
+use App\Support\HomePageCache;
 use Illuminate\Support\Facades\Storage;
 
 class CourseObserver
 {
+    public function saved(Course $course): void
+    {
+        HomePageCache::forget();
+    }
+
+    public function deleted(Course $course): void
+    {
+        HomePageCache::forget();
+    }
+
     /**
      * Before deletion (soft or hard)
      */

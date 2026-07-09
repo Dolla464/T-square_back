@@ -7,23 +7,34 @@ use App\Models\Setting;
 class PublicWebsiteService
 {
     /**
-     * 1. Get a random limited set of Discovery images for visitors
+     * Get all discovery image URLs (no shuffle).
      */
-    public function getDiscoveryMediaForVisitor(int $limit = 15): array
+    public function getDiscoveryMediaUrls(): array
     {
         $images = Setting::get('discovery_media', []);
 
-        if (!is_array($images) || empty($images)) {
+        if (! is_array($images) || empty($images)) {
             return [];
         }
 
-        $fullUrlImages = array_map(function ($imagePath) {
-            // If the path is stored as /storage/.. or storage/.. we convert it to a full URL
+        return array_map(function ($imagePath) {
             $cleanPath = str_replace('/storage/', '', $imagePath);
+
             return \Illuminate\Support\Facades\Storage::disk('public')->url($cleanPath);
         }, $images);
+    }
 
-        // Shuffle the images randomly to ensure a fresh set with each visit
+    /**
+     * Get a random limited set of Discovery images for visitors
+     */
+    public function getDiscoveryMediaForVisitor(int $limit = 15): array
+    {
+        $fullUrlImages = $this->getDiscoveryMediaUrls();
+
+        if (empty($fullUrlImages)) {
+            return [];
+        }
+
         shuffle($fullUrlImages);
 
         return array_slice($fullUrlImages, 0, $limit);

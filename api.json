@@ -804,8 +804,8 @@
         "/admin/courses/{course}/previews/chunked-upload": {
             "post": {
                 "operationId": "admin.courses.previews.chunked-upload",
-                "description": "POST /api/admin/courses/{course}/previews/chunked-upload\n\nMultipart fields:\n  chunk         \u2013 the binary slice (max 2 MB)\n  chunk_index   \u2013 0-based position of this slice\n  total_chunks  \u2013 how many slices in total\n  filename      \u2013 original file name (used to preserve the extension)\n  preview_index \u2013 which lesson/preview row this video belongs to\n\nReturns on intermediate chunks:\n  { status: \"chunk_received\", chunk_index: N }\n\nReturns on the last chunk:\n  { status: \"complete\", video_url, duration_seconds, video_provider, size }",
-                "summary": "Receive one video chunk and, on the final chunk, assemble the full file",
+                "description": "POST /api/admin/courses/{course}/previews/chunked-upload\n\nMultipart fields:\n  chunk, chunk_index, total_chunks, upload_id (uuid), original_filename,\n  expected_filesize, sha256, preview_index (optional), chunk_size (optional)\n\nChunk max 5 MB (config/upload.php). Session: chunks/{courseId}/{upload_id}/meta.json.\n\nReturns: { status: chunk_received, upload_id, chunk_index, completed_count, total_chunks, session_status, progress }",
+                "summary": "Receive one video chunk for a resumable upload session",
                 "tags": [
                     "Admin: Courses",
                     "ChunkedUpload"
@@ -831,8 +831,7 @@
                                     "chunk": {
                                         "type": "string",
                                         "format": "binary",
-                                        "contentMediaType": "application/octet-stream",
-                                        "maxLength": 2048
+                                        "contentMediaType": "application/octet-stream"
                                     },
                                     "chunk_index": {
                                         "type": "integer",
@@ -842,21 +841,39 @@
                                         "type": "integer",
                                         "minimum": 1
                                     },
-                                    "filename": {
+                                    "upload_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "original_filename": {
                                         "type": "string",
                                         "maxLength": 255
+                                    },
+                                    "expected_filesize": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "sha256": {
+                                        "type": "string",
+                                        "pattern": "^[a-f0-9]{64}$"
                                     },
                                     "preview_index": {
                                         "type": "integer",
                                         "minimum": 0
+                                    },
+                                    "chunk_size": {
+                                        "type": "integer",
+                                        "minimum": 1
                                     }
                                 },
                                 "required": [
                                     "chunk",
                                     "chunk_index",
                                     "total_chunks",
-                                    "filename",
-                                    "preview_index"
+                                    "upload_id",
+                                    "original_filename",
+                                    "expected_filesize",
+                                    "sha256"
                                 ]
                             }
                         }
@@ -864,56 +881,54 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "",
+                        "description": "Chunk stored; session progress returned",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "anyOf": [
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "status": {
-                                                    "type": "string",
-                                                    "const": "complete"
-                                                },
-                                                "video_url": {
-                                                    "type": "string"
-                                                },
-                                                "duration_seconds": {
-                                                    "type": "integer"
-                                                },
-                                                "video_provider": {
-                                                    "type": "string",
-                                                    "const": "upload"
-                                                },
-                                                "size": {
-                                                    "type": "integer"
-                                                }
-                                            },
-                                            "required": [
-                                                "status",
-                                                "video_url",
-                                                "duration_seconds",
-                                                "video_provider",
-                                                "size"
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "const": "chunk_received"
+                                        },
+                                        "upload_id": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        },
+                                        "chunk_index": {
+                                            "type": "integer"
+                                        },
+                                        "completed_count": {
+                                            "type": "integer"
+                                        },
+                                        "total_chunks": {
+                                            "type": "integer"
+                                        },
+                                        "session_status": {
+                                            "type": "string",
+                                            "enum": [
+                                                "created",
+                                                "uploading",
+                                                "uploaded",
+                                                "finalizing",
+                                                "complete",
+                                                "failed"
                                             ]
                                         },
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "status": {
-                                                    "type": "string",
-                                                    "const": "chunk_received"
-                                                },
-                                                "chunk_index": {
-                                                    "type": "integer"
-                                                }
-                                            },
-                                            "required": [
-                                                "status",
-                                                "chunk_index"
-                                            ]
+                                        "progress": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 100
                                         }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "upload_id",
+                                        "chunk_index",
+                                        "completed_count",
+                                        "total_chunks",
+                                        "session_status",
+                                        "progress"
                                     ]
                                 }
                             }
@@ -930,8 +945,10 @@
                                     "type": "object",
                                     "properties": {
                                         "error": {
-                                            "type": "string",
-                                            "const": "Could not create output file."
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
                                         }
                                     },
                                     "required": [
@@ -943,6 +960,290 @@
                     },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/admin/courses/{course}/previews/finalize-upload": {
+            "post": {
+                "operationId": "admin.courses.previews.finalize-upload",
+                "description": "POST /api/admin/courses/{course}/previews/finalize-upload\n\nJSON body: upload_id (required uuid), duration_seconds (optional).\n\nAssembles chunks, verifies size/MIME/SHA-256, moves to courses/previews, deletes chunk folder.",
+                "summary": "Assemble uploaded chunks into the final preview video",
+                "tags": [
+                    "Admin: Courses",
+                    "ChunkedUpload"
+                ],
+                "parameters": [
+                    {
+                        "name": "course",
+                        "in": "path",
+                        "required": true,
+                        "description": "The course ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "upload_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "duration_seconds": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    }
+                                },
+                                "required": [
+                                    "upload_id"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Upload complete; chunk session deleted",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "const": "complete"
+                                        },
+                                        "video_url": {
+                                            "type": "string"
+                                        },
+                                        "final_file": {
+                                            "type": "string"
+                                        },
+                                        "duration_seconds": {
+                                            "type": "integer",
+                                            "nullable": true
+                                        },
+                                        "video_provider": {
+                                            "type": "string",
+                                            "const": "upload"
+                                        },
+                                        "size": {
+                                            "type": "integer"
+                                        },
+                                        "sha256": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "video_url",
+                                        "final_file",
+                                        "video_provider",
+                                        "size",
+                                        "sha256"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Finalize already in progress",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "const": "Already finalizing."
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "500": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/admin/courses/{course}/previews/uploads/{upload_id}/status": {
+            "get": {
+                "operationId": "admin.courses.previews.uploads.status",
+                "description": "GET /api/admin/courses/{course}/previews/uploads/{upload_id}/status\n\nResume-ready session status from meta.json (progress, missing_chunks, expires_at).",
+                "summary": "Get chunked upload session status",
+                "tags": [
+                    "Admin: Courses",
+                    "ChunkedUpload"
+                ],
+                "parameters": [
+                    {
+                        "name": "course",
+                        "in": "path",
+                        "required": true,
+                        "description": "The course ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "upload_id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Upload session UUID",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Session status",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "meta_version": {
+                                            "type": "integer"
+                                        },
+                                        "upload_id": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "enum": [
+                                                "created",
+                                                "uploading",
+                                                "uploaded",
+                                                "finalizing",
+                                                "complete",
+                                                "failed"
+                                            ]
+                                        },
+                                        "total_chunks": {
+                                            "type": "integer"
+                                        },
+                                        "completed_count": {
+                                            "type": "integer"
+                                        },
+                                        "progress": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 100
+                                        },
+                                        "missing_chunks": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "expected_filesize": {
+                                            "type": "integer"
+                                        },
+                                        "final_file": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "expires_at": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "nullable": true
+                                        },
+                                        "created_at": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "nullable": true
+                                        },
+                                        "updated_at": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "nullable": true
+                                        },
+                                        "last_error": {
+                                            "type": "string",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "required": [
+                                        "meta_version",
+                                        "upload_id",
+                                        "status",
+                                        "total_chunks",
+                                        "completed_count",
+                                        "progress",
+                                        "missing_chunks"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Upload session not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string",
+                                            "const": "Upload session not found."
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ]
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -3361,6 +3662,138 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/admin/learning-groups/{learningGroup}/sessions/{session}/attendance/mark": {
+            "post": {
+                "operationId": "admin.learning-groups.sessions.attendance.mark",
+                "summary": "POST /api/admin/learning-groups/{learningGroup}/sessions/{session}/attendance/mark",
+                "tags": [
+                    "Admin: Learning Groups",
+                    "AdminLearningGroup"
+                ],
+                "parameters": [
+                    {
+                        "name": "learningGroup",
+                        "in": "path",
+                        "required": true,
+                        "description": "The learning group ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "session",
+                        "in": "path",
+                        "required": true,
+                        "description": "The session ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "student_id": {
+                                        "type": "integer"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "present",
+                                            "absent",
+                                            "late"
+                                        ]
+                                    },
+                                    "notes": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 255
+                                    }
+                                },
+                                "required": [
+                                    "student_id",
+                                    "status"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "const": "success"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Attendance marked successfully"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "record_id": {
+                                                    "type": "integer"
+                                                },
+                                                "session_id": {
+                                                    "type": "integer"
+                                                },
+                                                "student_id": {
+                                                    "type": "integer"
+                                                },
+                                                "status": {
+                                                    "type": "string"
+                                                },
+                                                "marked_at": {
+                                                    "type": "string"
+                                                },
+                                                "marked_by": {
+                                                    "type": "string",
+                                                    "const": "admin_manual"
+                                                }
+                                            },
+                                            "required": [
+                                                "record_id",
+                                                "session_id",
+                                                "student_id",
+                                                "status",
+                                                "marked_at",
+                                                "marked_by"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "description": "Validation error or session not eligible for marking"
                     }
                 }
             }
@@ -13414,9 +13847,125 @@
                 }
             }
         },
+        "/home": {
+            "get": {
+                "operationId": "home.index",
+                "summary": "Aggregated home page data (hero, about, discovery, courses, testimonials)",
+                "tags": [
+                    "Public"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Home page data retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "const": "success"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Home page data retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "hero": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "image": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "settings": {
+                                                            "type": "object"
+                                                        }
+                                                    }
+                                                },
+                                                "about": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "images": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "discovery": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "images": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "courses": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "categories": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object"
+                                                            }
+                                                        },
+                                                        "items": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object"
+                                                            }
+                                                        },
+                                                        "meta": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "current_page": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "last_page": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "total": {
+                                                                    "type": "integer"
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "testimonials": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/settings/{key}": {
             "get": {
                 "operationId": "settings.show",
+                "deprecated": true,
+                "description": "Deprecated for home page data. Use GET /home instead. Still used for maintenance_mode and contact settings.",
                 "tags": [
                     "Public",
                     "Setting"
@@ -13509,6 +14058,8 @@
         "/website-media/{key}": {
             "get": {
                 "operationId": "website-media.get",
+                "deprecated": true,
+                "description": "Deprecated for home page data. Use GET /home instead.",
                 "summary": "Get media for any section dynamically based on the key",
                 "tags": [
                     "Public",
@@ -16484,7 +17035,12 @@
                     },
                     "start_date": {
                         "type": "string",
-                        "format": "date-time"
+                        "format": "date-time",
+                        "description": "On create: must be today or later unless is_historical is true, in which case it must be on or before today. On update: any valid date."
+                    },
+                    "is_historical": {
+                        "type": "boolean",
+                        "description": "Create only. When true, allows a past start_date, marks past sessions as completed without attendance records, derives group status from end_date, and skips instructor assignment notification."
                     },
                     "status": {
                         "type": [

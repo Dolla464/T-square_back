@@ -97,10 +97,14 @@ class AdminCourseService
     public function create(array $data): Course
     {
         $learnings = $data['learnings'] ?? [];
+        $status    = $data['status'] ?? 'draft';
 
         // 1. معالجة الصور – thumbnail (max 800px) and cover (max 1920px)
         if (! empty($data['thumbnail']) && $data['thumbnail'] instanceof UploadedFile) {
             $data['thumbnail'] = $this->uploadImage($data['thumbnail'], 'courses/thumbnails', null, 800);
+        } elseif ($status === 'draft') {
+            // مسودة بدون صورة مصغرة — قيمة فارغة (الـ accessor يعرض صورة افتراضية)
+            $data['thumbnail'] = '';
         }
 
         if (! empty($data['cover_image']) && $data['cover_image'] instanceof UploadedFile) {
@@ -108,7 +112,9 @@ class AdminCourseService
         }
 
         // 2. معالجة الحالة (Status) وتاريخ النشر (published_at) ليتوافق مع MySQL
-        $status = $data['status'] ?? 'draft'; // القيمة الافتراضية مسودة إذا لم تُرسل
+        if ($status === 'draft') {
+            $data = $this->fillDraftDefaults($data);
+        }
 
         if ($status === 'published') {
             // إذا تم إرسال تاريخ محدد من الفرونت إند نقوم بتهيئته، وإلا نضع تاريخ اللحظة الحالية (نشر فوري)
@@ -571,5 +577,34 @@ class AdminCourseService
         });
 
         return $course->forceDelete();
+    }
+
+    /**
+     * Fill required DB columns when creating a minimal draft (e.g. auto-save before video upload).
+     */
+    private function fillDraftDefaults(array $data): array
+    {
+        $defaults = [
+            'thumbnail'         => '',
+            'short_description' => '',
+            'description'       => '',
+            'attendance_type'   => 'online',
+            'price_before'      => 0,
+            'discount_price'    => 0,
+            'duration_weeks'    => 0,
+            'duration_hours'    => 0,
+            'level'             => 'beginner',
+            'language'          => 'Arabic',
+            'is_featured'       => false,
+            'is_free'           => false,
+        ];
+
+        foreach ($defaults as $key => $value) {
+            if (! array_key_exists($key, $data) || $data[$key] === null) {
+                $data[$key] = $value;
+            }
+        }
+
+        return $data;
     }
 }

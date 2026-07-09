@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use App\Support\HomePageCache;
 
 class Setting extends Model
 {
@@ -12,6 +13,7 @@ class Setting extends Model
     {
         static::saved(function () {
             Cache::forget('app_settings');
+            HomePageCache::forget();
         });
     }
 
