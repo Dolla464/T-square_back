@@ -80,6 +80,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])
             // Finalize: assemble previously uploaded chunks into the final video file.
             Route::post('{course:id}/previews/finalize-upload', [ChunkedUploadController::class, 'finalize'])
                 ->name('previews.finalize-upload');
+            Route::get('{course:id}/previews/uploads/{upload_id}/status', [ChunkedUploadController::class, 'status'])
+                ->whereUuid('upload_id')
+                ->name('previews.upload-status');
         });
         Route::apiResource('courses', AdminCourseController::class);
 

@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Setting;
+use App\Support\HomePageCache;
 use App\Traits\HandleImageUploadTrait;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -70,6 +71,8 @@ class ProcessWebsiteMediaJob implements ShouldQueue
                 $finalData = array_merge($this->baseImages, $processedUrls);
                 Setting::set($this->settingsKey, $finalData, 'json', 'general');
             }
+
+            HomePageCache::forget();
         });
 
         // Delete old images after the new ones are saved successfully

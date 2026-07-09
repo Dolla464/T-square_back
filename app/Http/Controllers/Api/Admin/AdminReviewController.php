@@ -9,6 +9,7 @@ use App\Http\Resources\Admin\AdminReviewResource;
 use App\Models\CourseReview;
 use App\Services\Admin\AdminReviewService;
 use App\Services\Admin\AdminReviewAnalyticsService;
+use App\Support\HomePageCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -70,6 +71,7 @@ class AdminReviewController extends Controller
         );
 
         Cache::forget('admin_dashboard_review_stats');
+        HomePageCache::forget();
 
         return $this->successResponse(
             new AdminReviewResource($updatedReview),
@@ -85,6 +87,7 @@ class AdminReviewController extends Controller
         $this->reviewService->destroy($review);
 
         Cache::forget('admin_dashboard_review_stats');
+        HomePageCache::forget();
 
         return $this->successResponse(
             null,

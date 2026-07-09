@@ -2,10 +2,19 @@
 
 namespace App\Providers;
 
+use App\Services\Admin\Upload\ChunkRecorder;
+use App\Services\Admin\Upload\CleanupManager;
+use App\Services\Admin\Upload\Finalizer;
+use App\Services\Admin\Upload\MetaStore;
+use App\Services\Admin\Upload\StatusProvider;
+use App\Services\Admin\Upload\UploadSessionService;
+use App\Services\Admin\Upload\UploadStateMachine;
+use App\Models\Category;
 use App\Models\Course;
 use App\Models\CourseReview;
 use App\Models\Enrollment;
 use App\Models\Order;
+use App\Observers\CategoryObserver;
 use App\Observers\CourseObserver;
 use App\Observers\CourseReviewObserver;
 use App\Observers\EnrollmentObserve;
@@ -26,7 +35,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(MetaStore::class);
+        $this->app->singleton(UploadStateMachine::class);
+        $this->app->singleton(ChunkRecorder::class);
+        $this->app->singleton(Finalizer::class);
+        $this->app->singleton(StatusProvider::class);
+        $this->app->singleton(CleanupManager::class);
+        $this->app->singleton(UploadSessionService::class);
     }
 
     /**
@@ -66,6 +81,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Observers
         Course::observe(CourseObserver::class);
+        Category::observe(CategoryObserver::class);
         Order::observe(OrderObserver::class);
         CourseReview::observe(CourseReviewObserver::class);
 
