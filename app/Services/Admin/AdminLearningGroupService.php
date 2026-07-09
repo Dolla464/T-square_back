@@ -73,7 +73,7 @@ class AdminLearningGroupService
             $isHistorical = filter_var($data['is_historical'] ?? false, FILTER_VALIDATE_BOOLEAN);
             $course       = Course::findOrFail($data['course_id']);
             $startDate    = Carbon::parse($data['start_date']);
-            $endDate      = $startDate->copy()->addWeeks($course->duration_weeks);
+            $endDate      = $this->calculateGroupEndDate($startDate, $course->duration_weeks);
             $status       = $this->resolveInitialGroupStatus($data, $startDate, $endDate, $isHistorical);
 
             $group = LearningGroup::create([
@@ -171,7 +171,7 @@ class AdminLearningGroupService
                 $course                  = Course::findOrFail($data['course_id']);
                 $startDate               = Carbon::parse($data['start_date']);
                 $updateData['start_date'] = $startDate;
-                $updateData['end_date']   = $startDate->copy()->addWeeks($course->duration_weeks);
+                $updateData['end_date']   = $this->calculateGroupEndDate($startDate, $course->duration_weeks);
             }
 
             if (isset($data['status'])) {
@@ -505,6 +505,12 @@ class AdminLearningGroupService
                     ->orWhere('status', '!=', 'upcoming');
             })
             ->exists();
+    }
+
+    /** Last calendar day of the course (inclusive session generation bound). */
+    private function calculateGroupEndDate(Carbon $startDate, int $durationWeeks): Carbon
+    {
+        return $startDate->copy()->addWeeks($durationWeeks)->subDay();
     }
 
     /** Map custom day (0=Sat … 6=Fri) to Carbon dayOfWeek. */
