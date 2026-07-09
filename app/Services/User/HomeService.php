@@ -59,7 +59,16 @@ class HomeService
                 'images' => $this->publicWebsiteService->getDiscoveryMediaUrls(),
             ],
             'courses' => [
-                'categories' => $this->categoryService->getCategories(['type' => 'sub']),
+                'categories' => $this->categoryService->getCategories(['type' => 'sub'])
+                    ->map(fn ($category) => [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                        'slug' => $category->slug,
+                        'parent_id' => $category->parent_id,
+                        'icon' => $category->icon,
+                    ])
+                    ->values()
+                    ->all(),
                 'items' => CourseListResource::collection($coursesPaginator->items())->resolve(),
                 'meta' => [
                     'current_page' => $coursesPaginator->currentPage(),
