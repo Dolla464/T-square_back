@@ -36,7 +36,7 @@ class CourseListResource extends JsonResource
                     'name' => $tag->name,
                     'slug' => $tag->slug,
                 ];
-            })->values(), []),
+            })->values()->all(), []),
             'previews' => $this->whenLoaded('previews', fn () => $this->previews->map(function ($preview) {
                 return [
                     'id' => $preview->id,
@@ -47,7 +47,7 @@ class CourseListResource extends JsonResource
                     'duration_seconds' => $preview->duration_seconds,
                     'sort_order' => $preview->sort_order,
                 ];
-            })->values(), []),
+            })->values()->all(), []),
         ];
     }
 }
