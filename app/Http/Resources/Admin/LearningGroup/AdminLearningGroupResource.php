@@ -37,9 +37,9 @@ class AdminLearningGroupResource extends JsonResource
                 'room'        => $s->room,
             ])),
 
-            'students_count' => $this->when($this->relationLoaded('assigned_students'), function () {
-                return $this->assigned_students->count();
-            }),
+            'students_count' => $this->relationLoaded('assigned_students')
+                ? $this->assigned_students->count()
+                : ($this->students_count ?? 0),
             'students'       => $this->when($this->relationLoaded('assigned_students'), function () {
                 return $this->assigned_students->map(function ($student) {
                     return [
