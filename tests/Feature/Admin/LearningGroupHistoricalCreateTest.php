@@ -266,6 +266,41 @@ it('does not create attendance records during historical backfill', function ():
     )->toBe(0);
 });
 
+it('generates exactly duration_weeks times schedule days sessions for historical groups', function (): void {
+    Notification::fake();
+
+    $this->course->update(['duration_weeks' => 24]);
+
+    $response = $this->postJson(
+        '/api/admin/learning-groups',
+        groupCreatePayload($this->course, $this->instructor, [
+            'start_date' => '2026-06-15',
+            'schedules'  => [
+                [
+                    'day_of_week' => 2,
+                    'start_time'  => '10:00',
+                    'end_time'    => '12:00',
+                    'room'        => 'A1',
+                ],
+                [
+                    'day_of_week' => 4,
+                    'start_time'  => '10:00',
+                    'end_time'    => '12:00',
+                    'room'        => 'A1',
+                ],
+            ],
+        ])
+    );
+
+    $response
+        ->assertCreated()
+        ->assertJsonPath('data.end_date', '2026-11-29');
+
+    $groupId = $response->json('data.id');
+
+    expect(AttendanceSession::where('learning_group_id', $groupId)->count())->toBe(48);
+});
+
 it('respects explicit status in payload over historical defaults', function (): void {
     Notification::fake();
 
