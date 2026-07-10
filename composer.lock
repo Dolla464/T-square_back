@@ -1817,11 +1817,11 @@
         },
         {
             "name": "khaled.alshamaa/ar-php",
-            "version": "dev-master",
+            "version": "dev-develop",
             "dist": {
                 "type": "path",
                 "url": "packages/ar-php",
-                "reference": "ea6a15d430e431dafae16333724aff9e0bd6f9b1"
+                "reference": "638106f167c6586b36a8b8f7cb00933a82e8a5c9"
             },
             "require": {
                 "ext-calendar": "*",

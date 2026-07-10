@@ -49,6 +49,9 @@
         }
     },
     "scripts": {
+        "pre-install-cmd": [
+            "@php -r \"if (!is_file('packages/ar-php/src/Arabic.php')) { fwrite(STDERR, 'packages/ar-php is missing. Run: git clone https://github.com/khaled-alshamaa/ar-php.git packages/ar-php'.PHP_EOL); exit(1); }\""
+        ],
         "setup": [
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
