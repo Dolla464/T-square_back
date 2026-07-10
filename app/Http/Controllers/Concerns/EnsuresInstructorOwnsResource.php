@@ -45,6 +45,15 @@ trait EnsuresInstructorOwnsResource
         return null;
     }
 
+    protected function verifyExamBelongsToGroup(Exam $exam, LearningGroup $group): ?JsonResponse
+    {
+        if ((int) $exam->course_id !== (int) $group->course_id) {
+            return $this->errorResponse('Exam not found for this group.', 404);
+        }
+
+        return null;
+    }
+
     protected function verifyQuestionOwnership(Question $question, Instructor $instructor): ?JsonResponse
     {
         $question->loadMissing('exam.course');

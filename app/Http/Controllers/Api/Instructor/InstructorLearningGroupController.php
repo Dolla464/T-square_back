@@ -68,7 +68,7 @@ class InstructorLearningGroupController extends Controller
             return $response;
         }
 
-        if ($response = $this->verifyExamOwnership($exam, $instructor)) {
+        if ($response = $this->verifyExamBelongsToGroup($exam, $learningGroup)) {
             return $response;
         }
 
@@ -162,7 +162,7 @@ class InstructorLearningGroupController extends Controller
 
         $exam = Exam::findOrFail($validated['exam_id']);
 
-        if ($response = $this->verifyExamOwnership($exam, $instructor)) {
+        if ($response = $this->verifyExamBelongsToGroup($exam, $learningGroup)) {
             return $response;
         }
 
