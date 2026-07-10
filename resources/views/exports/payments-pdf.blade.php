@@ -1,11 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
+    @include('exports.partials.pdf-base-styles')
     <title>Payments Export</title>
     <style>
-        * { margin: 5px; padding: 5px; box-sizing: border-box; }
-        body { font-family: 'DejaVu Sans', sans-serif; font-size: 11px; color: #1a1a1a; background: #fff; }
+        * {
+            margin: 5px;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', 'DejaVu Sans', sans-serif;
+            font-size: 11px;
+            color: #1a1a1a;
+            background: #fff;
+        }
 
         .header {
             background: #be1522;
@@ -13,13 +24,24 @@
             padding: 16px 20px;
             margin-bottom: 16px;
         }
-        .header h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
-        .header .meta { font-size: 10px; opacity: 0.8; margin-top: 4px; }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .header .meta {
+            font-size: 10px;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
 
         .filters-row {
             margin-bottom: 14px;
             line-height: 2;
         }
+
         .filter-chip {
             display: inline-block;
             background: #e8f0fe;
@@ -29,9 +51,11 @@
             padding: 5px 5px;
             font-size: 10px;
         }
+
         .filter-chip .chip-label {
             font-weight: 700;
         }
+
         .filter-chip-all {
             display: inline-block;
             background: #f1f5f9;
@@ -47,25 +71,40 @@
             border-collapse: collapse;
             font-size: 10.5px;
         }
-        thead tr { background: #e8f0fe; color: #000; border: 1px solid #c5d8f8; }
+
+        thead tr {
+            background: #e8f0fe;
+            color: #000;
+            border: 1px solid #c5d8f8;
+        }
+
         thead th {
             padding: 8px 6px;
             text-align: center;
             font-weight: 600;
             white-space: nowrap;
         }
-        tbody tr:nth-child(even) { background: #f4f7fb; }
-        tbody tr:nth-child(odd)  { background: #ffffff; }
+
+        tbody tr:nth-child(even) {
+            background: #f4f7fb;
+        }
+
+        tbody tr:nth-child(odd) {
+            background: #ffffff;
+        }
+
         tbody td {
             padding: 6px 6px;
             border-bottom: 1px solid #e2e8f0;
             vertical-align: middle;
         }
+
         tfoot tr {
             background: #e8f0fe;
             font-weight: 700;
             border-top: 2px solid #c5d8f8;
         }
+
         tfoot td {
             padding: 8px 6px;
         }
@@ -78,14 +117,36 @@
             font-weight: 600;
             text-transform: uppercase;
         }
-        .badge-completed { background: #d1fae5; color: #065f46; }
-        .badge-pending   { background: #fef3c7; color: #92400e; }
-        .badge-cancelled { background: #fee2e2; color: #991b1b; }
-        .badge-refunded  { background: #e5e7eb; color: #374151; }
 
-        .footer { margin-top: 20px; font-size: 9px; color: #9ca3af; text-align: right; }
+        .badge-completed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-cancelled {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-refunded {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 9px;
+            color: #9ca3af;
+            text-align: right;
+        }
     </style>
 </head>
+
 <body>
     <div class="header">
         <h1>T-Square LMS</h1>
@@ -94,10 +155,10 @@
     </div>
 
     <div class="filters-row">
-        @if(empty($activeFilters))
+        @if (empty($activeFilters))
             <span class="filter-chip-all">All Payments — No filters applied</span>
         @else
-            @foreach($activeFilters as $f)
+            @foreach ($activeFilters as $f)
                 <span class="filter-chip">
                     <span class="chip-label">{{ $f['label'] }}:</span>{{ $f['value'] }}
                 </span>
@@ -105,7 +166,7 @@
         @endif
     </div>
 
-    @if($orders->isEmpty())
+    @if ($orders->isEmpty())
         <p style="color:#6b7280; padding:20px 0;">No payment orders found for the selected filters.</p>
     @else
         <table>
@@ -121,11 +182,11 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($orders as $order)
+                @foreach ($orders as $order)
                     @php
                         $enrollment = $order->enrollments->first();
                         $courseTitle = $enrollment ? data_get($enrollment, 'course.title', '—') : '—';
-                        $studentName = data_get($order, 'student.full_name') ?? $order->billing_name ?? '—';
+                        $studentName = data_get($order, 'student.full_name') ?? ($order->billing_name ?? '—');
                         $email = data_get($order, 'student.user.email') ?? '—';
                     @endphp
                     <tr>
@@ -154,4 +215,5 @@
         <div class="footer">Total: {{ $orders->count() }} orders</div>
     @endif
 </body>
+
 </html>

@@ -35,6 +35,7 @@ class UserService
                     'avatar' => $data['avatar'] ?? null,
                     'gender' => $data['gender'] ?? null,
                     'status' => 'active',
+                    'created_by' => $data['created_by'] ?? 'admin',
                 ]);
             } elseif ($data['role'] === 'instructor') {
                 $user->instructor()->create([

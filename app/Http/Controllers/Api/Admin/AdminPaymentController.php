@@ -10,7 +10,7 @@ use App\Http\Resources\Admin\Payment\AdminPaymentResource;
 use App\Models\Order;
 use App\Services\Admin\AdminPaymentAnalyticsService;
 use App\Services\Admin\AdminPaymentService;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\Pdf\DompdfExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -23,7 +23,8 @@ class AdminPaymentController extends Controller
 {
     public function __construct(
         private readonly AdminPaymentService $payments,
-        private readonly AdminPaymentAnalyticsService $analytics
+        private readonly AdminPaymentAnalyticsService $analytics,
+        private readonly DompdfExportService $pdfExporter
     ) {}
 
     /**
@@ -32,21 +33,21 @@ class AdminPaymentController extends Controller
     public function index(Request $request): AdminPaymentCollection
     {
         $validated = $request->validate([
-            'search'    => 'nullable|string|max:255',
-            'status'    => 'nullable|string|in:pending,completed,cancelled,refunded',
+            'search' => 'nullable|string|max:255',
+            'status' => 'nullable|string|in:pending,completed,cancelled,refunded',
             'date_from' => 'nullable|date',
-            'date_to'   => 'nullable|date|after_or_equal:date_from',
-            'per_page'  => 'nullable|integer|min:1|max:100',
-            'page'      => 'nullable|integer|min:1',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+            'per_page' => 'nullable|integer|min:1|max:100',
+            'page' => 'nullable|integer|min:1',
         ]);
 
         $perPage = max(1, min(100, (int) ($validated['per_page'] ?? 10)));
 
         $filters = [
-            'search'    => $validated['search'] ?? '',
-            'status'    => $validated['status'] ?? '',
+            'search' => $validated['search'] ?? '',
+            'status' => $validated['status'] ?? '',
             'date_from' => $validated['date_from'] ?? '',
-            'date_to'   => $validated['date_to'] ?? '',
+            'date_to' => $validated['date_to'] ?? '',
         ];
 
         $paginator = $this->payments->index($filters, $perPage);
@@ -67,18 +68,18 @@ class AdminPaymentController extends Controller
     public function export(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'search'    => 'nullable|string|max:255',
-            'status'    => 'nullable|string|in:pending,completed,cancelled,refunded',
+            'search' => 'nullable|string|max:255',
+            'status' => 'nullable|string|in:pending,completed,cancelled,refunded',
             'date_from' => 'nullable|date',
-            'date_to'   => 'nullable|date|after_or_equal:date_from',
-            'format'    => 'nullable|string|in:pdf,excel',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+            'format' => 'nullable|string|in:pdf,excel',
         ]);
 
         $filters = [
-            'search'    => $validated['search'] ?? '',
-            'status'    => $validated['status'] ?? '',
+            'search' => $validated['search'] ?? '',
+            'status' => $validated['status'] ?? '',
             'date_from' => $validated['date_from'] ?? '',
-            'date_to'   => $validated['date_to'] ?? '',
+            'date_to' => $validated['date_to'] ?? '',
         ];
 
         $format = $validated['format'] ?? 'pdf';
@@ -94,7 +95,7 @@ class AdminPaymentController extends Controller
     /**
      * Store a newly created order + enrollment in storage.
      */
-    public function store(StorePaymentRequest $request): \Illuminate\Http\JsonResponse
+    public function store(StorePaymentRequest $request): JsonResponse
     {
         $order = $this->payments->store($request->validated());
 
@@ -137,29 +138,29 @@ class AdminPaymentController extends Controller
 
     private function exportPdf(Collection $orders, array $filters): JsonResponse
     {
-        $pdf = Pdf::loadView('exports.payments-pdf', [
-            'orders'        => $orders,
+        $pdf = $this->pdfExporter->loadView('exports.payments-pdf', [
+            'orders' => $orders,
             'activeFilters' => $this->buildActiveFilters($filters),
-            'generatedAt'   => now()->format('Y-m-d H:i'),
-        ])->setPaper('a4', 'landscape');
+            'generatedAt' => now()->format('Y-m-d H:i'),
+        ], 'a4', 'landscape');
 
-        $filename = 'payments-' . now()->format('Ymd') . '.pdf';
+        $filename = 'payments-'.now()->format('Ymd').'.pdf';
 
         return $this->successResponse([
-            'content'  => base64_encode($pdf->output()),
+            'content' => base64_encode($pdf->output()),
             'filename' => $filename,
-            'mime'     => 'application/pdf',
+            'mime' => 'application/pdf',
         ], 'PDF export ready');
     }
 
     private function exportExcel(Collection $orders): JsonResponse
     {
-        $filename = 'payments-' . now()->format('Ymd') . '.csv';
+        $filename = 'payments-'.now()->format('Ymd').'.csv';
 
         ob_start();
         $handle = fopen('php://output', 'w');
 
-        fputs($handle, "\xEF\xBB\xBF");
+        fwrite($handle, "\xEF\xBB\xBF");
 
         fputcsv($handle, [
             'Order ID', 'Student', 'Email', 'Course', 'Amount (EGP)',
@@ -187,9 +188,9 @@ class AdminPaymentController extends Controller
         $content = ob_get_clean();
 
         return $this->successResponse([
-            'content'  => base64_encode($content),
+            'content' => base64_encode($content),
             'filename' => $filename,
-            'mime'     => 'text/csv',
+            'mime' => 'text/csv',
         ], 'CSV export ready');
     }
 
@@ -211,7 +212,7 @@ class AdminPaymentController extends Controller
         if (! empty($filters['date_from']) && ! empty($filters['date_to'])) {
             $active[] = [
                 'label' => 'Period',
-                'value' => $filters['date_from'] . ' → ' . $filters['date_to'],
+                'value' => $filters['date_from'].' → '.$filters['date_to'],
             ];
         } elseif (! empty($filters['date_from'])) {
             $active[] = ['label' => 'From', 'value' => $filters['date_from']];

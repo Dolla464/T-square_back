@@ -8,17 +8,21 @@ use App\Models\CourseReview;
 use App\Models\Enrollment;
 use App\Models\ExamAttempt;
 use App\Notifications\CertificateReady;
-use Illuminate\Support\Str;
+use App\Services\Pdf\DompdfExportService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class CertificateService
 {
+    public function __construct(
+        private DompdfExportService $pdfExporter
+    ) {}
+
     /**
      * Stream the certificate file inline (for in-browser iframe preview).
      */
@@ -110,25 +114,25 @@ class CertificateService
             $existingCert->delete();
         }
 
-        $fileName = 'certificates/cert_' . Str::random(16) . '.pdf';
-        
+        $fileName = 'certificates/cert_'.Str::random(16).'.pdf';
+
         // Get instructor name safely
         $instructorName = $this->getInstructorName($enrollment->course);
-        
+
         // Generate PDF data
         $pdfData = $this->preparePdfData([
-            'name'            => $enrollment->student->full_name,
-            'course'          => $enrollment->course->title,
+            'name' => $enrollment->student->full_name,
+            'course' => $enrollment->course->title,
             'instructor_name' => $instructorName,
-            'tags'            => $this->extractCourseTags($enrollment->course),
+            'tags' => $this->extractCourseTags($enrollment->course),
         ]);
-        
+
         // Generate and save PDF
         $pdf = $this->certificatePdfData($pdfData);
         $pdfContent = $pdf->output();
         Storage::disk('public')->put($fileName, $pdfContent);
 
-        $certificateNum = 'TSQ-' . date('Y') . '-' . strtoupper(Str::random(8));
+        $certificateNum = 'TSQ-'.date('Y').'-'.strtoupper(Str::random(8));
 
         return Certificate::create([
             'student_id' => $enrollment->student_id,
@@ -184,20 +188,20 @@ class CertificateService
     {
         // Load relationships correctly
         $enrollment->loadMissing(['student', 'course.instructor', 'course.tags']);
-        
+
         // Get instructor name safely
         $instructorName = $this->getInstructorName($enrollment->course);
-        
+
         // Generate PDF data
         $pdfData = $this->preparePdfData([
-            'name'            => $enrollment->student->full_name,
-            'course'          => $enrollment->course->title,
+            'name' => $enrollment->student->full_name,
+            'course' => $enrollment->course->title,
             'instructor_name' => $instructorName,
-            'tags'            => $this->extractCourseTags($enrollment->course),
+            'tags' => $this->extractCourseTags($enrollment->course),
         ]);
 
         return $this->certificatePdfData($pdfData)
-                    ->name('certificate-' . $enrollment->id . '.pdf');
+            ->name('certificate-'.$enrollment->id.'.pdf');
     }
 
     /**
@@ -207,20 +211,20 @@ class CertificateService
     {
         // Load relationships correctly for ExamAttempt
         $attempt->loadMissing(['student', 'exam.course.instructor', 'exam.course.tags']);
-        
+
         // Get instructor name safely
         $instructorName = $this->getInstructorName($attempt->exam->course ?? null);
-        
+
         // Prepare PDF data
         $pdfData = $this->preparePdfData([
-            'name'            => $attempt->student->full_name,
-            'course'          => $attempt->exam->course->title ?? 'Course',
+            'name' => $attempt->student->full_name,
+            'course' => $attempt->exam->course->title ?? 'Course',
             'instructor_name' => $instructorName,
-            'tags'            => $this->extractCourseTags($attempt->exam->course ?? null),
+            'tags' => $this->extractCourseTags($attempt->exam->course ?? null),
         ]);
 
         // Generate PDF to temporary file
-        $temporaryPath = tempnam(sys_get_temp_dir(), 'certificate_') . '.pdf';
+        $temporaryPath = tempnam(sys_get_temp_dir(), 'certificate_').'.pdf';
         $this->certificatePdfData($pdfData)->save($temporaryPath);
 
         $pdfContent = file_get_contents($temporaryPath);
@@ -236,11 +240,12 @@ class CertificateService
     {
         $logoData = Cache::remember('certificate_logo_base64', now()->addDay(), function () {
             $logoPath = public_path('image/logo-dark.png');
+
             return is_file($logoPath)
-                ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+                ? 'data:image/png;base64,'.base64_encode(file_get_contents($logoPath))
                 : null;
         });
-        
+
         // Default data structure
         $defaultData = [
             'name' => '',
@@ -250,17 +255,17 @@ class CertificateService
             'instructor_name' => 'Instructor',
             'logoData' => $logoData,
         ];
-        
+
         // Merge custom data with defaults
         $data = array_merge($defaultData, $customData);
-        
+
         // Ensure all required fields are present and valid
         foreach (['name', 'course'] as $key) {
             if (empty($data[$key])) {
                 throw new \InvalidArgumentException("Certificate PDF data missing or invalid for key: {$key}");
             }
         }
-        
+
         return $data;
     }
 
@@ -270,10 +275,9 @@ class CertificateService
     private function certificatePdfData(array $data)
     {
         try {
-            return Pdf::loadView('certificate', $data)
-                      ->setPaper('a4', 'landscape');
+            return $this->pdfExporter->loadView('certificate', $data, 'a4', 'landscape');
         } catch (\Throwable $e) {
-            throw new \Exception('Failed to generate certificate PDF: ' . $e->getMessage(), 0, $e);
+            throw new \Exception('Failed to generate certificate PDF: '.$e->getMessage(), 0, $e);
         }
     }
 
@@ -282,15 +286,19 @@ class CertificateService
      */
     private function extractCourseTags($course)
     {
-        if (! $course) return null;
-        
+        if (! $course) {
+            return null;
+        }
+
         if (! $course->relationLoaded('tags')) {
             $course->load('tags');
         }
-        
+
         $tags = $course->tags ?? null;
-        if (! $tags || $tags->isEmpty()) return null;
-        
+        if (! $tags || $tags->isEmpty()) {
+            return null;
+        }
+
         return $tags->pluck('name')->all();
     }
 
@@ -299,18 +307,18 @@ class CertificateService
      */
     private function getInstructorName($course): string
     {
-        if (!$course) {
+        if (! $course) {
             return 'Instructor';
         }
-        
+
         // Check if instructor relation is loaded
         if ($course->relationLoaded('instructor') && $course->instructor) {
             return $course->instructor->full_name;
         }
-        
+
         // Try to load the relationship
         $course->loadMissing('instructor');
-        
+
         return $course->instructor?->full_name ?? 'Instructor';
     }
 

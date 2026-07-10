@@ -68,6 +68,7 @@ class ProfileService
                 $profileFields = [
                     'full_name' => $validated['full_name'] ?? null,
                     'gender' => $validated['gender'] ?? null,
+                    'phone' => $validated['phone'] ?? null,
                     'field' => $validated['field'] ?? null,
                     'bio' => $validated['bio'] ?? null,
                     'insta_url' => $validated['insta_url'] ?? null,
@@ -126,6 +127,7 @@ class ProfileService
                 'avatar' => null,
                 'gender' => null,
                 'status' => 'active',
+                'created_by' => 'site',
             ]
         );
     }

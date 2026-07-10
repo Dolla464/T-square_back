@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Events\StudentScanned;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AdminMarkAttendanceRequest;
 use App\Http\Requests\Admin\LearningGroupRequest;
@@ -15,8 +16,7 @@ use App\Services\Admin\AdminLearningGroupService;
 use App\Services\Attendance\AttendanceSessionService;
 use App\Services\Attendance\GroupAttendanceSummaryService;
 use App\Services\Exam\GroupExamResultsService;
-use App\Events\StudentScanned;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\Pdf\DompdfExportService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,7 +33,8 @@ class AdminLearningGroupController extends Controller
         AdminLearningGroupService $adminLearningGroupService,
         private AttendanceSessionService $attendanceSessionService,
         private GroupAttendanceSummaryService $groupAttendanceSummaryService,
-        private GroupExamResultsService $groupExamResultsService
+        private GroupExamResultsService $groupExamResultsService,
+        private DompdfExportService $pdfExporter
     ) {
         $this->adminLearningGroupService = $adminLearningGroupService;
     }
@@ -96,7 +97,7 @@ class AdminLearningGroupController extends Controller
     {
         $result = $this->adminLearningGroupService->getUnassignedCourseStudents((int) $groupId);
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return $this->errorResponse($result['message'], $result['status']);
         }
 
@@ -109,9 +110,9 @@ class AdminLearningGroupController extends Controller
     public function bulkAssignStudents(Request $request, $groupId): JsonResponse
     {
         $request->validate([
-            'student_ids'   => 'required|array',
+            'student_ids' => 'required|array',
             'student_ids.*' => 'exists:students,id',
-            'course_id'     => 'required|exists:courses,id',
+            'course_id' => 'required|exists:courses,id',
         ]);
 
         $result = $this->adminLearningGroupService->bulkAssignToGroup(
@@ -139,7 +140,7 @@ class AdminLearningGroupController extends Controller
     public function bulkCompleteStudents(Request $request, $groupId): JsonResponse
     {
         $request->validate([
-            'student_ids'   => 'required|array',
+            'student_ids' => 'required|array',
             'student_ids.*' => 'exists:students,id',
         ]);
 
@@ -148,7 +149,7 @@ class AdminLearningGroupController extends Controller
             (int) $groupId
         );
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return $this->errorResponse($result['message'], $result['status']);
         }
 
@@ -181,29 +182,29 @@ class AdminLearningGroupController extends Controller
 
     private function exportStudentsPdf(LearningGroup $group, Collection $students): JsonResponse
     {
-        $pdf = Pdf::loadView('exports.group-students-pdf', [
-            'group'       => $group,
-            'students'    => $students,
+        $pdf = $this->pdfExporter->loadView('exports.group-students-pdf', [
+            'group' => $group,
+            'students' => $students,
             'generatedAt' => now()->format('Y-m-d H:i'),
-        ])->setPaper('a4', 'landscape');
+        ], 'a4', 'landscape');
 
-        $filename = 'group-students-' . $group->id . '-' . now()->format('Ymd') . '.pdf';
+        $filename = 'group-students-'.$group->id.'-'.now()->format('Ymd').'.pdf';
 
         return $this->successResponse([
-            'content'  => base64_encode($pdf->output()),
+            'content' => base64_encode($pdf->output()),
             'filename' => $filename,
-            'mime'     => 'application/pdf',
+            'mime' => 'application/pdf',
         ], 'PDF export ready');
     }
 
     private function exportStudentsExcel(LearningGroup $group, Collection $students): JsonResponse
     {
-        $filename = 'group-students-' . $group->id . '-' . now()->format('Ymd') . '.csv';
+        $filename = 'group-students-'.$group->id.'-'.now()->format('Ymd').'.csv';
 
         ob_start();
         $handle = fopen('php://output', 'w');
 
-        fputs($handle, "\xEF\xBB\xBF");
+        fwrite($handle, "\xEF\xBB\xBF");
 
         fputcsv($handle, ['#', 'Student', 'Email', 'Phone', 'Status']);
 
@@ -221,9 +222,9 @@ class AdminLearningGroupController extends Controller
         $content = ob_get_clean();
 
         return $this->successResponse([
-            'content'  => base64_encode($content),
+            'content' => base64_encode($content),
             'filename' => $filename,
-            'mime'     => 'text/csv',
+            'mime' => 'text/csv',
         ], 'CSV export ready');
     }
 
@@ -279,7 +280,7 @@ class AdminLearningGroupController extends Controller
      */
     public function getSessionAttendance(LearningGroup $learningGroup, AttendanceSession $session): JsonResponse
     {
-        if (!$this->attendanceSessionService->assertSessionBelongsToGroup($session, $learningGroup)) {
+        if (! $this->attendanceSessionService->assertSessionBelongsToGroup($session, $learningGroup)) {
             return $this->errorResponse('Session not found for this group.', 404);
         }
 
@@ -316,10 +317,10 @@ class AdminLearningGroupController extends Controller
                 'student_id' => $studentId,
             ],
             [
-                'status'    => $request->validated('status'),
+                'status' => $request->validated('status'),
                 'marked_by' => 'admin_manual',
                 'marked_at' => Carbon::now(),
-                'notes'     => $request->validated('notes'),
+                'notes' => $request->validated('notes'),
             ]
         );
 
@@ -327,12 +328,12 @@ class AdminLearningGroupController extends Controller
         broadcast(new StudentScanned($record))->toOthers();
 
         return $this->successResponse([
-            'record_id'  => $record->id,
+            'record_id' => $record->id,
             'session_id' => $record->session_id,
             'student_id' => $record->student_id,
-            'status'     => $record->status,
-            'marked_at'  => $record->marked_at->toDateTimeString(),
-            'marked_by'  => $record->marked_by,
+            'status' => $record->status,
+            'marked_at' => $record->marked_at->toDateTimeString(),
+            'marked_by' => $record->marked_by,
         ], 'Attendance marked successfully');
     }
 
@@ -356,11 +357,11 @@ class AdminLearningGroupController extends Controller
             'format' => 'nullable|string|in:pdf,excel',
         ]);
 
-        if (!$this->attendanceSessionService->assertSessionBelongsToGroup($session, $learningGroup)) {
+        if (! $this->attendanceSessionService->assertSessionBelongsToGroup($session, $learningGroup)) {
             return $this->errorResponse('Session not found for this group.', 404);
         }
 
-        $format  = $validated['format'] ?? 'pdf';
+        $format = $validated['format'] ?? 'pdf';
         $payload = $this->attendanceSessionService->getSessionDetails($session);
 
         if ($format === 'excel') {
@@ -396,7 +397,7 @@ class AdminLearningGroupController extends Controller
             'format' => 'nullable|string|in:pdf,excel',
         ]);
 
-        $format  = $validated['format'] ?? 'pdf';
+        $format = $validated['format'] ?? 'pdf';
 
         try {
             $payload = $this->groupAttendanceSummaryService->getStudentCourseAttendance($learningGroup, $student);
@@ -413,27 +414,27 @@ class AdminLearningGroupController extends Controller
 
     private function exportSessionAttendancePdf(array $payload): JsonResponse
     {
-        $pdf = Pdf::loadView('exports.session-attendance-pdf', [
-            'payload'     => $payload,
+        $pdf = $this->pdfExporter->loadView('exports.session-attendance-pdf', [
+            'payload' => $payload,
             'generatedAt' => now()->format('Y-m-d H:i'),
-        ])->setPaper('a4', 'landscape');
+        ], 'a4', 'landscape');
 
-        $filename = 'session-attendance-' . $payload['session_id'] . '-' . now()->format('Ymd') . '.pdf';
+        $filename = 'session-attendance-'.$payload['session_id'].'-'.now()->format('Ymd').'.pdf';
 
         return $this->successResponse([
-            'content'  => base64_encode($pdf->output()),
+            'content' => base64_encode($pdf->output()),
             'filename' => $filename,
-            'mime'     => 'application/pdf',
+            'mime' => 'application/pdf',
         ], 'PDF export ready');
     }
 
     private function exportSessionAttendanceExcel(array $payload): JsonResponse
     {
-        $filename = 'session-attendance-' . $payload['session_id'] . '-' . now()->format('Ymd') . '.csv';
+        $filename = 'session-attendance-'.$payload['session_id'].'-'.now()->format('Ymd').'.csv';
 
         ob_start();
         $handle = fopen('php://output', 'w');
-        fputs($handle, "\xEF\xBB\xBF");
+        fwrite($handle, "\xEF\xBB\xBF");
 
         fputcsv($handle, ['#', 'Student Name', 'Email', 'Attendance Status']);
 
@@ -450,35 +451,35 @@ class AdminLearningGroupController extends Controller
         $content = ob_get_clean();
 
         return $this->successResponse([
-            'content'  => base64_encode($content),
+            'content' => base64_encode($content),
             'filename' => $filename,
-            'mime'     => 'text/csv',
+            'mime' => 'text/csv',
         ], 'CSV export ready');
     }
 
     private function exportStudentCourseAttendancePdf(array $payload): JsonResponse
     {
-        $pdf = Pdf::loadView('exports.student-course-attendance-pdf', [
-            'payload'     => $payload,
+        $pdf = $this->pdfExporter->loadView('exports.student-course-attendance-pdf', [
+            'payload' => $payload,
             'generatedAt' => now()->format('Y-m-d H:i'),
-        ])->setPaper('a4', 'landscape');
+        ], 'a4', 'landscape');
 
-        $filename = 'student-attendance-' . $payload['student_id'] . '-' . now()->format('Ymd') . '.pdf';
+        $filename = 'student-attendance-'.$payload['student_id'].'-'.now()->format('Ymd').'.pdf';
 
         return $this->successResponse([
-            'content'  => base64_encode($pdf->output()),
+            'content' => base64_encode($pdf->output()),
             'filename' => $filename,
-            'mime'     => 'application/pdf',
+            'mime' => 'application/pdf',
         ], 'PDF export ready');
     }
 
     private function exportStudentCourseAttendanceExcel(array $payload): JsonResponse
     {
-        $filename = 'student-attendance-' . $payload['student_id'] . '-' . now()->format('Ymd') . '.csv';
+        $filename = 'student-attendance-'.$payload['student_id'].'-'.now()->format('Ymd').'.csv';
 
         ob_start();
         $handle = fopen('php://output', 'w');
-        fputs($handle, "\xEF\xBB\xBF");
+        fwrite($handle, "\xEF\xBB\xBF");
 
         fputcsv($handle, [
             'Student',
@@ -496,7 +497,7 @@ class AdminLearningGroupController extends Controller
             $payload['course_title'] ?? '',
             $payload['attended_sessions'] ?? 0,
             $payload['total_sessions'] ?? 0,
-            ($payload['attendance_percentage'] ?? 0) . '%',
+            ($payload['attendance_percentage'] ?? 0).'%',
         ]);
 
         fputcsv($handle, []);
@@ -516,9 +517,9 @@ class AdminLearningGroupController extends Controller
         $content = ob_get_clean();
 
         return $this->successResponse([
-            'content'  => base64_encode($content),
+            'content' => base64_encode($content),
             'filename' => $filename,
-            'mime'     => 'text/csv',
+            'mime' => 'text/csv',
         ], 'CSV export ready');
     }
 
@@ -596,27 +597,27 @@ class AdminLearningGroupController extends Controller
 
     private function exportExamResultsPdf(array $payload): JsonResponse
     {
-        $pdf = Pdf::loadView('exports.exam-results-pdf', [
-            'payload'     => $payload,
+        $pdf = $this->pdfExporter->loadView('exports.exam-results-pdf', [
+            'payload' => $payload,
             'generatedAt' => now()->format('Y-m-d H:i'),
-        ])->setPaper('a4', 'landscape');
+        ], 'a4', 'landscape');
 
-        $filename = 'exam-results-' . $payload['exam_id'] . '-' . now()->format('Ymd') . '.pdf';
+        $filename = 'exam-results-'.$payload['exam_id'].'-'.now()->format('Ymd').'.pdf';
 
         return $this->successResponse([
-            'content'  => base64_encode($pdf->output()),
+            'content' => base64_encode($pdf->output()),
             'filename' => $filename,
-            'mime'     => 'application/pdf',
+            'mime' => 'application/pdf',
         ], 'PDF export ready');
     }
 
     private function exportExamResultsExcel(array $payload): JsonResponse
     {
-        $filename = 'exam-results-' . $payload['exam_id'] . '-' . now()->format('Ymd') . '.csv';
+        $filename = 'exam-results-'.$payload['exam_id'].'-'.now()->format('Ymd').'.csv';
 
         ob_start();
         $handle = fopen('php://output', 'w');
-        fputs($handle, "\xEF\xBB\xBF");
+        fwrite($handle, "\xEF\xBB\xBF");
 
         fputcsv($handle, ['#', 'Student Name', 'Email', 'Attempts', 'Highest Score', 'Status']);
 
@@ -628,7 +629,7 @@ class AdminLearningGroupController extends Controller
 
             if ($hasAttempts && $highestScore !== null) {
                 $scoreDisplay = $totalMarks !== null
-                    ? $highestScore . ' / ' . $totalMarks
+                    ? $highestScore.' / '.$totalMarks
                     : (string) $highestScore;
                 $status = ($student['is_passed'] ?? false) ? 'Passed' : 'Failed';
             } else {
@@ -650,9 +651,9 @@ class AdminLearningGroupController extends Controller
         $content = ob_get_clean();
 
         return $this->successResponse([
-            'content'  => base64_encode($content),
+            'content' => base64_encode($content),
             'filename' => $filename,
-            'mime'     => 'text/csv',
+            'mime' => 'text/csv',
         ], 'CSV export ready');
     }
 }

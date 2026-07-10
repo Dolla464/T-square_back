@@ -34,6 +34,8 @@ class AdminUserController extends Controller
             $data['verified'] = now();
         }
 
+        $data['created_by'] = $isAdmin ? 'admin' : 'site';
+
         // 4. execute the creation process through the Service
         $user = $userService->handleUserCreation($data);
 

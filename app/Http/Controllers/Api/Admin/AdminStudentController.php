@@ -32,6 +32,7 @@ class AdminStudentController extends Controller
             'status' => $request->query('status'),      // like: active
             'gender' => $request->query('gender'), // like: 1 or 0
             'group_id' => $request->query('group_id'), // like: 1 or 0
+            'created_by' => $request->query('created_by'),
         ];
 
         $students = $this->studentService->index(

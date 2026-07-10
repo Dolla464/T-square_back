@@ -60,6 +60,9 @@ class AdminStudentService
                     $q->where('group_id', $filters['group_id']);
                 });
             })
+            ->when(isset($filters['created_by']) && $filters['created_by'] !== '', function ($query) use ($filters) {
+                $query->where('created_by', $filters['created_by']);
+            })
             ->latest()
             ->paginate($perPage);
     }

@@ -5,9 +5,10 @@ namespace App\Http\Controllers\Api\Receptionist;
 use App\Http\Controllers\Controller;
 use App\Models\Instructor;
 use App\Services\Admin\AdminScheduleService;
+use App\Services\Pdf\DompdfExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @tags Receptionist: Schedule
@@ -18,7 +19,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class ReceptionistScheduleController extends Controller
 {
     public function __construct(
-        private AdminScheduleService $scheduleService
+        private AdminScheduleService $scheduleService,
+        private DompdfExportService $pdfExporter
     ) {}
 
     /**
@@ -45,7 +47,7 @@ class ReceptionistScheduleController extends Controller
     public function export(Request $request): JsonResponse
     {
         $filters = $request->only(['date', 'date_from', 'date_to', 'instructor_id', 'status', 'group_id', 'view_mode']);
-        $format  = $request->get('format', 'pdf');
+        $format = $request->get('format', 'pdf');
 
         $sessions = $this->scheduleService->getSessionsForExport($filters);
 
@@ -74,29 +76,29 @@ class ReceptionistScheduleController extends Controller
 
     private function exportPdf($sessions, array $filters): JsonResponse
     {
-        $pdf = Pdf::loadView('exports.schedule-pdf', [
-            'sessions'      => $sessions,
+        $pdf = $this->pdfExporter->loadView('exports.schedule-pdf', [
+            'sessions' => $sessions,
             'activeFilters' => $this->buildActiveFilters($filters),
-            'generatedAt'   => now()->format('Y-m-d H:i'),
-        ])->setPaper('a4', 'landscape');
+            'generatedAt' => now()->format('Y-m-d H:i'),
+        ], 'a4', 'landscape');
 
-        $filename = 'schedule-' . now()->format('Ymd') . '.pdf';
+        $filename = 'schedule-'.now()->format('Ymd').'.pdf';
 
         return $this->successResponse([
-            'content'  => base64_encode($pdf->output()),
+            'content' => base64_encode($pdf->output()),
             'filename' => $filename,
-            'mime'     => 'application/pdf',
+            'mime' => 'application/pdf',
         ], 'PDF export ready');
     }
 
     private function exportExcel($sessions): JsonResponse
     {
-        $filename = 'schedule-' . now()->format('Ymd') . '.csv';
+        $filename = 'schedule-'.now()->format('Ymd').'.csv';
 
         ob_start();
         $handle = fopen('php://output', 'w');
 
-        fputs($handle, "\xEF\xBB\xBF");
+        fwrite($handle, "\xEF\xBB\xBF");
 
         fputcsv($handle, [
             'Group Name', 'Course', 'Instructor', 'Date',
@@ -111,10 +113,10 @@ class ReceptionistScheduleController extends Controller
                 $row->instructor_name,
                 $row->effective_date,
                 $row->effective_start_time ? substr($row->effective_start_time, 0, 5) : '',
-                $row->effective_end_time   ? substr($row->effective_end_time, 0, 5)   : '',
+                $row->effective_end_time ? substr($row->effective_end_time, 0, 5) : '',
                 $row->room ?? '',
                 $row->student_count,
-                $row->session_number . ' / ' . $row->total_sessions,
+                $row->session_number.' / '.$row->total_sessions,
                 $row->total_sessions,
                 $row->status,
                 $row->cancellation_reason ?? '',
@@ -125,9 +127,9 @@ class ReceptionistScheduleController extends Controller
         $content = ob_get_clean();
 
         return $this->successResponse([
-            'content'  => base64_encode($content),
+            'content' => base64_encode($content),
             'filename' => $filename,
-            'mime'     => 'text/csv',
+            'mime' => 'text/csv',
         ], 'CSV export ready');
     }
 
@@ -135,32 +137,32 @@ class ReceptionistScheduleController extends Controller
     {
         $active = [];
 
-        if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+        if (! empty($filters['date_from']) && ! empty($filters['date_to'])) {
             $rangeLabel = ($filters['view_mode'] ?? '') === 'month' ? 'Month' : 'Week';
             $active[] = [
                 'label' => $rangeLabel,
-                'value' => $filters['date_from'] . ' → ' . $filters['date_to'],
+                'value' => $filters['date_from'].' → '.$filters['date_to'],
             ];
-        } elseif (!empty($filters['date'])) {
+        } elseif (! empty($filters['date'])) {
             $active[] = ['label' => 'Date', 'value' => $filters['date']];
         }
 
-        if (!empty($filters['instructor_id'])) {
-            $name = \Illuminate\Support\Facades\DB::table('instructors')
+        if (! empty($filters['instructor_id'])) {
+            $name = DB::table('instructors')
                 ->where('id', $filters['instructor_id'])
                 ->value('full_name');
-            $active[] = ['label' => 'Instructor', 'value' => $name ?? ('ID ' . $filters['instructor_id'])];
+            $active[] = ['label' => 'Instructor', 'value' => $name ?? ('ID '.$filters['instructor_id'])];
         }
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $active[] = ['label' => 'Status', 'value' => ucfirst($filters['status'])];
         }
 
-        if (!empty($filters['group_id'])) {
-            $name = \Illuminate\Support\Facades\DB::table('learning_groups')
+        if (! empty($filters['group_id'])) {
+            $name = DB::table('learning_groups')
                 ->where('id', $filters['group_id'])
                 ->value('group_name');
-            $active[] = ['label' => 'Group', 'value' => $name ?? ('ID ' . $filters['group_id'])];
+            $active[] = ['label' => 'Group', 'value' => $name ?? ('ID '.$filters['group_id'])];
         }
 
         return $active;

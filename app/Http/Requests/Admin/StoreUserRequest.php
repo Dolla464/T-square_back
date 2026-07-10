@@ -42,7 +42,15 @@ class StoreUserRequest extends FormRequest
 
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', Password::min(8)],
-            'phone' => ['required', 'string', 'max:20'],
+            'phone' => [
+                'required',
+                'string',
+                'max:20',
+                Rule::when(
+                    $this->role === 'instructor',
+                    Rule::unique('instructors', 'phone')
+                ),
+            ],
             'role' => ['required', Rule::in(['student', 'instructor'])],
 
             // بيانات مشتركة اختياري حالياً (للطالب)
