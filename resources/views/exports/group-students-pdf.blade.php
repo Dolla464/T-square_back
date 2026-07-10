@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
+    @include('exports.partials.pdf-base-styles')
     <title>Group Students Export</title>
     <style>
         * {
@@ -12,7 +12,7 @@
         }
 
         body {
-            font-family: 'DejaVu Sans', sans-serif;
+            font-family: 'Cairo', 'DejaVu Sans', sans-serif;
             font-size: 11px;
             color: #1a1a1a;
             background: #fff;

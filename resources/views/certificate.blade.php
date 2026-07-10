@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
+    @include('exports.partials.pdf-base-styles')
     <title>Certificate</title>
     <style>
         @page {
@@ -17,7 +17,7 @@
         }
 
         body {
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            font-family: 'Cairo', 'DejaVu Sans', 'Arial', sans-serif;
             background: white;
             margin: 0;
             padding: 0;

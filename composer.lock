@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2623517faa951625761b3aeba603df22",
+    "content-hash": "ba81af619491dc98fb5fa9f9647f3fa3",
     "packages": [
         {
             "name": "barryvdh/laravel-dompdf",
@@ -1814,6 +1814,59 @@
                 "source": "https://github.com/JamesHeinrich/getID3/tree/v1.9.25"
             },
             "time": "2026-03-10T11:56:47+00:00"
+        },
+        {
+            "name": "khaled.alshamaa/ar-php",
+            "version": "dev-master",
+            "dist": {
+                "type": "path",
+                "url": "packages/ar-php",
+                "reference": "ea6a15d430e431dafae16333724aff9e0bd6f9b1"
+            },
+            "require": {
+                "ext-calendar": "*",
+                "ext-mbstring": "*",
+                "ext-zlib": "*",
+                "php": ">=5.6.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "9.*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "ArPHP\\I18N\\": "src"
+                }
+            },
+            "license": [
+                "LGPL-3.0"
+            ],
+            "authors": [
+                {
+                    "name": "Khaled Al-Sham'aa",
+                    "email": "khaled@ar-php.org",
+                    "homepage": "http://www.ar-php.org",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Set of functionalities enable Arabic website developers to serve professional search, present and process Arabic content in PHP",
+            "homepage": "https://github.com/khaled-alshamaa/ar-php",
+            "keywords": [
+                "Arabic",
+                "arabic-calendar",
+                "arabic-glyphs",
+                "arabic-numbers",
+                "arabic-segments-identifier",
+                "arabic-sentiment",
+                "arabic-sql-query"
+            ],
+            "support": {
+                "issues": "https://github.com/khaled-alshamaa/ar-php/issues"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "laravel/framework",
@@ -11618,7 +11671,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "khaled.alshamaa/ar-php": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

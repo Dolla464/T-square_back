@@ -11,7 +11,7 @@ use App\Models\Student;
 use App\Services\Exam\GroupExamActivationService;
 use App\Services\Exam\GroupExamResultsService;
 use App\Services\Instructor\InstructorLearningGroupService;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\Pdf\DompdfExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -25,13 +25,14 @@ class InstructorLearningGroupController extends Controller
     public function __construct(
         private InstructorLearningGroupService $learningGroupService,
         private GroupExamResultsService $groupExamResultsService,
-        private GroupExamActivationService $groupExamActivationService
+        private GroupExamActivationService $groupExamActivationService,
+        private DompdfExportService $pdfExporter
     ) {}
 
     public function selection(Request $request): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 
@@ -43,7 +44,7 @@ class InstructorLearningGroupController extends Controller
     public function getGroupExams(Request $request, LearningGroup $learningGroup): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 
@@ -60,7 +61,7 @@ class InstructorLearningGroupController extends Controller
     public function toggleExamActivation(Request $request, LearningGroup $learningGroup, Exam $exam): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 
@@ -98,7 +99,7 @@ class InstructorLearningGroupController extends Controller
     public function getExamResults(Request $request, LearningGroup $learningGroup, Exam $exam): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 
@@ -118,7 +119,7 @@ class InstructorLearningGroupController extends Controller
     public function exportExamResults(Request $request, LearningGroup $learningGroup, Exam $exam): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 
@@ -148,7 +149,7 @@ class InstructorLearningGroupController extends Controller
     public function getStudentExamResults(Request $request, LearningGroup $learningGroup, Student $student): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 
@@ -180,27 +181,27 @@ class InstructorLearningGroupController extends Controller
 
     private function exportExamResultsPdf(array $payload): JsonResponse
     {
-        $pdf = Pdf::loadView('exports.exam-results-pdf', [
-            'payload'     => $payload,
+        $pdf = $this->pdfExporter->loadView('exports.exam-results-pdf', [
+            'payload' => $payload,
             'generatedAt' => now()->format('Y-m-d H:i'),
-        ])->setPaper('a4', 'landscape');
+        ], 'a4', 'landscape');
 
-        $filename = 'exam-results-' . $payload['exam_id'] . '-' . now()->format('Ymd') . '.pdf';
+        $filename = 'exam-results-'.$payload['exam_id'].'-'.now()->format('Ymd').'.pdf';
 
         return $this->successResponse([
-            'content'  => base64_encode($pdf->output()),
+            'content' => base64_encode($pdf->output()),
             'filename' => $filename,
-            'mime'     => 'application/pdf',
+            'mime' => 'application/pdf',
         ], 'PDF export ready');
     }
 
     private function exportExamResultsExcel(array $payload): JsonResponse
     {
-        $filename = 'exam-results-' . $payload['exam_id'] . '-' . now()->format('Ymd') . '.csv';
+        $filename = 'exam-results-'.$payload['exam_id'].'-'.now()->format('Ymd').'.csv';
 
         ob_start();
         $handle = fopen('php://output', 'w');
-        fputs($handle, "\xEF\xBB\xBF");
+        fwrite($handle, "\xEF\xBB\xBF");
 
         fputcsv($handle, ['#', 'Student Name', 'Email', 'Attempts', 'Highest Score', 'Status']);
 
@@ -212,7 +213,7 @@ class InstructorLearningGroupController extends Controller
 
             if ($hasAttempts && $highestScore !== null) {
                 $scoreDisplay = $totalMarks !== null
-                    ? $highestScore . ' / ' . $totalMarks
+                    ? $highestScore.' / '.$totalMarks
                     : (string) $highestScore;
                 $status = ($student['is_passed'] ?? false) ? 'Passed' : 'Failed';
             } else {
@@ -234,9 +235,9 @@ class InstructorLearningGroupController extends Controller
         $content = ob_get_clean();
 
         return $this->successResponse([
-            'content'  => base64_encode($content),
+            'content' => base64_encode($content),
             'filename' => $filename,
-            'mime'     => 'text/csv',
+            'mime' => 'text/csv',
         ], 'CSV export ready');
     }
 }
