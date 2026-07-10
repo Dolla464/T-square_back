@@ -25,6 +25,7 @@ class AdminStudentResource extends JsonResource
                 : null,
             'gender'            => $this->gender,
             'status'            => $this->status,
+            'created_by'        => $this->created_by,
 
             // get the group id and group name from the first enrollment
             'group_id'          => $firstEnrollment?->group_id,

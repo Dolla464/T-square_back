@@ -127,6 +127,7 @@ class ProfileService
                 'avatar' => null,
                 'gender' => null,
                 'status' => 'active',
+                'created_by' => 'site',
             ]
         );
     }

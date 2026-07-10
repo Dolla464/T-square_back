@@ -33,6 +33,7 @@ class StudentSeeder extends Seeder
                 'enrollment_number' => 'STU-' . str_pad($i + 1, 5, '0', STR_PAD_LEFT),
                 'gender'            => $i % 3 === 0 ? 'female' : 'male',
                 'status'            => 'active',
+                'created_by'        => 'admin',
             ]);
         }
 

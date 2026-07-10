@@ -26,6 +26,7 @@ class StudentFactory extends Factory
             'avatar' => 'default_student.png',
             'gender' => $this->faker->randomElement(['male', 'female']),
             'status' => 'active',
+            'created_by' => 'admin',
         ];
     }
 }

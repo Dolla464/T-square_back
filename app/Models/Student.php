@@ -18,6 +18,7 @@ class Student extends Model
         'avatar',
         'gender',
         'status',
+        'created_by',
     ];
 
     public function user()
