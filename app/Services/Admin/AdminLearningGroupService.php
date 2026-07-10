@@ -507,6 +507,87 @@ class AdminLearningGroupService
             ->exists();
     }
 
+    /**
+     * Align group end_date with course duration and remove out-of-range upcoming sessions.
+     *
+     * @return array{
+     *     group_id: int,
+     *     group_name: string,
+     *     updated: bool,
+     *     end_date_changed: bool,
+     *     old_end_date: ?string,
+     *     new_end_date: ?string,
+     *     sessions_removed: int,
+     *     skipped_reason: ?string
+     * }
+     */
+    public function fixGroupSessionBounds(LearningGroup $group, bool $dryRun = false): array
+    {
+        $group->loadMissing('course:id,duration_weeks');
+
+        $base = [
+            'group_id'         => $group->id,
+            'group_name'       => $group->group_name,
+            'updated'          => false,
+            'end_date_changed' => false,
+            'old_end_date'     => $group->end_date?->format('Y-m-d'),
+            'new_end_date'     => null,
+            'sessions_removed' => 0,
+            'skipped_reason'   => null,
+        ];
+
+        if (! $group->start_date) {
+            $base['skipped_reason'] = 'Missing start_date.';
+
+            return $base;
+        }
+
+        if (! $group->course) {
+            $base['skipped_reason'] = 'Missing course.';
+
+            return $base;
+        }
+
+        $correctEnd    = $this->calculateGroupEndDate($group->start_date, (int) $group->course->duration_weeks);
+        $newEndStr     = $correctEnd->format('Y-m-d');
+        $endDateChanged = $base['old_end_date'] !== $newEndStr;
+
+        $sessionsQuery = AttendanceSession::query()
+            ->where('learning_group_id', $group->id)
+            ->where('status', 'upcoming')
+            ->whereRaw('DATE(COALESCE(override_date, session_date)) > ?', [$newEndStr]);
+
+        $sessionsRemoved = $sessionsQuery->count();
+
+        $base['new_end_date']     = $newEndStr;
+        $base['end_date_changed'] = $endDateChanged;
+        $base['sessions_removed'] = $sessionsRemoved;
+
+        if (! $endDateChanged && $sessionsRemoved === 0) {
+            return $base;
+        }
+
+        if ($dryRun) {
+            $base['updated'] = true;
+
+            return $base;
+        }
+
+        DB::transaction(function () use ($group, $correctEnd, $endDateChanged, $sessionsQuery): void {
+            if ($endDateChanged) {
+                $group->update(['end_date' => $correctEnd]);
+            }
+
+            $sessionsQuery->delete();
+        });
+
+        $base['updated']          = true;
+        $base['old_end_date']     = $endDateChanged ? $base['old_end_date'] : $newEndStr;
+        $base['end_date_changed'] = $endDateChanged;
+
+        return $base;
+    }
+
     /** Last calendar day of the course (inclusive session generation bound). */
     private function calculateGroupEndDate(Carbon $startDate, int $durationWeeks): Carbon
     {
