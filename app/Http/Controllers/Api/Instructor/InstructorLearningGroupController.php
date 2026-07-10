@@ -8,6 +8,7 @@ use App\Http\Resources\User\Exam\ExamResultResource;
 use App\Models\Exam;
 use App\Models\LearningGroup;
 use App\Models\Student;
+use App\Services\Exam\GroupExamActivationService;
 use App\Services\Exam\GroupExamResultsService;
 use App\Services\Instructor\InstructorLearningGroupService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -23,7 +24,8 @@ class InstructorLearningGroupController extends Controller
 
     public function __construct(
         private InstructorLearningGroupService $learningGroupService,
-        private GroupExamResultsService $groupExamResultsService
+        private GroupExamResultsService $groupExamResultsService,
+        private GroupExamActivationService $groupExamActivationService
     ) {}
 
     public function selection(Request $request): JsonResponse
@@ -52,6 +54,44 @@ class InstructorLearningGroupController extends Controller
         return $this->successResponse(
             $this->groupExamResultsService->getExamsForGroup($learningGroup),
             'Group exams retrieved successfully'
+        );
+    }
+
+    public function toggleExamActivation(Request $request, LearningGroup $learningGroup, Exam $exam): JsonResponse
+    {
+        $instructor = $this->resolveInstructor($request);
+        if (!$instructor) {
+            return $this->instructorNotFoundResponse();
+        }
+
+        if ($response = $this->verifyGroupOwnership($learningGroup, $instructor)) {
+            return $response;
+        }
+
+        if ($response = $this->verifyExamOwnership($exam, $instructor)) {
+            return $response;
+        }
+
+        $validated = $request->validate([
+            'is_activated' => 'required|boolean',
+        ]);
+
+        try {
+            $payload = $this->groupExamActivationService->toggleActivation(
+                $learningGroup,
+                $exam,
+                $instructor->id,
+                (bool) $validated['is_activated']
+            );
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 404);
+        }
+
+        return $this->successResponse(
+            $payload,
+            $validated['is_activated']
+                ? 'Exam activated for group successfully'
+                : 'Exam deactivated for group successfully'
         );
     }
 

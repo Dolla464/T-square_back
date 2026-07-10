@@ -53,4 +53,15 @@ class Exam extends Model
     {
         return $this->hasMany(ExamAttempt::class);
     }
+
+    public function activatedGroups()
+    {
+        return $this->belongsToMany(LearningGroup::class, 'group_exam_activations')
+            ->withPivot(['activated_by', 'activated_at']);
+    }
+
+    public function groupActivations()
+    {
+        return $this->hasMany(GroupExamActivation::class);
+    }
 }

@@ -57,4 +57,20 @@ class LearningGroup extends Model
             'student_id'
         );
     }
+
+    public function enrollments()
+    {
+        return $this->hasMany(Enrollment::class, 'group_id');
+    }
+
+    public function activatedExams()
+    {
+        return $this->belongsToMany(Exam::class, 'group_exam_activations')
+            ->withPivot(['activated_by', 'activated_at']);
+    }
+
+    public function examActivations()
+    {
+        return $this->hasMany(GroupExamActivation::class);
+    }
 }

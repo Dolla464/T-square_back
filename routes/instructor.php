@@ -58,6 +58,7 @@ Route::middleware(['auth:sanctum', 'role:instructor'])
         Route::prefix('learning-groups')->name('learning-groups.')->group(function () {
             Route::get('selection', [InstructorLearningGroupController::class, 'selection'])->name('selection');
             Route::get('{learningGroup}/exams', [InstructorLearningGroupController::class, 'getGroupExams'])->name('exams');
+            Route::patch('{learningGroup}/exams/{exam}/toggle-activation', [InstructorLearningGroupController::class, 'toggleExamActivation'])->name('exams.toggle-activation');
             Route::get('{learningGroup}/exams/{exam}/results/export', [InstructorLearningGroupController::class, 'exportExamResults'])->name('exams.results.export');
             Route::get('{learningGroup}/exams/{exam}/results', [InstructorLearningGroupController::class, 'getExamResults'])->name('exams.results');
             Route::get('{learningGroup}/students/{student}/exam-results', [InstructorLearningGroupController::class, 'getStudentExamResults'])->name('students.exam-results');

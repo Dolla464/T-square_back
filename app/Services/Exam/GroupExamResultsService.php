@@ -13,7 +13,8 @@ class GroupExamResultsService
     private const FINISHED_STATUSES = ['passed', 'failed', 'completed', 'timed_out'];
 
     public function __construct(
-        private ExamService $examService
+        private ExamService $examService,
+        private GroupExamActivationService $groupExamActivationService
     ) {}
 
     public function assertExamBelongsToGroup(Exam $exam, LearningGroup $group): bool
@@ -28,22 +29,7 @@ class GroupExamResultsService
 
     public function getExamsForGroup(LearningGroup $group): array
     {
-        $group->load('course:id,title');
-
-        return Exam::query()
-            ->where('course_id', $group->course_id)
-            ->where('is_active', true)
-            ->orderBy('title')
-            ->get(['id', 'title', 'total_marks', 'passing_mark', 'max_attempts'])
-            ->map(fn (Exam $exam) => [
-                'id'           => $exam->id,
-                'title'        => $exam->title,
-                'total_marks'  => $exam->total_marks,
-                'passing_mark' => $exam->passing_mark,
-                'max_attempts' => $exam->max_attempts,
-            ])
-            ->values()
-            ->all();
+        return $this->groupExamActivationService->getExamsWithActivationStatus($group);
     }
 
     public function getExamResultsSummary(LearningGroup $group, Exam $exam): array

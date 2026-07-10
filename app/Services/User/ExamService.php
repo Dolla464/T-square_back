@@ -22,12 +22,15 @@ class ExamService
      */
     public function getAvailableExams($student)
     {
-        // Get the available exams and count the student's attempts for each exam in the same query
         return $student->availableExams()
             ->where('is_active', true)
-            ->whereHas('course.enrollments', function ($q) use ($student) {
-                $q->where('student_id', $student->id)
-                    ->withCompletedOrder();
+            ->whereHas('activatedGroups', function ($q) use ($student) {
+                $q->whereHas('enrollments', function ($eq) use ($student) {
+                    $eq->where('student_id', $student->id)
+                        ->whereNotNull('group_id')
+                        ->whereColumn('enrollments.course_id', 'exams.course_id')
+                        ->withCompletedOrder();
+                });
             })
             ->with('course')
             ->withCount([
@@ -44,8 +47,16 @@ class ExamService
         // 1. Fetch exam first to validate enrollment and bank size before touching attempts
         $exam = Exam::findOrFail($examId);
 
+        if (! $exam->is_active) {
+            abort(403, 'This exam is not currently available.');
+        }
+
         if (! $this->hasCompletedEnrollment($studentId, $exam->course_id)) {
             abort(403, 'Sorry, you are not enrolled in this course to take the exam.');
+        }
+
+        if (! $this->hasGroupExamAccess($studentId, $examId, $exam->course_id)) {
+            abort(403, 'This exam has not been activated for your group yet.');
         }
 
         // 2. Guard: refuse to start/resume when the question bank is empty
@@ -215,6 +226,22 @@ class ExamService
             ->where('student_id', $studentId)
             ->where('course_id', $courseId)
             ->withCompletedOrder()
+            ->exists();
+    }
+
+    private function hasGroupExamAccess(int $studentId, int $examId, int $courseId): bool
+    {
+        return Enrollment::query()
+            ->where('student_id', $studentId)
+            ->where('course_id', $courseId)
+            ->whereNotNull('group_id')
+            ->withCompletedOrder()
+            ->whereExists(function ($q) use ($examId) {
+                $q->selectRaw('1')
+                    ->from('group_exam_activations')
+                    ->whereColumn('group_exam_activations.learning_group_id', 'enrollments.group_id')
+                    ->where('group_exam_activations.exam_id', $examId);
+            })
             ->exists();
     }
 
