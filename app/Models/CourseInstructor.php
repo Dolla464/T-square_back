@@ -30,11 +30,11 @@ class CourseInstructor extends Pivot
 
     public function learningGroups(): HasMany
     {
-        return $this->hasMany(LearningGroup::class);
+        return $this->hasMany(LearningGroup::class, 'course_instructor_id');
     }
 
     public function reviewRatings(): HasMany
     {
-        return $this->hasMany(CourseReviewInstructorRating::class);
+        return $this->hasMany(CourseReviewInstructorRating::class, 'course_instructor_id');
     }
 }
