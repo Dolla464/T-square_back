@@ -34,7 +34,7 @@ class AttendanceSessionService
     {
         $session->load([
             'schedule',
-            'learningGroup:id,group_name,course_id,instructor_id',
+            'learningGroup:id,group_name,course_id,course_instructor_id',
             'learningGroup.course:id,title',
             'attendanceRecords',
         ]);

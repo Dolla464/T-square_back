@@ -16,8 +16,8 @@ class CourseService
         return Course::publiclyVisible()
             ->with([
                 'category:id,name,slug',
-                'instructor:id,user_id,avatar',
-                'instructor.user:id,name',
+                'instructors:id,user_id,full_name,avatar',
+                'instructors.user:id,name',
                 'tags:id,name,slug',
                 'previews:id,course_id,title,video_url,description,video_provider,duration_seconds,sort_order',
             ])
@@ -42,7 +42,7 @@ class CourseService
     public function getCourseDetails($slug)
     {
         $course = Course::publiclyVisible()
-            ->with(['category', 'instructor.user', 'learnings', 'previews', 'tags:id,name,slug'])
+            ->with(['category', 'instructors.user', 'learnings', 'previews', 'tags:id,name,slug'])
             ->where('slug', $slug)
             ->first();
 
@@ -74,8 +74,8 @@ class CourseService
             ])
             ->with([
                 'category:id,name,slug',
-                'instructor:id,user_id,avatar',
-                'instructor.user:id,name',
+                'instructors:id,user_id,full_name,avatar',
+                'instructors.user:id,name',
                 'tags:id,name,slug',
                 'previews:id,course_id,title,video_url,description,video_provider,duration_seconds,sort_order',
             ])

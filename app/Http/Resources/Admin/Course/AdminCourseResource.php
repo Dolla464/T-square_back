@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin\Course;
 
+use App\Support\CourseInstructorSync;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -39,7 +40,15 @@ class AdminCourseResource extends JsonResource
         $data['deleted_at'] = $this->deleted_at ? $this->deleted_at->format('Y-m-d H:i:s') : null;
 
         // include relations only when loaded
-        if ($this->relationLoaded('instructor')) {
+        if ($this->relationLoaded('instructors')) {
+            $data['instructors'] = CourseInstructorSync::formatInstructorsCollection($this->resource);
+            $data['instructor_ids'] = collect($data['instructors'])->pluck('id')->values()->all();
+        }
+
+        /** @deprecated Use instructors[]. Will be removed in v2. */
+        if ($this->relationLoaded('instructors')) {
+            $data['instructor'] = $data['instructors'][0] ?? null;
+        } elseif ($this->relationLoaded('instructor')) {
             $instructor = $this->instructor;
             $data['instructor'] = $instructor ? [
                 'id' => $instructor->id ?? null,

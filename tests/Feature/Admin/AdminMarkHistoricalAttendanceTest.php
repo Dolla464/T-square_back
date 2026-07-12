@@ -42,9 +42,9 @@ beforeEach(function (): void {
 function createGroupWithSessionAndStudent(array $sessionOverrides = []): array
 {
     $group = LearningGroup::factory()->create([
-        'course_id'     => test()->course->id,
-        'instructor_id' => test()->instructor->id,
-        'start_date'    => now()->subWeeks(4)->toDateString(),
+        'course_id' => test()->course->id,
+        'course_instructor_id' => courseInstructorIdFor(test()->course, test()->instructor),
+        'start_date' => now()->subWeeks(4)->toDateString(),
         'end_date'      => now()->addWeek()->toDateString(),
         'status'        => 'active',
     ]);
@@ -184,9 +184,9 @@ test('admin cannot mark attendance when session does not belong to group', funct
     ['group' => $group, 'student' => $student] = createGroupWithSessionAndStudent();
 
     $otherGroup = LearningGroup::factory()->create([
-        'course_id'     => $this->course->id,
-        'instructor_id' => $this->instructor->id,
-        'start_date'    => now()->subWeeks(4)->toDateString(),
+        'course_id' => $this->course->id,
+        'course_instructor_id' => courseInstructorIdFor($this->course, $this->instructor),
+        'start_date' => now()->subWeeks(4)->toDateString(),
         'end_date'      => now()->addWeek()->toDateString(),
     ]);
 

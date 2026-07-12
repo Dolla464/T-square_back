@@ -41,7 +41,8 @@ class LearningGroupRequest extends FormRequest
         return [
             'group_name'   => 'required|string|max:255',
             'course_id'    => 'required|exists:courses,id',
-            'instructor_id' => 'required|exists:instructors,id',
+            'course_instructor_id' => 'required|exists:course_instructor,id',
+            'instructor_id' => 'sometimes|nullable|exists:instructors,id',
             'start_date'    => $startDateRule,
             'is_historical' => 'nullable|boolean',
             'status'        => 'nullable|in:active,completed,cancelled',
@@ -66,6 +67,7 @@ class LearningGroupRequest extends FormRequest
     {
         $validator->after(function (Validator $v) {
             $this->checkHistoricalStartDate($v);
+            $this->checkCourseInstructorBelongsToCourse($v);
             $this->checkInstructorScheduleOverlap($v);
         });
     }
@@ -102,6 +104,32 @@ class LearningGroupRequest extends FormRequest
         }
     }
 
+    private function checkCourseInstructorBelongsToCourse(Validator $v): void
+    {
+        if ($v->errors()->isNotEmpty()) {
+            return;
+        }
+
+        $courseId = $this->input('course_id');
+        $courseInstructorId = $this->input('course_instructor_id');
+
+        if (! $courseId || ! $courseInstructorId) {
+            return;
+        }
+
+        $belongs = DB::table('course_instructor')
+            ->where('id', $courseInstructorId)
+            ->where('course_id', $courseId)
+            ->exists();
+
+        if (! $belongs) {
+            $v->errors()->add(
+                'course_instructor_id',
+                'The selected instructor is not assigned to this course.'
+            );
+        }
+    }
+
     /**
      * Ensure the instructor has no overlapping schedule on the same day_of_week
      * in any other learning group (excluding the group being updated).
@@ -112,7 +140,7 @@ class LearningGroupRequest extends FormRequest
             return;
         }
 
-        $instructorId = $this->input('instructor_id');
+        $courseInstructorId = $this->input('course_instructor_id');
         $schedules    = $this->input('schedules', []);
 
         // When updating, exclude the current group's schedules from the overlap check.
@@ -133,7 +161,7 @@ class LearningGroupRequest extends FormRequest
 
             $query = DB::table('learning_group_schedules as lgs')
                 ->join('learning_groups as lg', 'lg.id', '=', 'lgs.learning_group_id')
-                ->where('lg.instructor_id', $instructorId)
+                ->where('lg.course_instructor_id', $courseInstructorId)
                 ->where('lgs.day_of_week', $dayOfWeek)
                 ->where(function ($q) use ($startTime, $endTime) {
                     // Overlap condition: new interval overlaps existing interval

@@ -4,6 +4,7 @@ namespace App\Http\Resources\User\Courses;
 
 use App\Models\CourseReview;
 use App\Services\User\CertificateService;
+use App\Support\CourseInstructorSync;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -18,6 +19,7 @@ class CourseDashboardResource extends JsonResource
     {
         // الـ enrollment الخاص بالطالب للكورس
         $enrollment = $this->enrollments->first();
+        $instructors = CourseInstructorSync::resolveForEnrollment($this->resource, $enrollment);
 
         return [
             // ── بيانات الكورس الأساسية ─────────────────────────────────────
@@ -44,8 +46,10 @@ class CourseDashboardResource extends JsonResource
             'total_reviews' => $this->whenNotNull($this->total_reviews),
             'total_students' => $this->whenNotNull($this->total_students),
 
-            // ── بيانات المحاضر ─────────────────────────────────────────────
-            'instructor' => $this->whenLoaded('instructor', fn() => [
+            'instructors' => $instructors,
+
+            /** @deprecated Use instructors[]. Will be removed in v2. */
+            'instructor' => $instructors[0] ?? $this->whenLoaded('instructor', fn () => [
                 'id' => $this->instructor->id,
                 'full_name' => $this->instructor->full_name,
                 'field' => $this->instructor->field,
@@ -92,6 +96,7 @@ class CourseDashboardResource extends JsonResource
                 return [
                     'status' => $enrollment->is_completed ? 'completed' : 'in_progress',
                     'completed_at' => $enrollment->completed_at?->toDateTimeString(),
+                    'group_id' => $enrollment->group_id,
                     'has_review' => $hasReview,
                     'review_status' => $review?->review_status,
                     'certificate_available' => $certificateService->enrollmentCanIssueCertificate($enrollment),

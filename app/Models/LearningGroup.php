@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LearningGroup extends Model
 {
@@ -12,7 +14,7 @@ class LearningGroup extends Model
     protected $fillable = [
         'group_name',
         'course_id',
-        'instructor_id',
+        'course_instructor_id',
         'start_date',
         'end_date',
         'status',
@@ -23,22 +25,29 @@ class LearningGroup extends Model
         'end_date'   => 'date',
     ];
 
-    public function course()
+    public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
     }
 
-    public function instructor()
+    public function courseInstructor(): BelongsTo
     {
-        return $this->belongsTo(Instructor::class, 'instructor_id');
+        return $this->belongsTo(CourseInstructor::class);
     }
 
-    public function schedules()
+    public function getInstructorAttribute(): ?Instructor
+    {
+        $this->loadMissing('courseInstructor.instructor');
+
+        return $this->courseInstructor?->instructor;
+    }
+
+    public function schedules(): HasMany
     {
         return $this->hasMany(LearningGroupSchedule::class);
     }
 
-    public function attendanceSessions()
+    public function attendanceSessions(): HasMany
     {
         return $this->hasMany(AttendanceSession::class);
     }
@@ -58,7 +67,7 @@ class LearningGroup extends Model
         );
     }
 
-    public function enrollments()
+    public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class, 'group_id');
     }
@@ -69,8 +78,13 @@ class LearningGroup extends Model
             ->withPivot(['activated_by', 'activated_at']);
     }
 
-    public function examActivations()
+    public function examActivations(): HasMany
     {
         return $this->hasMany(GroupExamActivation::class);
+    }
+
+    public function getInstructorIdAttribute(): ?int
+    {
+        return $this->courseInstructor?->instructor_id;
     }
 }

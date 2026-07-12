@@ -21,8 +21,8 @@
         .header {
             background: #be1522;
             color: #fff;
-            padding: 16px 20px;
-            margin-bottom: 16px;
+            padding: 10px 10px;
+            margin-bottom: 5px;
         }
 
         .header h1 {
@@ -44,7 +44,7 @@
         }
 
         .info-row {
-            margin-bottom: 14px;
+            margin-bottom: 5px;
             line-height: 2;
         }
 
@@ -54,8 +54,8 @@
             color: #1e3a5f;
             border: 2px solid #c5d8f8;
             border-radius: 5px;
-            padding: 5px 8px;
-            font-size: 10px;
+            padding: 5px 5px;
+            font-size: 12px;
             margin-right: 6px;
         }
 
@@ -177,8 +177,8 @@
                     @endphp
                     <tr>
                         <td style="text-align:center;">{{ $idx + 1 }}</td>
-                        <td>{{ $student['full_name'] ?? '—' }}</td>
-                        <td>{{ $student['email'] ?? '—' }}</td>
+                        <td style="text-align:center;">{{ $student['full_name'] ?? '—' }}</td>
+                        <td style="text-align:center;">{{ $student['email'] ?? '—' }}</td>
                         <td style="text-align:center;">
                             <span class="badge {{ $badgeClass }}">{{ str_replace('_', ' ', $status) }}</span>
                         </td>

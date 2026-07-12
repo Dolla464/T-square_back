@@ -3,10 +3,12 @@
 namespace App\Listeners;
 
 use App\Events\StudentExamAttemptCompleted;
+use App\Models\Course;
 use App\Models\Enrollment;
 use App\Notifications\CourseReviewRequired;
 use App\Notifications\InstructorExamResultNotification;
 use App\Notifications\StudentExamAttemptStatusNotification;
+use App\Support\CourseInstructorNotifier;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
@@ -18,52 +20,52 @@ class SendStudentExamAttemptNotification implements ShouldQueue
     {
         $attempt = $event->attempt;
 
-        // Notify the student of their result
         $studentUser = $attempt->student?->user;
         if ($studentUser) {
             $studentUser->notify(new StudentExamAttemptStatusNotification($attempt));
         }
 
-        // Notify the instructor
-        $this->notifyInstructor($attempt);
+        $this->notifyInstructors($attempt);
 
-        // If the student passed the final exam, prompt them to leave a course review
         if ($attempt->status === 'passed' && $attempt->exam?->is_final) {
             $this->notifyStudentReviewRequired($attempt);
         }
     }
 
-    private function notifyInstructor(mixed $attempt): void
+    private function notifyInstructors(mixed $attempt): void
     {
-        $attempt->loadMissing(['student', 'exam.course.instructor.user']);
+        $attempt->loadMissing(['student', 'exam.course.instructors.user']);
 
-        $courseId  = $attempt->exam?->course_id;
+        $courseId = $attempt->exam?->course_id;
         $studentId = $attempt->student_id;
 
-        // Resolve group and instructor from the student's enrollment
         $enrollment = $courseId && $studentId
-            ? Enrollment::with('learningGroup.instructor.user')
+            ? Enrollment::with('learningGroup.courseInstructor.instructor.user')
                 ->where('student_id', $studentId)
                 ->where('course_id', $courseId)
                 ->first()
             : null;
 
-        $groupName      = $enrollment?->learningGroup?->group_name;
-        $instructorUser = $enrollment?->learningGroup?->instructor?->user
-            ?? $attempt->exam?->course?->instructor?->user;
+        $groupName = $enrollment?->learningGroup?->group_name;
+        $notification = new InstructorExamResultNotification($attempt, $groupName);
 
-        if (! $instructorUser) {
+        $course = $attempt->exam?->course;
+        if ($course instanceof Course) {
+            CourseInstructorNotifier::notifyAll($course, $notification);
             return;
         }
 
-        $instructorUser->notify(new InstructorExamResultNotification($attempt, $groupName));
+        $instructorUser = $enrollment?->learningGroup?->courseInstructor?->instructor?->user;
+        if ($instructorUser) {
+            $instructorUser->notify($notification);
+        }
     }
 
     private function notifyStudentReviewRequired(mixed $attempt): void
     {
         $attempt->loadMissing(['student.user', 'exam']);
 
-        $courseId  = $attempt->exam?->course_id;
+        $courseId = $attempt->exam?->course_id;
         $studentId = $attempt->student_id;
 
         if (! $courseId || ! $studentId) {

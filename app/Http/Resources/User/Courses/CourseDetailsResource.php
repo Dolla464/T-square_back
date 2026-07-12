@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\User\Courses;
 
+use App\Support\CourseInstructorSync;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -14,6 +15,8 @@ class CourseDetailsResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $instructors = CourseInstructorSync::formatInstructorsCollection($this->resource);
+
         return [
             'id' => $this->id,
             'title' => $this->title,
@@ -36,15 +39,17 @@ class CourseDetailsResource extends JsonResource
                 'slug' => $this->category->slug ?? null,
             ],
 
-            'instructor' => [
+            'instructors' => $instructors,
+
+            /** @deprecated Use instructors[]. Will be removed in v2. */
+            'instructor' => $instructors[0] ?? [
                 'id' => $this->instructor->id ?? null,
-                'name' => $this->instructor->user->name ?? null,
+                'name' => $this->instructor->user->name ?? $this->instructor->full_name ?? null,
             ],
 
-            // مصفوفة "ماذا ستتعلم"
-            'learnings' => $this->whenLoaded('learnings', fn() => $this->learnings->pluck('title'), []),
+            'learnings' => $this->whenLoaded('learnings', fn () => $this->learnings->pluck('title'), []),
 
-            'tags' => $this->whenLoaded('tags', fn() => $this->tags->map(function ($tag) {
+            'tags' => $this->whenLoaded('tags', fn () => $this->tags->map(function ($tag) {
                 return [
                     'id' => $tag->id,
                     'name' => $tag->name,
@@ -52,8 +57,7 @@ class CourseDetailsResource extends JsonResource
                 ];
             })->values(), []),
 
-            // مصفوفة الفيديوهات أو الملفات التجريبية
-            'previews' => $this->whenLoaded('previews', fn() => $this->previews->map(function ($preview) {
+            'previews' => $this->whenLoaded('previews', fn () => $this->previews->map(function ($preview) {
                 return [
                     'id' => $preview->id,
                     'title' => $preview->title,
@@ -64,7 +68,6 @@ class CourseDetailsResource extends JsonResource
                     'sort_order' => $preview->sort_order,
                 ];
             })->values(), []),
-            
         ];
     }
 }

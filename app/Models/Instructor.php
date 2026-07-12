@@ -42,9 +42,29 @@ class Instructor extends Model
         return $this->hasMany(Course::class);
     }
 
+    public function assignedCourses()
+    {
+        return $this->belongsToMany(Course::class, 'course_instructor')
+            ->using(CourseInstructor::class)
+            ->withPivot(['id', 'sort_order'])
+            ->orderBy('course_instructor.sort_order');
+    }
+
+    public function courseInstructorAssignments()
+    {
+        return $this->hasMany(CourseInstructor::class);
+    }
+
     public function learningGroups()
     {
-        return $this->hasMany(LearningGroup::class, 'instructor_id');
+        return $this->hasManyThrough(
+            LearningGroup::class,
+            CourseInstructor::class,
+            'instructor_id',
+            'course_instructor_id',
+            'id',
+            'id'
+        );
     }
 
     /**
@@ -91,8 +111,8 @@ class Instructor extends Model
      */
     public function updateRatingStats()
     {
-        // بنحسب المتوسط والعدد من جدول المراجعات اللي مرتبطة بالـ instructor_id ده
-        $stats = CourseReview::where('instructor_id', $this->id)
+        $stats = CourseReviewInstructorRating::query()
+            ->whereHas('courseInstructor', fn ($q) => $q->where('instructor_id', $this->id))
             ->selectRaw('AVG(instructor_rating) as average, COUNT(*) as total')
             ->first();
 

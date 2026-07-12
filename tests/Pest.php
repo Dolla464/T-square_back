@@ -44,7 +44,20 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function courseInstructorIdFor(\App\Models\Course $course, \App\Models\Instructor $instructor): int
 {
-    // ..
+    return \App\Models\CourseInstructor::firstOrCreate(
+        [
+            'course_id' => $course->id,
+            'instructor_id' => $instructor->id,
+        ],
+        ['sort_order' => 0]
+    )->id;
+}
+
+function groupPayloadWithInstructor(\App\Models\Course $course, \App\Models\Instructor $instructor, array $overrides = []): array
+{
+    return array_merge([
+        'course_instructor_id' => courseInstructorIdFor($course, $instructor),
+    ], $overrides);
 }

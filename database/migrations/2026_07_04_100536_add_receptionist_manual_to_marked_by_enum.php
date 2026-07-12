@@ -7,11 +7,19 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::statement("ALTER TABLE attendance_records MODIFY COLUMN marked_by ENUM('student_qr', 'instructor_manual', 'receptionist_manual', 'system') NOT NULL DEFAULT 'system'");
     }
 
     public function down(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::statement("ALTER TABLE attendance_records MODIFY COLUMN marked_by ENUM('student_qr', 'instructor_manual', 'system') NOT NULL DEFAULT 'system'");
     }
 };

@@ -49,7 +49,7 @@ beforeEach(function (): void {
     $this->group = LearningGroup::create([
         'group_name'        => 'Test Batch A',
         'course_id'         => $this->course->id,
-        'instructor_id'     => $this->instructor->id,
+        'course_instructor_id' => courseInstructorIdFor($this->course, $this->instructor),
         'enrolled_students' => 0,
     ]);
 });
@@ -286,7 +286,7 @@ it('returns a lightweight id+name list of all groups for dropdowns', function ()
     LearningGroup::create([
         'group_name'        => 'Test Batch B',
         'course_id'         => $this->course->id,
-        'instructor_id'     => $this->instructor->id,
+        'course_instructor_id' => courseInstructorIdFor($this->course, $this->instructor),
         'enrolled_students' => 0,
     ]);
 

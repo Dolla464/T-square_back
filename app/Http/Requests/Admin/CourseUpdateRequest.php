@@ -31,6 +31,8 @@ class CourseUpdateRequest extends FormRequest
             'is_featured' => ['sometimes', 'boolean'],
             'is_free' => ['sometimes', 'boolean'],
             'category_id' => ['sometimes', 'nullable', 'exists:categories,id'],
+            'instructor_ids'   => ['sometimes', 'nullable', 'array', 'min:1'],
+            'instructor_ids.*' => ['integer', 'exists:instructors,id'],
             'instructor_id' => ['sometimes', 'nullable', 'exists:instructors,id'],
             'published_at' => ['sometimes', 'nullable', 'date'],
 

@@ -6,6 +6,7 @@ use App\Http\Resources\Admin\Course\CourseFieldList;
 use App\Jobs\ExtractVideoDurationJob;
 use App\Models\Course;
 use App\Models\CourseLearning;
+use App\Support\CourseInstructorSync;
 use App\Traits\HandleImageUploadTrait;
 use App\Traits\HandleVideoUploadTrait;
 use Carbon\Carbon;
@@ -17,6 +18,10 @@ class AdminCourseService
 {
     use HandleImageUploadTrait;
     use HandleVideoUploadTrait;
+
+    public function __construct(
+        private readonly CourseInstructorSync $courseInstructorSync,
+    ) {}
 
     /**
      * Get paginated course listing for the admin panel.
@@ -45,7 +50,7 @@ class AdminCourseService
             'is_featured',
         ])
             ->with([
-                'instructor:id,full_name',
+                'instructors:id,full_name',
                 'category:id,name,parent_id',
                 'tags:id,name,slug',
             ])
@@ -55,8 +60,8 @@ class AdminCourseService
                     $q->where('title', 'like', "%{$term}%")
                         ->orWhere('slug', 'like', "%{$term}%")
                         ->orWhereHas(
-                            'instructor',
-                            fn($q) => $q->where('full_name', 'like', "%{$term}%")
+                            'instructors',
+                            fn ($q) => $q->where('full_name', 'like', "%{$term}%")
                         );
                 });
             })
@@ -82,7 +87,7 @@ class AdminCourseService
     public function show($id): Course
     {
         return Course::with([
-            'instructor:id,full_name',
+            'instructors:id,full_name,phone,avatar,field,bio,gender,status',
             'category:id,name,slug,parent_id',
             'tags:id,name,slug',
             'previews:id,course_id,title,video_url,description,video_provider,duration_seconds,sort_order',
@@ -129,13 +134,21 @@ class AdminCourseService
         // 3. استخراج العلاقات والبيانات الإضافية قبل إنشاء الموديل
         $tags = $data['tags'] ?? null;
         $previews = $data['previews'] ?? [];
-        $learnings = $data['learnings'] ?? []; // استخراج الـ learnings هنا
+        $learnings = $data['learnings'] ?? [];
+        $instructorIds = $this->resolveInstructorIds($data);
 
-        // تنظيف المصفوفة من الحقول التي لا تنتمي لجدول courses
-        unset($data['tags'], $data['previews'], $data['learnings']);
+        unset($data['tags'], $data['previews'], $data['learnings'], $data['instructor_ids']);
+
+        if ($instructorIds !== null) {
+            $data['instructor_id'] = $instructorIds[0];
+        }
 
         // 4. إنشاء الكورس الأساسي (سيأخذ الـ status والـ published_at تلقائياً من الـ $data)
         $course = Course::create($data);
+
+        if ($instructorIds !== null) {
+            $this->courseInstructorSync->sync($course, $instructorIds);
+        }
 
         // 5. حفظ الـ Learnings (ماذا سيتعلم الطالب)
         if (! empty($learnings) && is_array($learnings)) {
@@ -212,9 +225,13 @@ class AdminCourseService
         $tags = isset($data['tags']) ? (array) $data['tags'] : false;
         $previews = isset($data['previews']) ? (array) $data['previews'] : null;
         $learnings = isset($data['learnings']) ? (array) $data['learnings'] : null;
+        $instructorIds = $this->resolveInstructorIds($data);
 
-        // 3. تنظيف مصفوفة الـ data قبل التحديث المباشر
-        unset($data['tags'], $data['previews'], $data['learnings'], $data['_method']);
+        unset($data['tags'], $data['previews'], $data['learnings'], $data['_method'], $data['instructor_ids']);
+
+        if ($instructorIds !== null) {
+            $data['instructor_id'] = $instructorIds[0];
+        }
 
         if (! empty($data['published_at'])) {
             try {
@@ -228,6 +245,10 @@ class AdminCourseService
 
         // 4. Update the main table (courses)
         $course->update($data);
+
+        if ($instructorIds !== null) {
+            $this->courseInstructorSync->sync($course, $instructorIds);
+        }
 
         // 5. Sync Tags
         if ($tags !== false) {
@@ -498,7 +519,7 @@ class AdminCourseService
 
         return Course::select($fieldsForSelect)
             ->with([
-                'instructor:id,full_name,phone,avatar,field,bio,gender,status',
+                'instructors:id,full_name,phone,avatar,field,bio,gender,status',
                 'category:id,name,slug,description,icon,image,parent_id,sort_order,status',
                 'tags:id,name,slug',
                 'previews:id,course_id,title,video_url,description,video_provider,duration_seconds,sort_order',
@@ -516,7 +537,7 @@ class AdminCourseService
             ->select(['id', 'title', 'slug', 'status', 'category_id', 'instructor_id', 'deleted_at'])
             ->with([
                 'category:id,name,slug,parent_id',
-                'instructor:id,full_name',
+                'instructors:id,full_name',
             ])
             ->latest('deleted_at');
 
@@ -606,5 +627,21 @@ class AdminCourseService
         }
 
         return $data;
+    }
+
+    /**
+     * @return array<int>|null
+     */
+    private function resolveInstructorIds(array $data): ?array
+    {
+        if (array_key_exists('instructor_ids', $data)) {
+            return array_values(array_map('intval', (array) $data['instructor_ids']));
+        }
+
+        if (! empty($data['instructor_id'])) {
+            return [(int) $data['instructor_id']];
+        }
+
+        return null;
     }
 }

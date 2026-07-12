@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Category;
 use App\Models\Course;
+use App\Models\CourseInstructor;
 use App\Models\Instructor;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -57,5 +58,20 @@ class CourseFactory extends Factory
     public function draft(): static
     {
         return $this->state(fn () => ['status' => 'draft', 'published_at' => null]);
+    }
+
+    public function configure(): static
+    {
+        return $this->afterCreating(function (Course $course) {
+            if ($course->instructor_id) {
+                CourseInstructor::firstOrCreate(
+                    [
+                        'course_id' => $course->id,
+                        'instructor_id' => $course->instructor_id,
+                    ],
+                    ['sort_order' => 0]
+                );
+            }
+        });
     }
 }

@@ -85,16 +85,17 @@ class CourseDashboardService
 
             // ── 2. Get the usual relationships for the course (Eager Loading) ──
             ->with([
-                'instructor:id,full_name,field,bio,avatar,phone',
+                'instructors:id,full_name,field,bio,avatar,phone',
                 'tags:id,name,slug',
                 'previews:id,course_id,title,video_url,description,video_provider,duration_seconds,sort_order',
             ])
 
             // ── Enrollment of the current student only ──
             ->with([
-                'enrollments' => fn($q) => $q
-                    ->select('id', 'course_id', 'student_id', 'order_id', 'is_completed', 'completed_at')
-                    ->where('student_id', $studentId),
+                'enrollments' => fn ($q) => $q
+                    ->select('id', 'course_id', 'student_id', 'order_id', 'group_id', 'is_completed', 'completed_at')
+                    ->where('student_id', $studentId)
+                    ->with(['learningGroup:id,course_id,course_instructor_id']),
             ])
 
             // ── Define the columns we need from the courses table ─────────────
@@ -201,7 +202,7 @@ class CourseDashboardService
             })
             // Get the necessary relationships for displaying the course details fully
             ->with([
-                'instructor:id,full_name,field,bio,avatar,phone',
+                'instructors:id,full_name,field,bio,avatar,phone',
                 'category:id,name,slug',
                 'tags:id,name,slug',
                 'previews:id,course_id,title,video_url,description,video_provider,duration_seconds,sort_order',
@@ -209,9 +210,10 @@ class CourseDashboardService
             ])
             // Get the enrollment data for this student only to read the completion status and date in the frontend
             ->with([
-                'enrollments' => fn($q) => $q
-                    ->select('id', 'course_id', 'student_id', 'order_id', 'is_completed', 'completed_at')
-                    ->where('student_id', $studentId),
+                'enrollments' => fn ($q) => $q
+                    ->select('id', 'course_id', 'student_id', 'order_id', 'group_id', 'is_completed', 'completed_at')
+                    ->where('student_id', $studentId)
+                    ->with(['learningGroup:id,course_id,course_instructor_id']),
             ])
             // The columns we need for the full display code
             ->select([

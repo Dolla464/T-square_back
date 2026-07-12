@@ -37,7 +37,7 @@ class ReceptionistAttendanceController extends Controller
                 'schedule',
                 'learningGroup:id,group_name,course_id',
                 'learningGroup.course:id,title',
-                'learningGroup.instructor:id,full_name',
+                'learningGroup.courseInstructor.instructor:id,full_name',
                 'attendanceRecords',
             ])
             ->orderBy('session_date')
@@ -52,7 +52,7 @@ class ReceptionistAttendanceController extends Controller
                     'session_id'      => $session->id,
                     'group_name'      => $session->learningGroup->group_name,
                     'course_title'    => $session->learningGroup->course->title ?? null,
-                    'instructor_name' => $session->learningGroup->instructor->full_name ?? null,
+                    'instructor_name' => $session->learningGroup->instructor?->full_name,
                     'session_date'    => $session->session_date->format('Y-m-d'),
                     'start_time'      => $session->schedule->start_time->format('H:i'),
                     'end_time'        => $session->schedule->end_time->format('H:i'),

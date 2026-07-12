@@ -21,7 +21,9 @@ class CourseStoreRequest extends FormRequest
             'title'             => ['required', 'string', 'max:255'],
             'status'            => ['required', 'string', 'in:draft,published,archived'],
             'category_id'       => ['required', 'exists:categories,id'],
-            'instructor_id'     => ['required', 'exists:instructors,id'],
+            'instructor_ids'    => ['required', 'array', 'min:1'],
+            'instructor_ids.*'  => ['integer', 'exists:instructors,id'],
+            'instructor_id'     => ['sometimes', 'nullable', 'exists:instructors,id'],
             
             // Fields that become required only when published, and optional in draft
             'short_description' => [$isPublished ? 'required' : 'nullable', 'string', 'max:500'],

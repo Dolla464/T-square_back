@@ -6,6 +6,8 @@ use App\Events\StudentScanned;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
+use App\Models\Instructor;
+use App\Models\LearningGroup;
 use App\Services\Attendance\AttendanceSessionService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -153,7 +155,7 @@ class AttendanceController extends Controller
         }
 
         // Verify the instructor owns this session's learning group
-        if ($session->learningGroup->instructor_id !== $instructor->id) {
+        if (! $this->instructorCanAccessGroup($session->learningGroup, $instructor)) {
             return $this->errorResponse('Access denied. You do not own this session.', 403);
         }
 
@@ -186,7 +188,7 @@ class AttendanceController extends Controller
         $session = AttendanceSession::findOrFail($request->session_id);
 
         // Verify the instructor owns this session
-        if ($session->learningGroup->instructor_id !== $instructor->id) {
+        if (! $this->instructorCanAccessGroup($session->learningGroup, $instructor)) {
             return $this->errorResponse('Access denied. You do not own this session.', 403);
         }
 
@@ -230,7 +232,7 @@ class AttendanceController extends Controller
         }
 
         // Verify the instructor owns this session
-        if ($session->learningGroup->instructor_id !== $instructor->id) {
+        if (! $this->instructorCanAccessGroup($session->learningGroup, $instructor)) {
             return $this->errorResponse('Access denied. You do not own this session.', 403);
         }
 
@@ -265,7 +267,7 @@ class AttendanceController extends Controller
             return $this->errorResponse('Instructor profile not found.', 404);
         }
 
-        if ($session->learningGroup->instructor_id !== $instructor->id) {
+        if (! $this->instructorCanAccessGroup($session->learningGroup, $instructor)) {
             return $this->errorResponse('Access denied. You do not own this session.', 403);
         }
 
@@ -335,5 +337,16 @@ class AttendanceController extends Controller
             'status'     => $record->status,
             'marked_at'  => $record->marked_at->toDateTimeString(),
         ], 'Attendance recorded successfully');
+    }
+
+    private function instructorCanAccessGroup(LearningGroup $group, Instructor $instructor): bool
+    {
+        $group->loadMissing('course.instructors', 'courseInstructor');
+
+        if ($group->courseInstructor?->instructor_id === $instructor->id) {
+            return true;
+        }
+
+        return (bool) $group->course?->hasInstructor($instructor->id);
     }
 }
