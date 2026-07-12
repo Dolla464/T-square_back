@@ -61,7 +61,7 @@ class AttendanceController extends Controller
 
         $sessions = AttendanceSession::whereDate('session_date', $today)
             ->whereHas('learningGroup', function ($q) use ($instructor) {
-                $q->where('instructor_id', $instructor->id);
+                $q->forInstructor($instructor->id);
             })
             ->with([
                 'schedule',
@@ -103,7 +103,7 @@ class AttendanceController extends Controller
 
         $sessions = AttendanceSession::whereDate('session_date', $today)
             ->whereHas('learningGroup', function ($q) use ($instructor) {
-                $q->where('instructor_id', $instructor->id);
+                $q->forInstructor($instructor->id);
             })
             ->with([
                 'schedule',
