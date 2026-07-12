@@ -11,7 +11,7 @@ class InstructorLearningGroupService
      */
     public function getSelectionForInstructor(int $instructorId)
     {
-        return LearningGroup::where('instructor_id', $instructorId)
+        return LearningGroup::forInstructor($instructorId)
             ->select('id', 'group_name')
             ->orderBy('group_name')
             ->get()

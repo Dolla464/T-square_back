@@ -19,11 +19,11 @@ class InstructorDashboardService
 
     public function getStats(int $instructorId): array
     {
-        $groupIds = LearningGroup::where('instructor_id', $instructorId)->pluck('id');
+        $groupIds = LearningGroup::forInstructor($instructorId)->pluck('id');
 
         $totalGroups     = $groupIds->count();
-        $activeGroups    = LearningGroup::where('instructor_id', $instructorId)->where('status', 'active')->count();
-        $completedGroups = LearningGroup::where('instructor_id', $instructorId)->where('status', 'completed')->count();
+        $activeGroups    = LearningGroup::forInstructor($instructorId)->where('status', 'active')->count();
+        $completedGroups = LearningGroup::forInstructor($instructorId)->where('status', 'completed')->count();
 
         $totalStudents = Enrollment::whereIn('group_id', $groupIds)
             ->selectRaw('COUNT(DISTINCT student_id) as count')
@@ -42,7 +42,7 @@ class InstructorDashboardService
 
     public function getActiveGroups(int $instructorId): array
     {
-        $groups = LearningGroup::where('instructor_id', $instructorId)
+        $groups = LearningGroup::forInstructor($instructorId)
             ->where('status', 'active')
             ->with(['course:id,title'])
             ->withCount([
@@ -82,7 +82,7 @@ class InstructorDashboardService
 
     public function getCompletedGroups(int $instructorId, int $page = 1, int $perPage = 10): array
     {
-        $paginator = LearningGroup::where('instructor_id', $instructorId)
+        $paginator = LearningGroup::forInstructor($instructorId)
             ->where('status', 'completed')
             ->with(['course:id,title'])
             ->withCount('attendanceSessions as total_sessions')
@@ -140,7 +140,7 @@ class InstructorDashboardService
     public function getSchedule(int $instructorId, ?string $date = null): array
     {
         $query = AttendanceSession::whereHas('learningGroup', function ($q) use ($instructorId) {
-            $q->where('instructor_id', $instructorId);
+            $q->forInstructor($instructorId);
         })->with([
             'schedule',
             'learningGroup:id,group_name,course_id',
