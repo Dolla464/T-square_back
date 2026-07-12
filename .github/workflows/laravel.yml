@@ -112,6 +112,8 @@ jobs:
           php artisan view:cache
           php artisan event:cache
           php artisan storage:link
+          # chown -R www:www /www/wwwroot/api.tsquarecenter.com/storage/fonts
           chown -R www:www storage/fonts
+          # chmod -R 775 /www/wwwroot/api.tsquarecenter.com/storage/fonts
           chmod -R 775 storage/fonts
           pm2 restart tsquare-queue tsquare-scheduler tsquare-reverb
