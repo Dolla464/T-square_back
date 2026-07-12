@@ -44,3 +44,28 @@ it('syncs ordered instructor ids on the pivot', function (): void {
         ->and($rows[1]->instructor_id)->toBe($instructors[0]->id)
         ->and($rows[2]->instructor_id)->toBe($instructors[1]->id);
 });
+
+it('blocks removing an instructor assigned to a learning group', function (): void {
+    $course = Course::factory()->create();
+    $primary = Instructor::factory()->create();
+    $secondary = Instructor::factory()->create();
+
+    app(\App\Support\CourseInstructorSync::class)->sync($course, [
+        $primary->id,
+        $secondary->id,
+    ]);
+
+    $secondaryPivotId = CourseInstructor::query()
+        ->where('course_id', $course->id)
+        ->where('instructor_id', $secondary->id)
+        ->value('id');
+
+    \App\Models\LearningGroup::factory()->create([
+        'course_id' => $course->id,
+        'course_instructor_id' => $secondaryPivotId,
+    ]);
+
+    app(\App\Support\CourseInstructorSync::class)->sync($course, [
+        $primary->id,
+    ]);
+})->throws(\Illuminate\Validation\ValidationException::class);
