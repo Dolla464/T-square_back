@@ -42,7 +42,7 @@ beforeEach(function (): void {
     $this->group = LearningGroup::create([
         'group_name'        => 'Status Sync Batch',
         'course_id'         => $this->course->id,
-        'instructor_id'     => $this->instructor->id,
+        'course_instructor_id' => courseInstructorIdFor($this->course, $this->instructor),
         'start_date'        => now()->toDateString(),
         'end_date'          => now()->addWeeks(4)->toDateString(),
         'status'            => 'active',
@@ -84,7 +84,7 @@ function groupUpdatePayload(LearningGroup $group, Course $course, Instructor $in
     return array_merge([
         'group_name'    => $group->group_name,
         'course_id'     => $course->id,
-        'instructor_id' => $instructor->id,
+        'course_instructor_id' => courseInstructorIdFor($course, $instructor),
         'start_date'    => $group->start_date?->format('Y-m-d') ?? now()->toDateString(),
         'status'        => $group->status,
         'student_ids'   => [],

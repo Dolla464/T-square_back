@@ -59,7 +59,17 @@ class CourseReview extends Model
             $this->course->updateRatingStats();
         }
 
-        // تحديث إحصائيات المحاضر المرتبط
+        // تحديث إحصائيات المحاضرين المقيَّمين
+        $this->loadMissing('instructorRatings.courseInstructor.instructor');
+        $instructorIds = $this->instructorRatings
+            ->map(fn ($rating) => $rating->courseInstructor?->instructor_id)
+            ->filter()
+            ->unique();
+
+        foreach ($instructorIds as $instructorId) {
+            Instructor::find($instructorId)?->updateRatingStats();
+        }
+
         if ($this->instructor) {
             $this->instructor->updateRatingStats();
         }
@@ -93,5 +103,10 @@ class CourseReview extends Model
     public function instructor()
     {
         return $this->belongsTo(Instructor::class);
+    }
+
+    public function instructorRatings()
+    {
+        return $this->hasMany(CourseReviewInstructorRating::class);
     }
 }

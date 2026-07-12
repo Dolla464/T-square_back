@@ -90,7 +90,7 @@ class CertificateService
     public function issueCertificate(Enrollment $enrollment, bool $force = false)
     {
         // Load relationships correctly
-        $enrollment->loadMissing(['student', 'course.instructor', 'course.tags']);
+        $enrollment->loadMissing(['student', 'course.instructors', 'course.tags']);
 
         $existingCert = Certificate::query()
             ->where('student_id', $enrollment->student_id)
@@ -187,7 +187,7 @@ class CertificateService
     public function generateLiveCertificate(Enrollment $enrollment)
     {
         // Load relationships correctly
-        $enrollment->loadMissing(['student', 'course.instructor', 'course.tags']);
+        $enrollment->loadMissing(['student', 'course.instructors', 'course.tags']);
 
         // Get instructor name safely
         $instructorName = $this->getInstructorName($enrollment->course);
@@ -210,7 +210,7 @@ class CertificateService
     public function generateBinaryPdf($attempt): string
     {
         // Load relationships correctly for ExamAttempt
-        $attempt->loadMissing(['student', 'exam.course.instructor', 'exam.course.tags']);
+        $attempt->loadMissing(['student', 'exam.course.instructors', 'exam.course.tags']);
 
         // Get instructor name safely
         $instructorName = $this->getInstructorName($attempt->exam->course ?? null);
@@ -311,12 +311,12 @@ class CertificateService
             return 'Instructor';
         }
 
-        // Check if instructor relation is loaded
-        if ($course->relationLoaded('instructor') && $course->instructor) {
-            return $course->instructor->full_name;
+        $course->loadMissing('instructors');
+
+        if ($course->relationLoaded('instructors') && $course->instructors->isNotEmpty()) {
+            return $course->instructors->pluck('full_name')->filter()->join(', ');
         }
 
-        // Try to load the relationship
         $course->loadMissing('instructor');
 
         return $course->instructor?->full_name ?? 'Instructor';

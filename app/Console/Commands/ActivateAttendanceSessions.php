@@ -56,7 +56,7 @@ class ActivateAttendanceSessions extends Command
                     'qr_code' => $qrCode,
                 ]);
 
-                $session->loadMissing(['learningGroup.instructor.user', 'learningGroup.course', 'schedule']);
+                $session->loadMissing(['learningGroup.courseInstructor.instructor.user', 'learningGroup.course', 'schedule']);
 
                 $instructor = $session->learningGroup?->instructor;
                 if ($instructor?->user) {

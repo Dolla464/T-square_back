@@ -24,9 +24,9 @@ class InstructorCourseController extends Controller
 
         $perPage = min(100, max(1, (int) $request->query('per_page', 100)));
 
-        $courses = $instructor->courses()
-            ->select('id', 'title', 'slug', 'status')
-            ->latest()
+        $courses = $instructor->assignedCourses()
+            ->select('courses.id', 'courses.title', 'courses.slug', 'courses.status')
+            ->latest('courses.created_at')
             ->paginate($perPage);
 
         return $this->paginateResponse(

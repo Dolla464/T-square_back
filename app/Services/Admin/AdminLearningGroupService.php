@@ -23,7 +23,12 @@ class AdminLearningGroupService
      */
     public function getAllGroups($perPage = 10, ?string $search = null): LengthAwarePaginator
     {
-        $query = LearningGroup::with(['course:id,title', 'instructor:id,full_name', 'schedules'])
+        $query = LearningGroup::with([
+            'course:id,title',
+            'courseInstructor:id,instructor_id',
+            'courseInstructor.instructor:id,full_name,user_id',
+            'schedules',
+        ])
             ->withCount('students');
 
         if (!empty($search)) {
@@ -77,10 +82,10 @@ class AdminLearningGroupService
             $status       = $this->resolveInitialGroupStatus($data, $startDate, $endDate, $isHistorical);
 
             $group = LearningGroup::create([
-                'group_name'    => $data['group_name'],
-                'course_id'     => $data['course_id'],
-                'instructor_id' => $data['instructor_id'],
-                'start_date'    => $startDate,
+                'group_name' => $data['group_name'],
+                'course_id' => $data['course_id'],
+                'course_instructor_id' => $data['course_instructor_id'],
+                'start_date' => $startDate,
                 'end_date'      => $endDate,
                 'status'        => $status,
             ]);
@@ -111,10 +116,15 @@ class AdminLearningGroupService
                 $backfillMeta
             );
 
-            $group->load(['course:id,title', 'instructor:id,full_name', 'schedules']);
+            $group->load([
+                'course:id,title',
+                'courseInstructor:id,instructor_id',
+                'courseInstructor.instructor:id,full_name,user_id',
+                'schedules',
+            ]);
 
             if (! $isHistorical) {
-                $instructorUser = $group->instructor?->user;
+                $instructorUser = $group->courseInstructor?->instructor?->user;
                 if ($instructorUser) {
                     $instructorUser->notify(new InstructorGroupAssignedNotification($group));
                 }
@@ -129,7 +139,12 @@ class AdminLearningGroupService
      */
     public function getGroupDetails(LearningGroup $group): AdminLearningGroupResource
     {
-        $group->load(['course:id,title', 'instructor:id,full_name', 'schedules']);
+        $group->load([
+            'course:id,title',
+            'courseInstructor:id,instructor_id',
+            'courseInstructor.instructor:id,full_name,user_id',
+            'schedules',
+        ]);
 
         $students = DB::table('enrollments')
             ->join('students', 'enrollments.student_id', '=', 'students.id')
@@ -162,9 +177,9 @@ class AdminLearningGroupService
             $oldStatus = $group->status;
 
             $updateData = [
-                'group_name'    => $data['group_name'],
-                'course_id'     => $data['course_id'],
-                'instructor_id' => $data['instructor_id'],
+                'group_name' => $data['group_name'],
+                'course_id' => $data['course_id'],
+                'course_instructor_id' => $data['course_instructor_id'],
             ];
 
             if (isset($data['start_date'])) {
@@ -197,7 +212,13 @@ class AdminLearningGroupService
                 $studentSync ?? ['skipped_student_ids' => []]
             );
 
-            $group->load(['course:id,title', 'instructor:id,full_name', 'schedules', 'attendanceSessions']);
+            $group->load([
+                'course:id,title',
+                'courseInstructor:id,instructor_id',
+                'courseInstructor.instructor:id,full_name,user_id',
+                'schedules',
+                'attendanceSessions',
+            ]);
 
             return new AdminLearningGroupResource($group);
         });
@@ -759,7 +780,11 @@ class AdminLearningGroupService
      */
     public function getGroupStudentsForExport(LearningGroup $group): array
     {
-        $group->load(['course:id,title', 'instructor:id,full_name']);
+        $group->load([
+            'course:id,title',
+            'courseInstructor:id,instructor_id',
+            'courseInstructor.instructor:id,full_name,user_id',
+        ]);
 
         $students = DB::table('enrollments')
             ->join('students', 'enrollments.student_id', '=', 'students.id')

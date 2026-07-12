@@ -46,7 +46,7 @@ function groupCreatePayload(Course $course, Instructor $instructor, array $overr
     return array_merge([
         'group_name'    => 'Historical Batch',
         'course_id'     => $course->id,
-        'instructor_id' => $instructor->id,
+        'course_instructor_id' => courseInstructorIdFor($course, $instructor),
         'start_date'    => now()->subWeeks(6)->toDateString(),
         'is_historical' => true,
         'schedules'     => [

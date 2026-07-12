@@ -175,6 +175,28 @@ class Course extends Model
         return $this->belongsTo(Instructor::class);
     }
 
+    public function courseInstructors()
+    {
+        return $this->hasMany(CourseInstructor::class)->orderBy('sort_order');
+    }
+
+    public function instructors()
+    {
+        return $this->belongsToMany(Instructor::class, 'course_instructor')
+            ->using(CourseInstructor::class)
+            ->withPivot(['id', 'sort_order'])
+            ->orderBy('course_instructor.sort_order');
+    }
+
+    public function hasInstructor(int $instructorId): bool
+    {
+        if ($this->relationLoaded('instructors')) {
+            return $this->instructors->contains('id', $instructorId);
+        }
+
+        return $this->instructors()->whereKey($instructorId)->exists();
+    }
+
     public function learningGroups()
     {
         return $this->hasMany(LearningGroup::class);

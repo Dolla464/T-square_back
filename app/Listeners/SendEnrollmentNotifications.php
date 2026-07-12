@@ -5,7 +5,9 @@ namespace App\Listeners;
 use App\Events\StudentEnrolled;
 use App\Models\User;
 use App\Notifications\AdminNewEnrollmentNotification;
+use App\Notifications\InstructorNewEnrollmentNotification;
 use App\Notifications\StudentEnrolledNotification;
+use App\Support\CourseInstructorNotifier;
 use Illuminate\Support\Facades\Notification;
 
 class SendEnrollmentNotifications
@@ -25,5 +27,10 @@ class SendEnrollmentNotifications
         if ($admins->isNotEmpty()) {
             Notification::send($admins, new AdminNewEnrollmentNotification($course, $student, $enrollment));
         }
+
+        CourseInstructorNotifier::notifyAll(
+            $course,
+            new InstructorNewEnrollmentNotification($course, $student, $enrollment)
+        );
     }
 }

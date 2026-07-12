@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\Student;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class StoreCourseReviewRequest extends FormRequest
 {
@@ -40,22 +41,52 @@ class StoreCourseReviewRequest extends FormRequest
     public function rules(): array
     {
         $ratingRule = ['required', 'integer', 'min:1', 'max:5'];
+        $hasPerInstructorRatings = is_array($this->input('instructor_ratings'))
+            && count($this->input('instructor_ratings')) > 0;
 
         $rules = [
             'course_id' => ['required', 'integer', 'exists:courses,id'],
             'overall_comment' => ['required', 'string', 'min:10', 'max:5000'],
             'ratings' => ['required', 'array'],
+            'instructor_ratings' => ['sometimes', 'array'],
+            'instructor_ratings.*.course_instructor_id' => ['required_with:instructor_ratings', 'integer', 'exists:course_instructor,id'],
+            'instructor_ratings.*.ratings' => ['required_with:instructor_ratings', 'array'],
         ];
 
-        foreach (array_merge(
-            self::COURSE_QUESTION_IDS,
-            self::CENTER_QUESTION_IDS,
-            self::INSTRUCTOR_QUESTION_IDS
-        ) as $questionId) {
+        foreach (self::COURSE_QUESTION_IDS as $questionId) {
             $rules["ratings.{$questionId}"] = $ratingRule;
         }
 
+        foreach (self::CENTER_QUESTION_IDS as $questionId) {
+            $rules["ratings.{$questionId}"] = $ratingRule;
+        }
+
+        if (! $hasPerInstructorRatings) {
+            foreach (self::INSTRUCTOR_QUESTION_IDS as $questionId) {
+                $rules["ratings.{$questionId}"] = $ratingRule;
+            }
+        } else {
+            foreach (self::INSTRUCTOR_QUESTION_IDS as $questionId) {
+                $rules["instructor_ratings.*.ratings.{$questionId}"] = $ratingRule;
+            }
+        }
+
         return $rules;
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v) {
+            $entries = $this->input('instructor_ratings', []);
+            if (! is_array($entries) || $entries === []) {
+                return;
+            }
+
+            $ids = collect($entries)->pluck('course_instructor_id')->filter();
+            if ($ids->duplicates()->isNotEmpty()) {
+                $v->errors()->add('instructor_ratings', 'Duplicate instructor ratings are not allowed.');
+            }
+        });
     }
 
     public static function courseQuestionIds(): array

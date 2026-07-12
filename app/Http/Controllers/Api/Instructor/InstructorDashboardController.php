@@ -84,7 +84,12 @@ class InstructorDashboardController extends Controller
             return $this->errorResponse('Instructor profile not found.', 404);
         }
 
-        if ($group->instructor_id !== $instructor->id) {
+        $group->loadMissing('course.instructors', 'courseInstructor');
+
+        $allowed = $group->courseInstructor?->instructor_id === $instructor->id
+            || $group->course?->hasInstructor($instructor->id);
+
+        if (! $allowed) {
             return $this->errorResponse('Access denied. You do not own this group.', 403);
         }
 

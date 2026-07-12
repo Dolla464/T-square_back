@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Concerns;
 
+use App\Models\Course;
 use App\Models\Exam;
 use App\Models\Instructor;
 use App\Models\LearningGroup;
@@ -27,18 +28,24 @@ trait EnsuresInstructorOwnsResource
 
     protected function verifyGroupOwnership(LearningGroup $group, Instructor $instructor): ?JsonResponse
     {
-        if ($group->instructor_id !== $instructor->id) {
-            return $this->accessDeniedResponse();
+        $group->loadMissing('course.instructors', 'courseInstructor');
+
+        if ($group->courseInstructor?->instructor_id === $instructor->id) {
+            return null;
         }
 
-        return null;
+        if ($group->course?->hasInstructor($instructor->id)) {
+            return null;
+        }
+
+        return $this->accessDeniedResponse();
     }
 
     protected function verifyExamOwnership(Exam $exam, Instructor $instructor): ?JsonResponse
     {
-        $exam->loadMissing('course');
+        $exam->loadMissing('course.instructors');
 
-        if (!$exam->course || $exam->course->instructor_id !== $instructor->id) {
+        if (! $exam->course || ! $exam->course->hasInstructor($instructor->id)) {
             return $this->accessDeniedResponse();
         }
 
@@ -56,9 +63,9 @@ trait EnsuresInstructorOwnsResource
 
     protected function verifyQuestionOwnership(Question $question, Instructor $instructor): ?JsonResponse
     {
-        $question->loadMissing('exam.course');
+        $question->loadMissing('exam.course.instructors');
 
-        if (!$question->exam || !$question->exam->course || $question->exam->course->instructor_id !== $instructor->id) {
+        if (! $question->exam || ! $question->exam->course || ! $question->exam->course->hasInstructor($instructor->id)) {
             return $this->accessDeniedResponse();
         }
 
@@ -67,7 +74,9 @@ trait EnsuresInstructorOwnsResource
 
     protected function verifyCourseBelongsToInstructor(int $courseId, Instructor $instructor): ?JsonResponse
     {
-        if (!$instructor->courses()->where('id', $courseId)->exists()) {
+        $ownsCourse = $instructor->assignedCourses()->whereKey($courseId)->exists();
+
+        if (! $ownsCourse) {
             return $this->accessDeniedResponse();
         }
 

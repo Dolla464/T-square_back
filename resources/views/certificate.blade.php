@@ -56,7 +56,7 @@
             text-align: center;
             font-size: 21px;
             font-weight: bold;
-            margin-bottom: 6px;
+            /* margin-bottom: 6px; */
         }
 
         .certificate-big {
@@ -71,27 +71,27 @@
         .certify-text {
             text-align: center;
             font-size: 15px;
-            margin-bottom: 10px;
+            /* margin-bottom: 10px; */
         }
 
         .student-name {
             text-align: center;
             font-size: 26px;
             font-weight: bold;
-            margin-bottom: 6px;
+            /* margin-bottom: 6px; */
         }
 
         .student-tags {
             text-align: center;
             font-size: 13px;
             color: #444;
-            margin-bottom: 10px;
+            /* margin-bottom: 10px; */
         }
 
         .course-info {
             text-align: center;
             font-size: 15px;
-            margin-bottom: 12px;
+            /* margin-bottom: 12px; */
             line-height: 1.5;
         }
 
@@ -103,7 +103,7 @@
         .date-issue {
             text-align: center;
             font-size: 14px;
-            margin-bottom: 14px;
+            /* margin-bottom: 14px; */
         }
 
         .signatures-table {

@@ -41,7 +41,8 @@ class AdminScheduleService
         $query = DB::table('attendance_sessions as sess')
             ->join('learning_groups as grp', 'sess.learning_group_id', '=', 'grp.id')
             ->join('courses as crs', 'grp.course_id', '=', 'crs.id')
-            ->join('instructors as inst', 'grp.instructor_id', '=', 'inst.id')
+            ->join('course_instructor as ci', 'grp.course_instructor_id', '=', 'ci.id')
+            ->join('instructors as inst', 'ci.instructor_id', '=', 'inst.id')
             ->leftJoin('learning_group_schedules as sch', 'sess.schedule_id', '=', 'sch.id')
             ->leftJoin(DB::raw("({$sessionRank}) as ranked"), 'ranked.id', '=', 'sess.id')
             ->leftJoin(DB::raw("({$totalPerGroup}) as totals"), 'totals.learning_group_id', '=', 'sess.learning_group_id')
@@ -75,7 +76,7 @@ class AdminScheduleService
 
         // Filter by instructor
         if (!empty($filters['instructor_id'])) {
-            $query->where('grp.instructor_id', $filters['instructor_id']);
+            $query->where('ci.instructor_id', $filters['instructor_id']);
         }
 
         // Filter by status
@@ -112,7 +113,7 @@ class AdminScheduleService
             'cancellation_reason' => null,
         ]);
 
-        $session->load(['learningGroup.course', 'learningGroup.instructor.user', 'schedule']);
+        $session->load(['learningGroup.course', 'learningGroup.courseInstructor.instructor.user', 'schedule']);
 
         $newDate      = $session->override_date ?? $session->session_date;
         $newStartTime = $session->override_start_time ?? $session->schedule?->start_time;
@@ -143,7 +144,7 @@ class AdminScheduleService
             'cancellation_reason' => $reason,
         ]);
 
-        $session->load(['learningGroup.course', 'learningGroup.instructor.user', 'schedule']);
+        $session->load(['learningGroup.course', 'learningGroup.courseInstructor.instructor.user', 'schedule']);
 
         $this->notifyGroupMembers($session, 'cancelled', ['reason' => $reason]);
 
@@ -169,11 +170,8 @@ class AdminScheduleService
             ->select('users.id')
             ->pluck('users.id');
 
-        // Gather instructor user
-        $instructorUserId = DB::table('instructors')
-            ->join('users', 'instructors.user_id', '=', 'users.id')
-            ->where('instructors.id', $group->instructor_id)
-            ->value('users.id');
+        $group->loadMissing('courseInstructor.instructor.user');
+        $instructorUserId = $group->courseInstructor?->instructor?->user_id;
 
         $userIds = $studentUsers->toArray();
         if ($instructorUserId) {
@@ -217,7 +215,8 @@ class AdminScheduleService
         $query = DB::table('attendance_sessions as sess')
             ->join('learning_groups as grp', 'sess.learning_group_id', '=', 'grp.id')
             ->join('courses as crs', 'grp.course_id', '=', 'crs.id')
-            ->join('instructors as inst', 'grp.instructor_id', '=', 'inst.id')
+            ->join('course_instructor as ci', 'grp.course_instructor_id', '=', 'ci.id')
+            ->join('instructors as inst', 'ci.instructor_id', '=', 'inst.id')
             ->leftJoin('learning_group_schedules as sch', 'sess.schedule_id', '=', 'sch.id')
             ->leftJoin(DB::raw("({$sessionRank}) as ranked"), 'ranked.id', '=', 'sess.id')
             ->leftJoin(DB::raw("({$totalPerGroup}) as totals"), 'totals.learning_group_id', '=', 'sess.learning_group_id')
@@ -240,7 +239,7 @@ class AdminScheduleService
         $this->applyDateFilters($query, $filters);
 
         if (!empty($filters['instructor_id'])) {
-            $query->where('grp.instructor_id', $filters['instructor_id']);
+            $query->where('ci.instructor_id', $filters['instructor_id']);
         }
 
         if (!empty($filters['status'])) {
