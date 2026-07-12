@@ -245,11 +245,21 @@ class ExamService
             ->exists();
     }
 
+    public function getAttemptReview(int $attemptId): ExamAttempt
+    {
+        return ExamAttempt::reviewable()
+            ->with([
+                'exam:id,title,total_marks,passing_mark,course_id',
+                'questions.choices',
+                'answers',
+            ])
+            ->findOrFail($attemptId);
+    }
+
     public function getStudentResults($studentId, ?int $examId = null)
     {
         $query = ExamAttempt::where('student_id', '=', $studentId, 'and')
-            // Added passed and failed based on the last modification in the Service
-            ->whereIn('status', ['passed', 'failed', 'completed', 'timed_out'], 'and', false)
+            ->whereIn('status', ExamAttempt::REVIEWABLE_STATUSES, 'and', false)
             ->with(['exam' => function ($query) {
                 $query->select('id', 'course_id', 'title', 'total_marks', 'passing_mark', 'is_final');
             }, 'exam.course:id,title'])

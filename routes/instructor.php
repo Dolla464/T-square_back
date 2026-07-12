@@ -62,6 +62,7 @@ Route::middleware(['auth:sanctum', 'role:instructor'])
             Route::get('{learningGroup}/exams/{exam}/results/export', [InstructorLearningGroupController::class, 'exportExamResults'])->name('exams.results.export');
             Route::get('{learningGroup}/exams/{exam}/results', [InstructorLearningGroupController::class, 'getExamResults'])->name('exams.results');
             Route::get('{learningGroup}/students/{student}/exam-results', [InstructorLearningGroupController::class, 'getStudentExamResults'])->name('students.exam-results');
+            Route::get('{learningGroup}/students/{student}/exam-attempts/{attempt}/review', [InstructorLearningGroupController::class, 'getStudentAttemptReview'])->name('students.exam-attempts.review');
         });
 
         // Today's sessions for the authenticated instructor

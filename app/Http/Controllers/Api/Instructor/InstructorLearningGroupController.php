@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\Instructor;
 
 use App\Http\Controllers\Concerns\EnsuresInstructorOwnsResource;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\User\Exam\ExamAttemptReviewResource;
 use App\Http\Resources\User\Exam\ExamResultResource;
 use App\Models\Exam;
+use App\Models\ExamAttempt;
 use App\Models\LearningGroup;
 use App\Models\Student;
 use App\Services\Exam\GroupExamActivationService;
@@ -176,6 +178,37 @@ class InstructorLearningGroupController extends Controller
         return $this->successResponse(
             ExamResultResource::collection($attempts),
             'Student exam results retrieved successfully'
+        );
+    }
+
+    public function getStudentAttemptReview(
+        Request $request,
+        LearningGroup $learningGroup,
+        Student $student,
+        ExamAttempt $attempt
+    ): JsonResponse {
+        $instructor = $this->resolveInstructor($request);
+        if (! $instructor) {
+            return $this->instructorNotFoundResponse();
+        }
+
+        if ($response = $this->verifyGroupOwnership($learningGroup, $instructor)) {
+            return $response;
+        }
+
+        try {
+            $reviewAttempt = $this->groupExamResultsService->getStudentAttemptReview(
+                $learningGroup,
+                $student,
+                $attempt
+            );
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 404);
+        }
+
+        return $this->successResponse(
+            new ExamAttemptReviewResource($reviewAttempt),
+            'Student attempt review retrieved successfully'
         );
     }
 

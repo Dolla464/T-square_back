@@ -132,6 +132,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])
             Route::get('{learningGroup}/exams/{exam}/results/export', [AdminLearningGroupController::class, 'exportExamResults'])->name('learning-groups.exams.results.export');
             Route::get('{learningGroup}/exams/{exam}/results', [AdminLearningGroupController::class, 'getExamResults'])->name('learning-groups.exams.results');
             Route::get('{learningGroup}/students/{student}/exam-results', [AdminLearningGroupController::class, 'getStudentExamResults'])->name('learning-groups.students.exam-results');
+            Route::get('{learningGroup}/students/{student}/exam-attempts/{attempt}/review', [AdminLearningGroupController::class, 'getStudentAttemptReview'])->name('learning-groups.students.exam-attempts.review');
         });
         Route::apiResource('learning-groups', AdminLearningGroupController::class);
 
