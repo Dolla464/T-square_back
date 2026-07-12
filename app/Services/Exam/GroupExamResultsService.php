@@ -10,8 +10,6 @@ use App\Services\User\ExamService;
 
 class GroupExamResultsService
 {
-    private const FINISHED_STATUSES = ['passed', 'failed', 'completed', 'timed_out'];
-
     public function __construct(
         private ExamService $examService,
         private GroupExamActivationService $groupExamActivationService
@@ -47,7 +45,7 @@ class GroupExamResultsService
         $attemptsByStudent = ExamAttempt::query()
             ->where('exam_id', $exam->id)
             ->whereIn('student_id', $studentIds)
-            ->whereIn('status', self::FINISHED_STATUSES)
+            ->whereIn('status', ExamAttempt::REVIEWABLE_STATUSES)
             ->get(['id', 'student_id', 'score', 'status'])
             ->groupBy('student_id');
 
@@ -93,5 +91,27 @@ class GroupExamResultsService
         }
 
         return $this->examService->getStudentResults($student->id, $exam->id);
+    }
+
+    public function getStudentAttemptReview(LearningGroup $group, Student $student, ExamAttempt $attempt): ExamAttempt
+    {
+        if (! $this->assertStudentBelongsToGroup($student, $group)) {
+            throw new \InvalidArgumentException('Student is not enrolled in this group.');
+        }
+
+        if ($attempt->student_id !== $student->id) {
+            throw new \InvalidArgumentException('Attempt does not belong to this student.');
+        }
+
+        $attempt->loadMissing('exam');
+        if (! $this->assertExamBelongsToGroup($attempt->exam, $group)) {
+            throw new \InvalidArgumentException('Exam not found for this group.');
+        }
+
+        if (! $attempt->isReviewable()) {
+            throw new \InvalidArgumentException('This attempt is not available for review.');
+        }
+
+        return $this->examService->getAttemptReview($attempt->id);
     }
 }

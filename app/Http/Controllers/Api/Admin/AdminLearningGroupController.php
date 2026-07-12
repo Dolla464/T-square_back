@@ -6,10 +6,12 @@ use App\Events\StudentScanned;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AdminMarkAttendanceRequest;
 use App\Http\Requests\Admin\LearningGroupRequest;
+use App\Http\Resources\User\Exam\ExamAttemptReviewResource;
 use App\Http\Resources\User\Exam\ExamResultResource;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\Exam;
+use App\Models\ExamAttempt;
 use App\Models\LearningGroup;
 use App\Models\Student;
 use App\Services\Admin\AdminLearningGroupService;
@@ -592,6 +594,31 @@ class AdminLearningGroupController extends Controller
         return $this->successResponse(
             ExamResultResource::collection($attempts),
             'Student exam results retrieved successfully'
+        );
+    }
+
+    /**
+     * GET /api/admin/learning-groups/{learningGroup}/students/{student}/exam-attempts/{attempt}/review
+     */
+    public function getStudentAttemptReview(
+        Request $request,
+        LearningGroup $learningGroup,
+        Student $student,
+        ExamAttempt $attempt
+    ): JsonResponse {
+        try {
+            $reviewAttempt = $this->groupExamResultsService->getStudentAttemptReview(
+                $learningGroup,
+                $student,
+                $attempt
+            );
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse($e->getMessage(), 404);
+        }
+
+        return $this->successResponse(
+            new ExamAttemptReviewResource($reviewAttempt),
+            'Student attempt review retrieved successfully'
         );
     }
 

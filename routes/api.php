@@ -98,6 +98,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('my-results', 'myResults')->name('my-results');
+            Route::get('attempts/{attemptId}/review', 'reviewAttempt')->name('attempts.review');
             Route::post('start', 'start')->name('start');
             Route::post('save-answer', 'answer')->name('save-answer');
             Route::post('{id}/submit', 'submit')->name('submit');

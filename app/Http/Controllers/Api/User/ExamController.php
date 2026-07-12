@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Student\SaveAnswerRequest;
 use App\Http\Requests\Api\Student\StartExamRequest;
 use App\Http\Resources\User\Exam\ExamAttemptResource;
+use App\Http\Resources\User\Exam\ExamAttemptReviewResource;
 use App\Http\Resources\User\Exam\ExamListResource;
 use App\Http\Resources\User\Exam\ExamResultResource;
 use App\Services\User\ExamService;
@@ -117,6 +118,26 @@ class ExamController extends Controller
         return $this->successResponse(
             data: ExamResultResource::collection($results),
             message: 'Exam results retrieved successfully.',
+        );
+    }
+
+    public function reviewAttempt(Request $request, int $attemptId)
+    {
+        $student = $request->user()->student;
+
+        if (! $student) {
+            return $this->errorResponse('Student not found', 404);
+        }
+
+        $attempt = $this->examService->getAttemptReview($attemptId);
+
+        if ($attempt->student_id !== $student->id) {
+            return $this->errorResponse('You are not allowed to view this attempt.', 403);
+        }
+
+        return $this->successResponse(
+            new ExamAttemptReviewResource($attempt),
+            'Attempt review retrieved successfully.',
         );
     }
 }

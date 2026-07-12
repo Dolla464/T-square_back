@@ -9,6 +9,11 @@ class ExamAttempt extends Model
 {
     use HasFactory;
 
+    /** Statuses allowed for post-submit answer review */
+    public const REVIEWABLE_STATUSES = ['passed', 'failed', 'completed', 'timed_out'];
+
+    public const STATUS_ONGOING = 'ongoing';
+
     protected $fillable = ['student_id', 'exam_id', 'status', 'started_at', 'finished_at', 'score'];
 
     protected $casts = [
@@ -61,5 +66,15 @@ class ExamAttempt extends Model
     public function answers()
     {
         return $this->hasMany(Answer::class, 'attempt_id');
+    }
+
+    public function scopeReviewable($query)
+    {
+        return $query->whereIn('status', self::REVIEWABLE_STATUSES);
+    }
+
+    public function isReviewable(): bool
+    {
+        return in_array($this->status, self::REVIEWABLE_STATUSES, true);
     }
 }
