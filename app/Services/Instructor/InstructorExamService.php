@@ -15,7 +15,7 @@ class InstructorExamService
     {
         $query = Exam::with('course')
             ->withCount('questions')
-            ->whereHas('course', fn ($q) => $q->where('instructor_id', $instructorId));
+            ->whereHas('course', fn ($q) => $q->assignedToInstructor($instructorId));
 
         if (!empty($filters['search'])) {
             $search = $filters['search'];
@@ -68,7 +68,7 @@ class InstructorExamService
         return Exam::onlyTrashed()
             ->with('course')
             ->withCount('questions')
-            ->whereHas('course', fn ($q) => $q->where('instructor_id', $instructorId))
+            ->whereHas('course', fn ($q) => $q->assignedToInstructor($instructorId))
             ->latest()
             ->paginate($perPage);
     }
@@ -76,7 +76,7 @@ class InstructorExamService
     public function restoreExam(int $id, int $instructorId): ?Exam
     {
         $exam = Exam::onlyTrashed()
-            ->whereHas('course', fn ($q) => $q->where('instructor_id', $instructorId))
+            ->whereHas('course', fn ($q) => $q->assignedToInstructor($instructorId))
             ->findOrFail($id);
 
         $exam->restore();
@@ -87,7 +87,7 @@ class InstructorExamService
     public function forceDeleteExam(int $id, int $instructorId): bool
     {
         $exam = Exam::withTrashed()
-            ->whereHas('course', fn ($q) => $q->where('instructor_id', $instructorId))
+            ->whereHas('course', fn ($q) => $q->assignedToInstructor($instructorId))
             ->findOrFail($id);
 
         return $exam->forceDelete();
@@ -95,7 +95,7 @@ class InstructorExamService
 
     public function toggleExamStatus(int $id, int $isActive, int $instructorId): Exam
     {
-        $exam = Exam::whereHas('course', fn ($q) => $q->where('instructor_id', $instructorId))
+        $exam = Exam::whereHas('course', fn ($q) => $q->assignedToInstructor($instructorId))
             ->findOrFail($id);
 
         $exam->update(['is_active' => $isActive]);

@@ -20,7 +20,7 @@ class InstructorUpdateExamRequest extends FormRequest
             'course_id'             => [
                 'required',
                 'exists:courses,id',
-                Rule::exists('courses', 'id')->where('instructor_id', $instructorId),
+                Rule::exists('course_instructor', 'course_id')->where('instructor_id', $instructorId),
             ],
             'title'                 => 'required|string|max:100',
             'description'           => 'nullable|string',

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Cviebrock\EloquentSluggable\Sluggable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -195,6 +196,11 @@ class Course extends Model
         }
 
         return $this->instructors()->whereKey($instructorId)->exists();
+    }
+
+    public function scopeAssignedToInstructor(Builder $query, int $instructorId): Builder
+    {
+        return $query->whereHas('instructors', fn ($q) => $q->whereKey($instructorId));
     }
 
     public function learningGroups()
