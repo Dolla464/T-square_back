@@ -27,14 +27,21 @@ class AdminUserController extends Controller
         }
 
         // 3. determine the activation status based on who is creating the account
-        // if the current user is an admin, the account is activated immediately
-        $isAdmin = auth()->check() && auth()->user()->hasRole('admin');
+        // staff (admin or receptionist) accounts are activated immediately
+        $user = auth()->user();
+        $isStaff = $user && $user->hasAnyRole(['admin', 'receptionist']);
 
-        if ($isAdmin) {
+        if ($isStaff) {
             $data['verified'] = now();
         }
 
-        $data['created_by'] = $isAdmin ? 'admin' : 'site';
+        if ($user?->hasRole('receptionist')) {
+            $data['created_by'] = 'receptionist';
+        } elseif ($user?->hasRole('admin')) {
+            $data['created_by'] = 'admin';
+        } else {
+            $data['created_by'] = 'site';
+        }
 
         // 4. execute the creation process through the Service
         $user = $userService->handleUserCreation($data);
@@ -43,7 +50,7 @@ class AdminUserController extends Controller
         $user->load($user->role === 'student' ? 'student' : 'instructor');
 
         // --- the first case: external registration (Student Self-Register) ---
-        if (! $isAdmin) {
+        if (! $isStaff) {
             // trigger the registration event (to send the verification email)
             event(new Registered($user));
 
