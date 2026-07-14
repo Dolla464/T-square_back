@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Cairo', 'DejaVu Sans', sans-serif;
-            font-size: 11px;
+            font-size: 12px;
             color: #1a1a1a;
             background: #fff;
         }
@@ -21,25 +21,45 @@
         .header {
             background: #be1522;
             color: #fff;
-            padding: 16px 20px;
-            margin-bottom: 16px;
+            padding: 5px 5px;
+            margin-bottom: 5px;
         }
 
         .header h1 {
+            text-align: center;
             font-size: 18px;
             font-weight: 700;
             letter-spacing: 0.5px;
         }
 
-        .header .meta {
+        .header-title-row {
+            display: table;
+            width: 100%;
+        }
+
+        .header-title-row h3,
+        .header-title-row .meta {
+            display: table-cell;
+            vertical-align: middle;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header-title-row h3 {
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .header-title-row .meta {
+            text-align: right;
             font-size: 10px;
-            opacity: 0.8;
-            margin-top: 4px;
+            opacity: 0.9;
         }
 
         .filters-row {
-            margin-bottom: 14px;
-            line-height: 2;
+            margin-bottom: 5px;
+            /* line-height: 2; */
         }
 
         .filter-chip {
@@ -150,8 +170,10 @@
 <body>
     <div class="header">
         <h1>T-Square LMS</h1>
-        <h3>Orders / Payments Report</h3>
-        <div class="meta">{{ $generatedAt }}</div>
+        <div class="header-title-row">
+            <h3>Orders / Payments Report</h3>
+            <div class="meta">{{ $generatedAt }}</div>
+        </div>
     </div>
 
     <div class="filters-row">
@@ -190,15 +212,15 @@
                         $email = data_get($order, 'student.user.email') ?? '—';
                     @endphp
                     <tr>
-                        <td><strong>#{{ $order->id }}</strong></td>
-                        <td>{{ $studentName }}</td>
-                        <td>{{ $email }}</td>
-                        <td>{{ $courseTitle }}</td>
+                        <td style="text-align:center;"><strong>#{{ $order->id }}</strong></td>
+                        <td style="text-align:center;">{{ $studentName }}</td>
+                        <td style="text-align:center;">{{ $email }}</td>
+                        <td style="text-align:center;">{{ $courseTitle }}</td>
                         <td style="text-align:center;">{{ $order->total_amount }}</td>
                         <td style="text-align:center;">
                             <span class="badge badge-{{ $order->status }}">{{ $order->status }}</span>
                         </td>
-                        <td>{{ $order->created_at?->format('Y-m-d H:i') ?? '—' }}</td>
+                        <td style="text-align:center;">{{ $order->created_at?->format('Y-m-d H:i') ?? '—' }}</td>
                     </tr>
                 @endforeach
             </tbody>

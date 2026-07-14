@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Cairo', 'DejaVu Sans', sans-serif;
-            font-size: 11px;
+            font-size: 12px;
             color: #1a1a1a;
             background: #fff;
         }
@@ -21,25 +21,44 @@
         .header {
             background: #be1522;
             color: #fff;
-            padding: 16px 20px;
-            margin-bottom: 16px;
+            padding: 5px 5px;
+            margin-bottom: 5px;
         }
 
         .header h1 {
+            text-align: center;
             font-size: 18px;
             font-weight: 700;
             letter-spacing: 0.5px;
         }
 
-        .header .meta {
+        .header-title-row {
+            display: table;
+            width: 100%;
+        }
+
+        .header-title-row h3,
+        .header-title-row .meta {
+            display: table-cell;
+            vertical-align: middle;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header-title-row h3 {
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .header-title-row .meta {
+            text-align: right;
             font-size: 10px;
-            opacity: 0.8;
-            margin-top: 4px;
+            opacity: 0.9;
         }
 
         .filters-row {
-            margin-bottom: 14px;
-            line-height: 2;
+            margin-bottom: 5px;
         }
 
         .filter-chip {
@@ -145,8 +164,10 @@
 <body>
     <div class="header">
         <h1>T-Square LMS</h1>
-        <h3>Schedule Report</h3>
-        <div class="meta">{{ $generatedAt }}</div>
+        <div class="header-title-row">
+            <h3>Schedule Report</h3>
+            <div class="meta">{{ $generatedAt }}</div>
+        </div>
     </div>
 
     <div class="filters-row">
