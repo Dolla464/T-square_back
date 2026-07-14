@@ -139,7 +139,28 @@ class AdminPaymentService
 
     public function destroy(int $id): void
     {
-        Order::query()->findOrFail($id)->delete();
+        DB::transaction(function () use ($id) {
+            $order = Order::query()
+                ->with('enrollments')
+                ->lockForUpdate()
+                ->findOrFail($id);
+
+            if ($order->status === 'completed') {
+                foreach ($order->enrollments as $enrollment) {
+                    Course::query()
+                        ->whereKey($enrollment->course_id)
+                        ->decrement('total_students');
+
+                    if ($enrollment->price_paid > 0) {
+                        Course::query()
+                            ->whereKey($enrollment->course_id)
+                            ->decrement('total_revenue', $enrollment->price_paid);
+                    }
+                }
+            }
+
+            $order->delete();
+        });
     }
 
     private function applyFilters(Builder $query, array $filters): void
