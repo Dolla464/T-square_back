@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Cairo', 'DejaVu Sans', sans-serif;
-            font-size: 11px;
+            font-size: 12px;
             color: #1a1a1a;
             background: #fff;
         }
@@ -21,45 +21,57 @@
         .header {
             background: #be1522;
             color: #fff;
-            padding: 16px 20px;
-            margin-bottom: 16px;
+            padding: 5px 5px;
+            margin-bottom: 5px;
         }
 
         .header h1 {
+            text-align: center;
             font-size: 18px;
             font-weight: 700;
             letter-spacing: 0.5px;
         }
 
-        .header h3 {
+        .header-title-row {
+            display: table;
+            width: 100%;
+        }
+
+        .header-title-row h3,
+        .header-title-row .meta {
+            display: table-cell;
+            vertical-align: middle;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header-title-row h3 {
+            text-align: left;
             font-size: 13px;
             font-weight: 600;
-            margin-top: 4px;
         }
 
-        .header .meta {
+        .header-title-row .meta {
+            text-align: right;
             font-size: 10px;
-            opacity: 0.8;
-            margin-top: 4px;
+            opacity: 0.9;
         }
 
-        .info-row {
-            margin-bottom: 14px;
-            line-height: 2;
+        .filters-row {
+            margin-bottom: 5px;
         }
 
-        .info-chip {
+        .filter-chip {
             display: inline-block;
             background: #e8f0fe;
             color: #1e3a5f;
             border: 2px solid #c5d8f8;
             border-radius: 5px;
-            padding: 5px 8px;
+            padding: 5px 5px;
             font-size: 10px;
-            margin-right: 6px;
         }
 
-        .info-chip .chip-label {
+        .filter-chip .chip-label {
             font-weight: 700;
         }
 
@@ -132,16 +144,18 @@
 <body>
     <div class="header">
         <h1>T-Square LMS</h1>
-        <h3>Exam Results Report</h3>
-        <div class="meta">{{ $generatedAt }}</div>
+        <div class="header-title-row">
+            <h3>Exam Results Report</h3>
+            <div class="meta">{{ $generatedAt }}</div>
+        </div>
     </div>
 
-    <div class="info-row">
-        <span class="info-chip"><span class="chip-label">Group:</span>{{ $payload['group_name'] ?? '—' }}</span>
-        <span class="info-chip"><span class="chip-label">Course:</span>{{ $payload['course_title'] ?? '—' }}</span>
-        <span class="info-chip"><span class="chip-label">Exam:</span>{{ $payload['exam_title'] ?? '—' }}</span>
-        <span class="info-chip"><span class="chip-label">Total Marks:</span>{{ $payload['total_marks'] ?? '—' }}</span>
-        <span class="info-chip"><span class="chip-label">Passing
+    <div class="filters-row">
+        <span class="filter-chip"><span class="chip-label">Group:</span>{{ $payload['group_name'] ?? '—' }}</span>
+        <span class="filter-chip"><span class="chip-label">Course:</span>{{ $payload['course_title'] ?? '—' }}</span>
+        <span class="filter-chip"><span class="chip-label">Exam:</span>{{ $payload['exam_title'] ?? '—' }}</span>
+        <span class="filter-chip"><span class="chip-label">Total Marks:</span>{{ $payload['total_marks'] ?? '—' }}</span>
+        <span class="filter-chip"><span class="chip-label">Passing
                 Mark:</span>{{ $payload['passing_mark'] ?? '—' }}</span>
     </div>
 

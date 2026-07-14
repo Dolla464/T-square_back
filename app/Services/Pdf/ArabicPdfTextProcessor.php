@@ -75,6 +75,12 @@ class ArabicPdfTextProcessor
                 }
             }
 
+            foreach ($clone->getRelations() as $relationName => $relationValue) {
+                if ($relationValue !== null) {
+                    $clone->setRelation($relationName, $this->processValue($relationValue));
+                }
+            }
+
             return $clone;
         }
 
