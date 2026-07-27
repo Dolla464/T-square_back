@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Api\Auth\RegisterController;
 use App\Http\Controllers\Api\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Api\Auth\NewPasswordController;
 use App\Http\Controllers\Api\Auth\PasswordResetLinkController;
@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\Route;
 
 // 1. رووتس للضيوف فقط (Guest) - مش محتاجين توكن
 Route::middleware('guest')->group(function () {
-    Route::post('/register', [AdminUserController::class, 'store'])->name('register');
+    Route::post('/register', [RegisterController::class, 'store'])
+        ->middleware('throttle:register')
+        ->name('register');
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login');
     Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
     Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.store');

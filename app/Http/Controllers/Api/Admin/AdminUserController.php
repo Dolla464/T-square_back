@@ -17,8 +17,8 @@ class AdminUserController extends Controller
 
     public function store(StoreUserRequest $request, UserService $userService)
     {
-        // 1. get the validated data
-        $data = $request->validated();
+        // 1. get the whitelisted payload only
+        $data = $request->safePayload();
 
         // 2. handle the image upload using the trait
         if ($request->hasFile('avatar')) {

@@ -15,8 +15,6 @@ class CourseReview extends Model
         'center_rating',
         'rating',
         'overall_comment',
-        'review_status',
-        'status',
     ];
 
     public const REVIEW_STATUS_ACCEPTED = 'accepted';

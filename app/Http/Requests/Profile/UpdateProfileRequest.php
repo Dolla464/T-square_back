@@ -2,14 +2,49 @@
 
 namespace App\Http\Requests\Profile;
 
+use App\Support\SuspiciousRequestLogger;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateProfileRequest extends FormRequest
 {
+    public const ALLOWED = [
+        'gender',
+        'avatar',
+        'phone',
+        'field',
+        'bio',
+        'insta_url',
+        'linkedin_url',
+        'facebook_url',
+        'full_name',
+        'name',
+        'password',
+        'password_confirmation',
+    ];
+
+    private const FORBIDDEN_DETECTORS = [
+        'role',
+        'status',
+        'email',
+        'group_id',
+        'enrollment_number',
+        'email_verified_at',
+        'verified',
+        'created_by',
+    ];
+
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $extra = SuspiciousRequestLogger::detectExtraFields($this, self::allowedKeysForUser());
+        if ($extra !== []) {
+            SuspiciousRequestLogger::log($this, 'forbidden_fields_on_profile_update', $extra);
+        }
     }
 
     public function rules(): array
@@ -21,7 +56,11 @@ class UpdateProfileRequest extends FormRequest
             $phoneRules[] = Rule::unique('instructors', 'phone')->ignore($user->instructor?->id);
         }
 
-        $rules = [
+        $forbiddenRules = collect(self::FORBIDDEN_DETECTORS)
+            ->mapWithKeys(fn (string $field) => [$field => ['prohibited']])
+            ->all();
+
+        $rules = array_merge($forbiddenRules, [
             'gender' => ['sometimes', 'nullable', Rule::in(['male', 'female'])],
             'avatar' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
             'password' => ['sometimes', 'nullable', 'string', 'min:8', 'confirmed'],
@@ -31,10 +70,7 @@ class UpdateProfileRequest extends FormRequest
             'linkedin_url' => ['sometimes', 'nullable', 'url', 'max:255'],
             'facebook_url' => ['sometimes', 'nullable', 'url', 'max:255'],
             'phone' => $phoneRules,
-
-            // حقول محظور تعديلها
-            'email' => ['prohibited'],
-        ];
+        ]);
 
         if ($user && $user->role === 'student') {
             $rules['name'] = ['prohibited'];
@@ -45,6 +81,25 @@ class UpdateProfileRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    public function safePayload(): array
+    {
+        return $this->safe()->only(self::allowedKeysForUser());
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function allowedKeysForUser(): array
+    {
+        $user = $this->user();
+
+        if ($user && $user->role === 'student') {
+            return array_values(array_diff(self::ALLOWED, ['full_name', 'name', 'password', 'password_confirmation']));
+        }
+
+        return array_values(array_diff(self::ALLOWED, ['password', 'password_confirmation']));
     }
 
     public function messages(): array

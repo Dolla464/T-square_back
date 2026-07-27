@@ -70,7 +70,7 @@ class CourseReviewController extends Controller
         try {
             $result = $this->courseReviewService->submitStudentReview(
                 $student,
-                $request->validated()
+                $request->safePayload()
             );
         } catch (UnprocessableEntityHttpException $e) {
             return $this->errorResponse($e->getMessage(), 422);

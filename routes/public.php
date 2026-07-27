@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/home', [HomeController::class, 'index'])
     ->name('home.index');
 
+Route::get('/settings/maintenance_mode', [SettingController::class, 'getMaintenanceStatus'])
+    ->name('settings.maintenance-status');
+
 Route::get('/settings/{key}', [SettingController::class, 'getSettingByKey'])
     ->name('settings.show');
 Route::get('/website-media/{key}', [PublicWebsiteController::class, 'getMediaByKey'])

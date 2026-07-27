@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\User\ExamController;
 use App\Http\Controllers\Api\User\CategoryController;
 use App\Http\Controllers\Api\User\CertificateController;
 use App\Http\Controllers\Api\User\ContactUsController;
@@ -63,7 +64,7 @@ Route::prefix('student')->name('student.')->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth:sanctum')
+Route::middleware(['auth:sanctum', 'role:student'])
     ->prefix('student')
     ->name('student.')
     ->group(function () {
@@ -109,4 +110,17 @@ Route::middleware('auth:sanctum')
                 Route::post('check-in', 'checkIn')->name('check-in');
                 Route::get('groups/{learningGroup}', 'groupHistory')->name('groups.history');
             });
+    });
+
+Route::middleware(['auth:sanctum', 'role:student'])
+    ->prefix('exams')
+    ->name('exams.')
+    ->controller(ExamController::class)
+    ->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('my-results', 'myResults')->name('my-results');
+        Route::get('attempts/{attemptId}/review', 'reviewAttempt')->name('attempts.review');
+        Route::post('start', 'start')->name('start');
+        Route::post('save-answer', 'answer')->name('save-answer');
+        Route::post('{id}/submit', 'submit')->name('submit');
     });

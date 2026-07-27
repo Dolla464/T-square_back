@@ -45,4 +45,17 @@ class UserFactory extends Factory
     {
         return $this->state(fn () => ['email_verified_at' => null]);
     }
+
+    public function configure(): static
+    {
+        return $this->afterMaking(function (User $user, ?array $attributes = null) {
+            $attributes ??= [];
+
+            $user->forceFill([
+                'email_verified_at' => $attributes['email_verified_at'] ?? now(),
+                'last_login_at' => $attributes['last_login_at'] ?? null,
+                'role' => $attributes['role'] ?? 'student',
+            ]);
+        });
+    }
 }

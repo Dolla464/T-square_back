@@ -117,19 +117,26 @@ class ProfileService
 
     private function ensureStudentProfile(User $user): Student
     {
-        return Student::firstOrCreate(
-            ['user_id' => $user->id],
-            [
-                'full_name' => $user->name,
-                'phone' => null,
-                'enrollment_number' => 'TEMP-' . $user->id,
-                'group_id' => null,
-                'avatar' => null,
-                'gender' => null,
-                'status' => 'active',
-                'created_by' => 'site',
-            ]
-        );
+        $student = Student::firstOrNew(['user_id' => $user->id]);
+
+        if ($student->exists) {
+            return $student;
+        }
+
+        $student->fill([
+            'full_name' => $user->name,
+            'phone' => null,
+            'avatar' => null,
+            'gender' => null,
+        ]);
+
+        $student->forceFill([
+            'enrollment_number' => 'TEMP-'.$user->id,
+            'status' => 'active',
+            'created_by' => 'site',
+        ])->save();
+
+        return $student;
     }
 
     /**

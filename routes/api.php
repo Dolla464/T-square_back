@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\Auth\CurrentUserController;
 use App\Http\Controllers\Api\Notification\NotificationController;
-use App\Http\Controllers\Api\User\ExamController;
 use App\Http\Controllers\Api\User\ProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -61,13 +61,15 @@ require __DIR__ . '/admin.php';
 |--------------------------------------------------------------------------
 */
 
-// Attendance — hardware device QR scanner (no user session required, device authenticates via device_id)
-Route::post('attendance/scan', [AttendanceController::class, 'scan'])->name('attendance.scan');
+// Attendance — hardware device QR scanner (device authenticates via device_id)
+Route::post('attendance/scan', [AttendanceController::class, 'scan'])
+    ->middleware('attendance.device')
+    ->name('attendance.scan');
 
 Route::middleware('auth:sanctum')->group(function () {
 
     // Authenticated user identity
-    Route::get('user', fn(Request $request) => $request->user())
+    Route::get('user', [CurrentUserController::class, 'show'])
         ->name('user.show');
 
     // Profile
@@ -76,7 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('profile.')
         ->group(function () {
             Route::get('/', 'show')->name('show');
-            Route::post('/', 'update')->name('update');
+            Route::post('/', 'update')->middleware('throttle:10,1')->name('update');
             Route::put('/password', 'updatePassword')->name('password.update');
         });
 
@@ -89,18 +91,5 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('unread-count', 'unreadCount')->name('unread-count');
             Route::post('read-all', 'markAllAsRead')->name('read-all');
             Route::post('{id}/read', 'markAsRead')->name('read');
-        });
-
-    // Exams — named static segments before parameterised {id}
-    Route::controller(ExamController::class)
-        ->prefix('exams')
-        ->name('exams.')
-        ->group(function () {
-            Route::get('/', 'index')->name('index');
-            Route::get('my-results', 'myResults')->name('my-results');
-            Route::get('attempts/{attemptId}/review', 'reviewAttempt')->name('attempts.review');
-            Route::post('start', 'start')->name('start');
-            Route::post('save-answer', 'answer')->name('save-answer');
-            Route::post('{id}/submit', 'submit')->name('submit');
         });
 });

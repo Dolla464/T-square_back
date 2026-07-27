@@ -30,6 +30,32 @@ trait ApiResponseTrait
         ], $code);
     }
 
+    public function structuredErrorResponse(
+        string $error,
+        string $code,
+        int $httpCode,
+        ?string $message = null,
+    ): JsonResponse {
+        $message ??= $error;
+
+        return response()->json([
+            'status' => 'error',
+            'error' => $error,
+            'message' => $message,
+            'code' => $code,
+        ], $httpCode);
+    }
+
+    public function authorizationResultResponse(\App\DTO\AuthorizationResult $result): JsonResponse
+    {
+        return $this->structuredErrorResponse(
+            error: $result->getMessage() ?? 'Forbidden',
+            code: $result->getCode(),
+            httpCode: $result->getStatusCode(),
+            message: $result->getMessage(),
+        );
+    }
+
     /**
      * Pagination Response
      */

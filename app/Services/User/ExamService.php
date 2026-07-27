@@ -3,6 +3,7 @@
 namespace App\Services\User;
 
 use App\Events\StudentExamAttemptCompleted;
+use App\Services\Exam\ExamAttemptAuthorizationService;
 use App\Models\Answer;
 use App\Models\Choice;
 use App\Models\Enrollment;
@@ -14,6 +15,10 @@ use Illuminate\Support\Facades\DB;
 
 class ExamService
 {
+    public function __construct(
+        private ExamAttemptAuthorizationService $attemptAuthorizationService,
+    ) {}
+
     /**
      * Get all available exams for a student
      *
@@ -99,9 +104,9 @@ class ExamService
         $attempt = ExamAttempt::create([
             'student_id' => $studentId,
             'exam_id' => $examId,
-            'status' => 'ongoing',
             'started_at' => now(),
         ]);
+        $attempt->forceFill(['status' => 'ongoing'])->save();
 
         // 6. Randomly sample questions from the bank and freeze them in the pivot table
         $limit = $exam->questions_per_attempt ?? 10;
@@ -150,14 +155,16 @@ class ExamService
             abort(403, 'Selected choice does not belong to this question.');
         }
 
-        return Answer::updateOrCreate(
+        $answer = Answer::updateOrCreate(
             ['attempt_id' => $attemptId, 'question_id' => $questionId],
-            [
-                'choice_id' => $choiceId,
-                'is_correct' => $choice->is_correct,
-                'marks_earned' => $choice->is_correct ? $question->marks : 0,
-            ]
+            ['choice_id' => $choiceId]
         );
+        $answer->forceFill([
+            'is_correct' => $choice->is_correct,
+            'marks_earned' => $choice->is_correct ? $question->marks : 0,
+        ])->save();
+
+        return $answer;
     }
 
     /**
@@ -165,11 +172,15 @@ class ExamService
      */
     public function completeAttempt($attemptId, ?int $studentId = null)
     {
-        $attempt = ExamAttempt::with('exam')->findOrFail($attemptId);
+        if ($studentId) {
+            $authResult = $this->attemptAuthorizationService->checkSubmittable((int) $attemptId, $studentId);
 
-        if ($studentId && $attempt->student_id !== $studentId) {
-            abort(403, 'You are not allowed to submit this attempt.');
+            if (! $authResult->isAllowed()) {
+                abort($authResult->getStatusCode(), $authResult->getMessage());
+            }
         }
+
+        $attempt = ExamAttempt::with('exam')->findOrFail($attemptId);
 
         if ($attempt->status !== 'ongoing') {
             return $this->buildAttemptResult($attempt, $attempt->score);
@@ -179,11 +190,11 @@ class ExamService
             $totalScore = $attempt->answers()->sum('marks_earned');
             $isPassed = $totalScore >= $attempt->exam->passing_mark;
 
-            $attempt->update([
+            $attempt->forceFill([
                 'score' => $totalScore,
                 'status' => $isPassed ? 'passed' : 'failed',
                 'finished_at' => now(),
-            ]);
+            ])->save();
 
             if ($isPassed && $attempt->exam->is_final) {
                 $enrollment = Enrollment::where('student_id', '=', $attempt->student_id, 'and')

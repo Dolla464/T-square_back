@@ -53,6 +53,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])
 
         // Users
         Route::post('users', [AdminUserController::class, 'store'])
+            ->middleware('throttle:20,1')
             ->name('users.store');
 
         // Tags (full CRUD)

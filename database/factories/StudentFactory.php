@@ -22,11 +22,22 @@ class StudentFactory extends Factory
             'user_id' => User::factory(),
             'full_name' => $this->faker->name(),
             'phone' => $this->faker->unique()->phoneNumber(),
-            'enrollment_number' => 'STU-'.$this->faker->unique()->numberBetween(10000, 99999),
             'avatar' => 'default_student.png',
             'gender' => $this->faker->randomElement(['male', 'female']),
-            'status' => 'active',
-            'created_by' => 'admin',
         ];
+    }
+
+    public function configure(): static
+    {
+        return $this->afterMaking(function (Student $student, ?array $attributes = null) {
+            $attributes ??= [];
+
+            $student->forceFill([
+                'enrollment_number' => $attributes['enrollment_number']
+                    ?? 'STU-'.fake()->unique()->numerify('#####'),
+                'status' => $attributes['status'] ?? 'active',
+                'created_by' => $attributes['created_by'] ?? 'admin',
+            ]);
+        });
     }
 }

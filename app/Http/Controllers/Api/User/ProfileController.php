@@ -34,7 +34,7 @@ class ProfileController extends Controller
     public function update(UpdateProfileRequest $request)
     {
         $user = $request->user();
-        $user = $this->profileService->update($user, $request->validated());
+        $user = $this->profileService->update($user, $request->safePayload());
 
         return $this->successResponse(new ProfileResource($user), 'Profile updated successfully');
     }

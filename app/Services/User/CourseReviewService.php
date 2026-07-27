@@ -95,6 +95,18 @@ class CourseReviewService
 
         $existingReview = $this->getStudentReviewForCourse($student, $courseId);
 
+        if ($enrollment === null) {
+            return [
+                'course_id' => $courseId,
+                'is_enrolled' => false,
+                'is_completed' => false,
+                'has_review' => false,
+                'review_status' => null,
+                'can_submit' => false,
+                'certificate_available' => false,
+            ];
+        }
+
         $course = Course::query()
             ->with(['instructors:id,full_name,avatar,field,bio,phone'])
             ->find($courseId);
@@ -179,8 +191,10 @@ class CourseReviewService
                 'center_rating' => $centerRating,
                 'instructor_rating' => $instructorRating,
                 'overall_comment' => $validated['overall_comment'],
-                'review_status' => CourseReview::REVIEW_STATUS_PENDING,
             ]);
+            $review->forceFill([
+                'review_status' => CourseReview::REVIEW_STATUS_PENDING,
+            ])->save();
 
             foreach ($perInstructorRatings as $courseInstructorId => $rating) {
                 CourseReviewInstructorRating::create([

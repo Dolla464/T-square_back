@@ -53,7 +53,7 @@ class AdminLearningGroupController extends Controller
 
     public function store(LearningGroupRequest $request): JsonResponse
     {
-        $groupResource = $this->adminLearningGroupService->createGroup($request->validated());
+        $groupResource = $this->adminLearningGroupService->createGroup($request->safePayload());
 
         return $this->successResponse($groupResource, 'Learning group created successfully', 201);
     }
@@ -67,7 +67,7 @@ class AdminLearningGroupController extends Controller
 
     public function update(LearningGroupRequest $request, LearningGroup $learningGroup): JsonResponse
     {
-        $groupResource = $this->adminLearningGroupService->updateGroup($learningGroup, $request->validated());
+        $groupResource = $this->adminLearningGroupService->updateGroup($learningGroup, $request->safePayload());
 
         return $this->successResponse($groupResource, 'Learning group and students updated successfully');
     }

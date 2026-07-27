@@ -38,11 +38,6 @@ class Course extends Model
         'category_id',
         'instructor_id',
         'published_at',
-        'avg_rating',
-        'status',
-        'total_reviews',
-        'total_students',
-        'total_revenue', // Added statistics fields here if you need to update them
     ];
 
     protected $casts = [
@@ -95,10 +90,10 @@ class Course extends Model
             ->first();
 
         // Modified to use total_reviews based on the migration
-        $this->update([
+        $this->forceFill([
             'avg_rating' => round($stats->average ?? 0, 2),
             'total_reviews' => $stats->total ?? 0,
-        ]);
+        ])->save();
     }
 
     public function scopeActive($query)

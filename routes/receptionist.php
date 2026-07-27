@@ -44,6 +44,7 @@ Route::middleware(['auth:sanctum', 'role:receptionist'])
 
         // ── Users (student registration) ──────────────────────────────────────
         Route::post('users', [AdminUserController::class, 'store'])
+            ->middleware('throttle:20,1')
             ->name('users.store');
 
         // ── Students ──────────────────────────────────────────────────────────

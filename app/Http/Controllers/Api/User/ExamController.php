@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\User;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Student\SaveAnswerRequest;
 use App\Http\Requests\Api\Student\StartExamRequest;
+use App\Http\Requests\Api\Student\SubmitExamRequest;
 use App\Http\Resources\User\Exam\ExamAttemptResource;
 use App\Http\Resources\User\Exam\ExamAttemptReviewResource;
 use App\Http\Resources\User\Exam\ExamListResource;
@@ -69,7 +70,7 @@ class ExamController extends Controller
         return response()->json(['status' => 'saved']);
     }
 
-    public function submit(Request $request, int $id)
+    public function submit(SubmitExamRequest $request, int $id)
     {
         $student = $request->user()->student;
 
