@@ -98,6 +98,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])
 
         // Questions
         Route::prefix('questions')->name('questions.')->group(function () {
+            Route::post('upload-image', [AdminQuestionController::class, 'uploadImage'])->name('upload-image');
             Route::get('trash', [AdminQuestionController::class, 'trash'])->name('trash');
             Route::post('{id}/restore', [AdminQuestionController::class, 'restore'])->name('restore');
             Route::delete('{id}/force-delete', [AdminQuestionController::class, 'forceDelete'])->name('force-delete');

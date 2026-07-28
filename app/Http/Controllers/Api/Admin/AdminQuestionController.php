@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUpdateQuestionRequest;
+use App\Http\Requests\Admin\UploadQuestionImageRequest;
 use App\Http\Resources\Admin\AdminQuestionResource;
 use App\Models\Question;
 use App\Services\Admin\AdminQuestionService;
@@ -134,5 +135,12 @@ class AdminQuestionController extends Controller
             null,
             'Question and its choices deleted permanently from system'
         );
+    }
+
+    public function uploadImage(UploadQuestionImageRequest $request): JsonResponse
+    {
+        $upload = $this->questionService->uploadQuestionImage($request->file('image'));
+
+        return $this->successResponse($upload, 'Question image uploaded successfully', 201);
     }
 }

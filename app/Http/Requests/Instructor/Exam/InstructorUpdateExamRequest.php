@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Instructor\Exam;
 
+use App\Models\Question;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -33,6 +34,27 @@ class InstructorUpdateExamRequest extends FormRequest
             'questions_per_attempt' => 'required|integer|min:1',
             'shuffle_questions'     => 'boolean',
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $exam = $this->route('exam');
+
+            if (! $exam) {
+                return;
+            }
+
+            $bankCount = Question::where('exam_id', $exam->id)->count();
+            $requested = (int) $this->input('questions_per_attempt');
+
+            if ($bankCount > 0 && $requested > $bankCount) {
+                $validator->errors()->add(
+                    'questions_per_attempt',
+                    "The number of questions per attempt cannot exceed the question bank size ({$bankCount})."
+                );
+            }
+        });
     }
 
     public function messages(): array

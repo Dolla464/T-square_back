@@ -40,12 +40,13 @@ class ExamAttemptAuthorizationService
                 return AuthorizationResult::unprocessable('This exam is not currently available.');
             }
 
-            if ($this->isDurationExpired($attempt)) {
-                return AuthorizationResult::expired('Exam time has expired.');
-            }
-
             return AuthorizationResult::allowed();
         });
+    }
+
+    public function isTimedOut(ExamAttempt $attempt): bool
+    {
+        return $this->isDurationExpired($attempt);
     }
 
     private function isDurationExpired(ExamAttempt $attempt): bool

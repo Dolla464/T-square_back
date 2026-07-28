@@ -648,15 +648,14 @@ class AdminLearningGroupController extends Controller
 
         fputcsv($handle, ['#', 'Student Name', 'Email', 'Attempts', 'Highest Score', 'Status']);
 
-        $totalMarks = $payload['total_marks'] ?? null;
-
         foreach ($payload['students'] as $idx => $student) {
             $hasAttempts = $student['has_attempts'] ?? false;
             $highestScore = $student['highest_score'] ?? null;
+            $attemptMaxMarks = $student['highest_attempt_max_marks'] ?? null;
 
             if ($hasAttempts && $highestScore !== null) {
-                $scoreDisplay = $totalMarks !== null
-                    ? $highestScore.' / '.$totalMarks
+                $scoreDisplay = $attemptMaxMarks !== null
+                    ? $highestScore.' / '.$attemptMaxMarks
                     : (string) $highestScore;
                 $status = ($student['is_passed'] ?? false) ? 'Passed' : 'Failed';
             } else {

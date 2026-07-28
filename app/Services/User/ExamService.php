@@ -3,13 +3,13 @@
 namespace App\Services\User;
 
 use App\Events\StudentExamAttemptCompleted;
-use App\Services\Exam\ExamAttemptAuthorizationService;
 use App\Models\Answer;
 use App\Models\Choice;
 use App\Models\Enrollment;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\Question;
+use App\Services\Exam\ExamAttemptAuthorizationService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -21,11 +21,8 @@ class ExamService
 
     /**
      * Get all available exams for a student
-     *
-     * @param [type] $student
-     * @return Collection
      */
-    public function getAvailableExams($student)
+    public function getAvailableExams($student): Collection
     {
         return $student->availableExams()
             ->where('is_active', true)
@@ -47,9 +44,8 @@ class ExamService
             ->get();
     }
 
-    public function startAttempt(int $studentId, int $examId)
+    public function startAttempt(int $studentId, int $examId): ExamAttempt
     {
-        // 1. Fetch exam first to validate enrollment and bank size before touching attempts
         $exam = Exam::findOrFail($examId);
 
         if (! $exam->is_active) {
@@ -64,34 +60,27 @@ class ExamService
             abort(403, 'This exam has not been activated for your group yet.');
         }
 
-        // 2. Guard: refuse to start/resume when the question bank is empty
         $bankCount = Question::where('exam_id', $examId)->count();
         if ($bankCount === 0) {
             abort(422, 'This exam has no questions yet. Please contact the administrator.');
         }
 
-        // 3. Check for an existing ongoing attempt
         $existingAttempt = ExamAttempt::where('student_id', $studentId)
             ->where('exam_id', $examId)
             ->where('status', 'ongoing')
             ->first();
 
         if ($existingAttempt) {
-            // If the ongoing attempt has no questions (created before the bank was populated),
-            // repopulate it now so the student is not stuck on an empty exam.
             if ($existingAttempt->questions()->count() === 0) {
-                $limit = $exam->questions_per_attempt ?? 10;
-                $randomQuestionIds = Question::where('exam_id', $examId)
-                    ->inRandomOrder()
-                    ->take($limit)
-                    ->pluck('id');
-                $existingAttempt->questions()->attach($randomQuestionIds);
+                $this->attachSampledQuestions(
+                    $existingAttempt,
+                    $this->sampleQuestionIdsForAttempt($exam, $examId, $bankCount)
+                );
             }
 
             return $existingAttempt->load(['questions.choices', 'answers']);
         }
 
-        // 4. Calculate the number of previous (closed) attempts to check the allowed limit
         $attemptsCount = ExamAttempt::where('student_id', $studentId)
             ->where('exam_id', $examId)
             ->count();
@@ -100,7 +89,6 @@ class ExamService
             abort(403, 'Sorry, you have exhausted the maximum number of attempts available for this exam!');
         }
 
-        // 5. Create a new attempt record
         $attempt = ExamAttempt::create([
             'student_id' => $studentId,
             'exam_id' => $examId,
@@ -108,43 +96,33 @@ class ExamService
         ]);
         $attempt->forceFill(['status' => 'ongoing'])->save();
 
-        // 6. Randomly sample questions from the bank and freeze them in the pivot table
-        $limit = $exam->questions_per_attempt ?? 10;
-        $randomQuestionIds = Question::where('exam_id', $examId)
-            ->inRandomOrder()
-            ->take($limit)
-            ->pluck('id');
-
-        $attempt->questions()->attach($randomQuestionIds);
+        $this->attachSampledQuestions(
+            $attempt,
+            $this->sampleQuestionIdsForAttempt($exam, $examId, $bankCount)
+        );
 
         return $attempt->load(['questions.choices', 'answers']);
     }
 
-    /**
-     *  Save one question answer - now only allows answers for the exam's questions
-     */
-    public function saveAnswer(int $attemptId, int $questionId, int $choiceId)
+    public function saveAnswer(int $attemptId, int $questionId, int $choiceId): Answer
     {
         $attempt = ExamAttempt::with([
             'exam' => function ($q) use ($attemptId) {
                 $q->withCount(['attempts' => function ($sq) use ($attemptId) {
-                    $sq->where('student_id', DB::raw('(SELECT student_id FROM exam_attempts WHERE id = ' . $attemptId . ')'));
+                    $sq->where('student_id', DB::raw('(SELECT student_id FROM exam_attempts WHERE id = '.$attemptId.')'));
                 }]);
             },
             'questions',
         ])->findOrFail($attemptId);
 
-        // Protection: Ensure the exam is still in the ongoing state and has not been closed
         if ($attempt->status !== 'ongoing') {
             abort(403, 'This attempt is already closed and cannot be modified.');
         }
 
-        // Additional protection: Ensure the student has not exceeded the attempts during the answer
         if ($attempt->exam->max_attempts && $attempt->exam->attempts_count > $attempt->exam->max_attempts) {
             abort(403, 'Sorry, you have exceeded the maximum number of attempts.');
         }
 
-        // Validate against the attempt's own question subset, not the full exam bank
         $question = $attempt->questions->firstWhere('id', $questionId);
         if (! $question) {
             abort(403, 'This question does not belong to this attempt.');
@@ -167,10 +145,7 @@ class ExamService
         return $answer;
     }
 
-    /**
-     * Complete the exam and calculate the final result
-     */
-    public function completeAttempt($attemptId, ?int $studentId = null)
+    public function completeAttempt($attemptId, ?int $studentId = null): array
     {
         if ($studentId) {
             $authResult = $this->attemptAuthorizationService->checkSubmittable((int) $attemptId, $studentId);
@@ -180,7 +155,7 @@ class ExamService
             }
         }
 
-        $attempt = ExamAttempt::with('exam')->findOrFail($attemptId);
+        $attempt = ExamAttempt::with(['exam', 'questions'])->findOrFail($attemptId);
 
         if ($attempt->status !== 'ongoing') {
             return $this->buildAttemptResult($attempt, $attempt->score);
@@ -188,11 +163,15 @@ class ExamService
 
         $result = DB::transaction(function () use ($attempt) {
             $totalScore = $attempt->answers()->sum('marks_earned');
-            $isPassed = $totalScore >= $attempt->exam->passing_mark;
+            $attemptPassingMark = $this->getAttemptPassingMark($attempt);
+            $isPassed = $totalScore >= $attemptPassingMark;
+            $timedOut = $this->attemptAuthorizationService->isTimedOut($attempt);
+
+            $status = $isPassed ? 'passed' : ($timedOut ? 'timed_out' : 'failed');
 
             $attempt->forceFill([
                 'score' => $totalScore,
-                'status' => $isPassed ? 'passed' : 'failed',
+                'status' => $status,
                 'finished_at' => now(),
             ])->save();
 
@@ -206,7 +185,7 @@ class ExamService
                 }
             }
 
-            return $this->buildAttemptResult($attempt, $totalScore, $isPassed);
+            return $this->buildAttemptResult($attempt, $totalScore, $isPassed, $status);
         });
 
         $attempt->refresh()->loadMissing(['student.user', 'exam.course']);
@@ -215,20 +194,128 @@ class ExamService
         return $result;
     }
 
-    private function buildAttemptResult(ExamAttempt $attempt, $score, ?bool $isPassed = null): array
+    public function getAttemptMaxMarks(ExamAttempt $attempt): float
     {
-        $isPassed ??= $score >= $attempt->exam->passing_mark;
+        if ($attempt->relationLoaded('questions')) {
+            return (float) $attempt->questions->unique('id')->sum('marks');
+        }
+
+        if ($attempt->relationLoaded('questionsWithTrashed')) {
+            return (float) $attempt->questionsWithTrashed->unique('id')->sum('marks');
+        }
+
+        $questionIds = $attempt->questions()->pluck('questions.id')->unique();
+
+        return (float) Question::whereIn('id', $questionIds)->sum('marks');
+    }
+
+    public function getAttemptPassingMark(ExamAttempt $attempt): float
+    {
+        $exam = $attempt->exam;
+        $attemptMax = $this->getAttemptMaxMarks($attempt);
+
+        if (! $exam || $exam->total_marks <= 0) {
+            return 0.0;
+        }
+
+        return round(($exam->passing_mark / $exam->total_marks) * $attemptMax, 2);
+    }
+
+    public function getAttemptReview(int $attemptId): ExamAttempt
+    {
+        return ExamAttempt::reviewable()
+            ->with([
+                'exam:id,title,total_marks,passing_mark,course_id',
+                'questionsWithTrashed.choices',
+                'answers',
+            ])
+            ->findOrFail($attemptId);
+    }
+
+    public function getStudentResults($studentId, ?int $examId = null)
+    {
+        $query = ExamAttempt::where('student_id', '=', $studentId, 'and')
+            ->whereIn('status', ExamAttempt::REVIEWABLE_STATUSES, 'and', false)
+            ->with([
+                'exam' => function ($query) {
+                    $query->select('id', 'course_id', 'title', 'total_marks', 'passing_mark', 'is_final');
+                },
+                'exam.course:id,title',
+                'questions',
+            ])
+            ->orderBy('finished_at', 'desc');
+
+        if ($examId) {
+            $query->whereHas('exam', function ($q) use ($examId) {
+                $q->where('id', $examId);
+            });
+        }
+
+        return $query->get()->map(function ($attempt) {
+            $attempt->can_download_certificate = ($attempt->status === 'passed' && $attempt->exam->is_final);
+
+            return $attempt;
+        });
+    }
+
+    private function buildAttemptResult(
+        ExamAttempt $attempt,
+        $score,
+        ?bool $isPassed = null,
+        ?string $status = null,
+    ): array {
+        $attemptMaxMarks = $this->getAttemptMaxMarks($attempt);
+        $attemptPassingMark = $this->getAttemptPassingMark($attempt);
+        $isPassed ??= $score >= $attemptPassingMark;
+        $status ??= $isPassed ? 'passed' : 'failed';
 
         return [
             'score' => $score,
-            'total_marks' => $attempt->exam->total_marks,
-            'passing_mark' => $attempt->exam->passing_mark,
+            'total_marks' => $attemptMaxMarks,
+            'attempt_max_marks' => $attemptMaxMarks,
+            'passing_mark' => $attemptPassingMark,
+            'attempt_passing_mark' => $attemptPassingMark,
+            'exam_total_marks' => $attempt->exam->total_marks,
+            'exam_passing_mark' => $attempt->exam->passing_mark,
             'is_passed' => $isPassed,
-            'status' => $isPassed ? 'passed' : 'failed',
+            'status' => $status,
             'is_final' => (bool) $attempt->exam->is_final,
             'course_id' => $attempt->exam->course_id,
             'requires_review' => $isPassed && $attempt->exam->is_final,
         ];
+    }
+
+    private function resolveSampleLimit(Exam $exam, int $bankCount): int
+    {
+        $requested = max(1, (int) ($exam->questions_per_attempt ?: 10));
+
+        return min($requested, $bankCount);
+    }
+
+    private function sampleQuestionIdsForAttempt(Exam $exam, int $examId, int $bankCount): array
+    {
+        $limit = $this->resolveSampleLimit($exam, $bankCount);
+
+        $query = Question::where('exam_id', $examId);
+
+        if ($exam->shuffle_questions) {
+            $query->inRandomOrder();
+        } else {
+            $query->orderBy('id');
+        }
+
+        return $query->take($limit)->pluck('id')->all();
+    }
+
+    private function attachSampledQuestions(ExamAttempt $attempt, array $questionIds): void
+    {
+        $sync = [];
+
+        foreach ($questionIds as $index => $questionId) {
+            $sync[$questionId] = ['sort_order' => $index + 1];
+        }
+
+        $attempt->questions()->sync($sync);
     }
 
     private function hasCompletedEnrollment(int $studentId, int $courseId): bool
@@ -254,36 +341,5 @@ class ExamService
                     ->where('group_exam_activations.exam_id', $examId);
             })
             ->exists();
-    }
-
-    public function getAttemptReview(int $attemptId): ExamAttempt
-    {
-        return ExamAttempt::reviewable()
-            ->with([
-                'exam:id,title,total_marks,passing_mark,course_id',
-                'questions.choices',
-                'answers',
-            ])
-            ->findOrFail($attemptId);
-    }
-
-    public function getStudentResults($studentId, ?int $examId = null)
-    {
-        $query = ExamAttempt::where('student_id', '=', $studentId, 'and')
-            ->whereIn('status', ExamAttempt::REVIEWABLE_STATUSES, 'and', false)
-            ->with(['exam' => function ($query) {
-                $query->select('id', 'course_id', 'title', 'total_marks', 'passing_mark', 'is_final');
-            }, 'exam.course:id,title'])
-            ->orderBy('finished_at', 'desc');
-        // If the exam ID is passed, filter the attempts for the exams belonging to this exam only
-        if ($examId) {
-            $query->whereHas('exam', function ($q) use ($examId) {
-                $q->where('id', $examId);
-            });
-        }
-        return $query->get()->map(function ($attempt) {
-            $attempt->can_download_certificate = ($attempt->status === 'passed' && $attempt->exam->is_final);
-            return $attempt;
-        });
     }
 }

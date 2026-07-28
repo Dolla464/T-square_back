@@ -60,7 +60,20 @@ class ExamAttempt extends Model
     public function questions()
     {
         return $this->belongsToMany(Question::class, 'attempt_questions')
-            ->withTimestamps();
+            ->withPivot('sort_order')
+            ->withTimestamps()
+            ->orderBy('attempt_questions.sort_order')
+            ->orderBy('questions.id');
+    }
+
+    public function questionsWithTrashed()
+    {
+        return $this->belongsToMany(Question::class, 'attempt_questions')
+            ->withPivot('sort_order')
+            ->withTimestamps()
+            ->withTrashed()
+            ->orderBy('attempt_questions.sort_order')
+            ->orderBy('questions.id');
     }
 
     public function answers()

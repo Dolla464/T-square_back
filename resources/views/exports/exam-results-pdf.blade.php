@@ -154,14 +154,15 @@
         <span class="filter-chip"><span class="chip-label">Group:</span>{{ $payload['group_name'] ?? '—' }}</span>
         <span class="filter-chip"><span class="chip-label">Course:</span>{{ $payload['course_title'] ?? '—' }}</span>
         <span class="filter-chip"><span class="chip-label">Exam:</span>{{ $payload['exam_title'] ?? '—' }}</span>
-        <span class="filter-chip"><span class="chip-label">Total Marks:</span>{{ $payload['total_marks'] ?? '—' }}</span>
-        <span class="filter-chip"><span class="chip-label">Passing
-                Mark:</span>{{ $payload['passing_mark'] ?? '—' }}</span>
+        <span class="filter-chip"><span class="chip-label">Exam Total:</span>{{ $payload['exam_total_marks'] ?? $payload['total_marks'] ?? '—' }}</span>
+        <span class="filter-chip"><span class="chip-label">Exam Passing:</span>{{ $payload['exam_passing_mark'] ?? $payload['passing_mark'] ?? '—' }}</span>
+        @if (!empty($payload['questions_per_attempt']))
+            <span class="filter-chip"><span class="chip-label">Questions / Attempt:</span>{{ $payload['questions_per_attempt'] }}</span>
+        @endif
     </div>
 
     @php
         $students = $payload['students'] ?? [];
-        $totalMarks = $payload['total_marks'] ?? null;
     @endphp
 
     @if (empty($students))
@@ -184,10 +185,11 @@
                         $hasAttempts = $student['has_attempts'] ?? false;
                         if ($hasAttempts) {
                             $highest = $student['highest_score'] ?? null;
+                            $attemptMaxMarks = $student['highest_attempt_max_marks'] ?? null;
                             $scoreDisplay =
-                                $highest !== null && $totalMarks !== null
-                                    ? $highest . ' / ' . $totalMarks
-                                    : $highest ?? '—';
+                                $highest !== null && $attemptMaxMarks !== null
+                                    ? $highest . ' / ' . $attemptMaxMarks
+                                    : ($highest ?? '—');
                             $status = $student['is_passed'] ?? false ? 'Passed' : 'Failed';
                             $badgeClass = $student['is_passed'] ?? false ? 'badge-passed' : 'badge-failed';
                         } else {

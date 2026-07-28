@@ -107,14 +107,15 @@ return Application::configure(basePath: dirname(__DIR__))
                     );
                 }
 
-                // ── The new and special modification ──
-                // Error 503: The site is in maintenance mode (the API)
-                if ($e instanceof HttpException && $e->getStatusCode() === 503) {
-                    return $responder->errorResponse($e->getMessage(), 503);
+                // abort() and other HTTP exceptions (403, 422, 503, etc.)
+                if ($e instanceof HttpException) {
+                    return $responder->errorResponse(
+                        $e->getMessage() ?: 'Request failed',
+                        $e->getStatusCode()
+                    );
                 }
 
-                // Error 500: Any other programming error on the server (like forgetting a letter or error in the database)
-                // In development mode, it will return the real error message, in production you can make it a fixed message
+                // Error 500: Any other programming error on the server
                 $message = $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine();
 
                 return $responder->errorResponse($message, 500);

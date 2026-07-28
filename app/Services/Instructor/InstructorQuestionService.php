@@ -44,4 +44,9 @@ class InstructorQuestionService
     {
         return $this->adminQuestionService->forceDeleteQuestion($id);
     }
+
+    public function uploadQuestionImage($file): array
+    {
+        return $this->adminQuestionService->uploadQuestionImage($file);
+    }
 }
