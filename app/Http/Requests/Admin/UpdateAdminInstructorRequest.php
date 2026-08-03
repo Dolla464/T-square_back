@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Password;
 
 class UpdateAdminInstructorRequest extends FormRequest
 {
@@ -31,6 +32,7 @@ class UpdateAdminInstructorRequest extends FormRequest
             'status' => ['sometimes', 'required', 'in:active,inactive'],
             // جعلنا الـ avatar غير مطلوب (nullable) حتى لا نُجبر المستخدم على رفع صورة جديدة كل مرة يعدل فيها
             'avatar' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'password' => ['sometimes', 'nullable', Password::min(8), 'confirmed'],
         ];
     }
 
@@ -65,6 +67,9 @@ class UpdateAdminInstructorRequest extends FormRequest
             'avatar.image' => 'The uploaded file must be an image.',
             'avatar.mimes' => 'The avatar must be a file of type: jpeg, png, jpg, webp.',
             'avatar.max' => 'The avatar may not be greater than 2048 kilobytes.',
+
+            'password.min' => 'Password must be at least 8 characters.',
+            'password.confirmed' => 'Password confirmation does not match.',
         ];
     }
 }

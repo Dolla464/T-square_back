@@ -59,7 +59,15 @@ class AdminInstructorService
             unset($data['avatar']);
         }
 
+        $password = $data['password'] ?? null;
+        unset($data['password'], $data['password_confirmation']);
+
         $instructor->update($data);
+
+        if (! empty($password)) {
+            $instructor->loadMissing('user');
+            $instructor->user?->update(['password' => $password]);
+        }
 
         return $instructor->load('user:id,email');
     }
