@@ -24,7 +24,7 @@
         }
 
         .page-wrapper {
-            padding: 20px 32px 18px;
+            padding: 15px 32px 15px;
             page-break-inside: avoid;
         }
 
@@ -54,18 +54,18 @@
 
         .center-title {
             text-align: center;
-            font-size: 21px;
+            font-size: 20px;
             font-weight: bold;
             /* margin-bottom: 6px; */
         }
 
         .certificate-big {
             text-align: center;
-            font-size: 38px;
+            font-size: 35px;
             font-weight: bold;
             color: #8B0000;
             letter-spacing: 4px;
-            margin: 6px 0 10px;
+            margin: 6px 0 6px;
         }
 
         .certify-text {
@@ -76,28 +76,28 @@
 
         .student-name {
             text-align: center;
-            font-size: 26px;
+            font-size: 25px;
             font-weight: bold;
             /* margin-bottom: 6px; */
         }
 
         .student-tags {
             text-align: center;
-            font-size: 13px;
+            font-size: 12px;
             color: #444;
             /* margin-bottom: 10px; */
         }
 
         .course-info {
             text-align: center;
-            font-size: 15px;
+            font-size: 14px;
             /* margin-bottom: 12px; */
             line-height: 1.5;
         }
 
         .course-name {
             font-weight: bold;
-            font-size: 17px;
+            font-size: 16px;
         }
 
         .date-issue {

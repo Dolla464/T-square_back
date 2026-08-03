@@ -4,6 +4,7 @@ use App\Models\Choice;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Exam;
+use App\Models\ExamAttempt;
 use App\Models\LearningGroup;
 use App\Models\Order;
 use App\Models\Question;
@@ -195,4 +196,35 @@ it('keeps attempt question order stable across resume requests', function (): vo
     $secondQuestionIds = collect($secondStart->json('data.questions'))->pluck('id')->all();
 
     expect($secondQuestionIds)->toBe($firstQuestionIds);
+});
+
+it('auto-completes a timed-out ongoing attempt when resuming via start', function (): void {
+    ['exam' => $exam] = createStudentExamContext(['duration' => 30], 5);
+
+    $startResponse = startExam($exam->id);
+    $attemptId = $startResponse->json('data.attempt_id');
+
+    ExamAttempt::whereKey($attemptId)->update([
+        'started_at' => now()->subMinutes(31),
+    ]);
+
+    $resumeResponse = startExam($exam->id);
+
+    $resumeResponse->assertOk()
+        ->assertJsonPath('data.status', 'timed_out')
+        ->assertJsonPath('data.results.score', 0)
+        ->assertJsonPath('data.results.status', 'timed_out')
+        ->assertJsonStructure([
+            'data' => [
+                'results' => [
+                    'score',
+                    'total_marks',
+                    'percentage',
+                    'status',
+                    'is_passed',
+                ],
+            ],
+        ]);
+
+    expect(ExamAttempt::find($attemptId)->status)->toBe('timed_out');
 });

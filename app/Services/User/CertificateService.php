@@ -89,8 +89,7 @@ class CertificateService
      */
     public function issueCertificate(Enrollment $enrollment, bool $force = false)
     {
-        // Load relationships correctly
-        $enrollment->loadMissing(['student', 'course.instructors', 'course.tags']);
+        $this->loadCertificateRelations($enrollment);
 
         $existingCert = Certificate::query()
             ->where('student_id', $enrollment->student_id)
@@ -116,14 +115,10 @@ class CertificateService
 
         $fileName = 'certificates/cert_'.Str::random(16).'.pdf';
 
-        // Get instructor name safely
-        $instructorName = $this->getInstructorName($enrollment->course);
-
-        // Generate PDF data
         $pdfData = $this->preparePdfData([
             'name' => $enrollment->student->full_name,
             'course' => $enrollment->course->title,
-            'instructor_name' => $instructorName,
+            'instructor_name' => $this->getInstructorNameForEnrollment($enrollment),
             'tags' => $this->extractCourseTags($enrollment->course),
         ]);
 
@@ -186,17 +181,12 @@ class CertificateService
      */
     public function generateLiveCertificate(Enrollment $enrollment)
     {
-        // Load relationships correctly
-        $enrollment->loadMissing(['student', 'course.instructors', 'course.tags']);
+        $this->loadCertificateRelations($enrollment);
 
-        // Get instructor name safely
-        $instructorName = $this->getInstructorName($enrollment->course);
-
-        // Generate PDF data
         $pdfData = $this->preparePdfData([
             'name' => $enrollment->student->full_name,
             'course' => $enrollment->course->title,
-            'instructor_name' => $instructorName,
+            'instructor_name' => $this->getInstructorNameForEnrollment($enrollment),
             'tags' => $this->extractCourseTags($enrollment->course),
         ]);
 
@@ -209,13 +199,18 @@ class CertificateService
      */
     public function generateBinaryPdf($attempt): string
     {
-        // Load relationships correctly for ExamAttempt
-        $attempt->loadMissing(['student', 'exam.course.instructors', 'exam.course.tags']);
+        $attempt->loadMissing(['student', 'exam.course.tags', 'exam.course.instructor']);
 
-        // Get instructor name safely
-        $instructorName = $this->getInstructorName($attempt->exam->course ?? null);
+        $enrollment = Enrollment::query()
+            ->where('student_id', $attempt->student_id)
+            ->where('course_id', $attempt->exam->course_id)
+            ->orderByDesc('id')
+            ->first();
 
-        // Prepare PDF data
+        $instructorName = $enrollment
+            ? $this->getInstructorNameForEnrollment($enrollment)
+            : ($attempt->exam->course?->instructor?->full_name ?? 'Instructor');
+
         $pdfData = $this->preparePdfData([
             'name' => $attempt->student->full_name,
             'course' => $attempt->exam->course->title ?? 'Course',
@@ -302,24 +297,39 @@ class CertificateService
         return $tags->pluck('name')->all();
     }
 
-    /**
-     * Get instructor name safely from course
-     */
-    private function getInstructorName($course): string
+    private function loadCertificateRelations(Enrollment $enrollment): void
     {
-        if (! $course) {
-            return 'Instructor';
+        $enrollment->loadMissing([
+            'student',
+            'course.tags',
+            'course.instructor',
+            'learningGroup.courseInstructor.instructor',
+        ]);
+    }
+
+    /**
+     * Resolve the instructor name for a certificate:
+     * group instructor when enrolled in a learning group, otherwise the course primary instructor.
+     */
+    private function getInstructorNameForEnrollment(Enrollment $enrollment): string
+    {
+        $this->loadCertificateRelations($enrollment);
+
+        if ($enrollment->group_id) {
+            $groupInstructorName = $enrollment->learningGroup?->instructor?->full_name;
+
+            if (! empty($groupInstructorName)) {
+                return $groupInstructorName;
+            }
         }
 
-        $course->loadMissing('instructors');
+        $primaryInstructorName = $enrollment->course?->instructor?->full_name;
 
-        if ($course->relationLoaded('instructors') && $course->instructors->isNotEmpty()) {
-            return $course->instructors->pluck('full_name')->filter()->join(', ');
+        if (! empty($primaryInstructorName)) {
+            return $primaryInstructorName;
         }
 
-        $course->loadMissing('instructor');
-
-        return $course->instructor?->full_name ?? 'Instructor';
+        return 'Instructor';
     }
 
     private function userAlreadyNotifiedAboutCertificate(object $user, int $enrollmentId): bool

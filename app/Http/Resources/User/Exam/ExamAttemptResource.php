@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\User\Exam;
 
+use App\Services\User\ExamService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,7 +17,7 @@ class ExamAttemptResource extends JsonResource
             ? round(($this->exam->passing_mark / $examTotalMarks) * $attemptMaxMarks, 2)
             : 0.0;
 
-        return [
+        $payload = [
             'attempt_id' => $this->id,
             'exam_title' => $this->exam->title,
             'duration' => $this->exam->duration,
@@ -32,5 +33,11 @@ class ExamAttemptResource extends JsonResource
             'user_answers' => $this->whenLoaded('answers', fn () => $this->answers->pluck('choice_id', 'question_id'), []),
             'questions' => QuestionResource::collection($attemptQuestions),
         ];
+
+        if ($this->status !== 'ongoing') {
+            $payload['results'] = app(ExamService::class)->getAttemptResultsPayload($this->resource);
+        }
+
+        return $payload;
     }
 }

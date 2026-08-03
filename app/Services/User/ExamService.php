@@ -78,7 +78,13 @@ class ExamService
                 );
             }
 
-            return $existingAttempt->load(['questions.choices', 'answers']);
+            if ($this->attemptAuthorizationService->isTimedOut($existingAttempt)) {
+                $this->completeAttempt($existingAttempt->id, $studentId);
+
+                return $existingAttempt->refresh()->load(['questions.choices', 'answers', 'exam']);
+            }
+
+            return $existingAttempt->load(['questions.choices', 'answers', 'exam']);
         }
 
         $attemptsCount = ExamAttempt::where('student_id', $studentId)
@@ -101,26 +107,40 @@ class ExamService
             $this->sampleQuestionIdsForAttempt($exam, $examId, $bankCount)
         );
 
-        return $attempt->load(['questions.choices', 'answers']);
+        return $attempt->load(['questions.choices', 'answers', 'exam']);
+    }
+
+    /**
+     * Build the frontend results payload for a completed attempt.
+     */
+    public function getAttemptResultsPayload(ExamAttempt $attempt): array
+    {
+        $attempt->loadMissing(['exam', 'questions']);
+
+        $isPassed = $attempt->status === 'passed';
+        $result = $this->buildAttemptResult(
+            $attempt,
+            $attempt->score,
+            $isPassed,
+            $attempt->status,
+        );
+        $totalMarks = $result['total_marks'] > 0 ? $result['total_marks'] : 1;
+        $percentage = round(((float) $result['score'] / $totalMarks) * 100, 2);
+
+        return array_merge($result, [
+            'percentage' => $percentage.'%',
+        ]);
     }
 
     public function saveAnswer(int $attemptId, int $questionId, int $choiceId): Answer
     {
         $attempt = ExamAttempt::with([
-            'exam' => function ($q) use ($attemptId) {
-                $q->withCount(['attempts' => function ($sq) use ($attemptId) {
-                    $sq->where('student_id', DB::raw('(SELECT student_id FROM exam_attempts WHERE id = '.$attemptId.')'));
-                }]);
-            },
+            'exam',
             'questions',
         ])->findOrFail($attemptId);
 
         if ($attempt->status !== 'ongoing') {
             abort(403, 'This attempt is already closed and cannot be modified.');
-        }
-
-        if ($attempt->exam->max_attempts && $attempt->exam->attempts_count > $attempt->exam->max_attempts) {
-            abort(403, 'Sorry, you have exceeded the maximum number of attempts.');
         }
 
         $question = $attempt->questions->firstWhere('id', $questionId);

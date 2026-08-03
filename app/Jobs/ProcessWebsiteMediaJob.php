@@ -91,7 +91,7 @@ class ProcessWebsiteMediaJob implements ShouldQueue
 
     /**
      * Load a raw image from an absolute path, resize and convert to WebP,
-     * save on the public disk, and return the full public URL.
+     * save on the public disk, and return the relative path on the public disk.
      */
     private function processRawImage(string $absPath, string $folder, int $maxSize): string
     {
@@ -162,6 +162,6 @@ class ProcessWebsiteMediaJob implements ShouldQueue
             throw new \RuntimeException('Failed to save the processed image to disk.');
         }
 
-        return Storage::disk('public')->url($fullPath);
+        return $fullPath;
     }
 }

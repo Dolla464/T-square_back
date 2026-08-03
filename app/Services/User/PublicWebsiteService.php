@@ -3,9 +3,31 @@
 namespace App\Services\User;
 
 use App\Models\Setting;
+use App\Traits\HandleImageUploadTrait;
+use Illuminate\Support\Facades\Storage;
 
 class PublicWebsiteService
 {
+    use HandleImageUploadTrait;
+
+    /**
+     * Normalize a stored path or URL to a full public URL.
+     */
+    public function resolvePublicMediaUrl(string $pathOrUrl): string
+    {
+        if (str_starts_with($pathOrUrl, 'http://') || str_starts_with($pathOrUrl, 'https://')) {
+            return $pathOrUrl;
+        }
+
+        $relativePath = $this->resolveStoragePath($pathOrUrl);
+
+        if ($relativePath) {
+            return Storage::disk('public')->url($relativePath);
+        }
+
+        return Storage::disk('public')->url(ltrim($pathOrUrl, '/'));
+    }
+
     /**
      * Get all discovery image URLs (no shuffle).
      */
@@ -17,11 +39,10 @@ class PublicWebsiteService
             return [];
         }
 
-        return array_map(function ($imagePath) {
-            $cleanPath = str_replace('/storage/', '', $imagePath);
-
-            return \Illuminate\Support\Facades\Storage::disk('public')->url($cleanPath);
-        }, $images);
+        return array_map(
+            fn (string $imagePath) => $this->resolvePublicMediaUrl($imagePath),
+            array_filter($images, fn ($imagePath) => is_string($imagePath) && $imagePath !== '')
+        );
     }
 
     /**
@@ -47,12 +68,11 @@ class PublicWebsiteService
     {
         $heroImage = Setting::get('hero_image');
 
-        if (!$heroImage) {
-            return null; // The frontend will display the default image if it returns null
+        if (! $heroImage || ! is_string($heroImage)) {
+            return null;
         }
 
-        $cleanPath = str_replace('/storage/', '', $heroImage);
-        return \Illuminate\Support\Facades\Storage::disk('public')->url($cleanPath);
+        return $this->resolvePublicMediaUrl($heroImage);
     }
 
     /**
@@ -62,14 +82,13 @@ class PublicWebsiteService
     {
         $images = Setting::get('about_media', []);
 
-        if (!is_array($images) || empty($images)) {
+        if (! is_array($images) || empty($images)) {
             return [];
         }
 
-        // Convert all paths to full URLs with the domain
-        return array_map(function ($imagePath) {
-            $cleanPath = str_replace('/storage/', '', $imagePath);
-            return \Illuminate\Support\Facades\Storage::disk('public')->url($cleanPath);
-        }, $images);
+        return array_map(
+            fn (string $imagePath) => $this->resolvePublicMediaUrl($imagePath),
+            array_filter($images, fn ($imagePath) => is_string($imagePath) && $imagePath !== '')
+        );
     }
 }

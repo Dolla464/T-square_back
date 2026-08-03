@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\Settings\UploadDiscoveryMediaRequest;
 use App\Http\Resources\Admin\Settings\DiscoveryMediaResource;
 use App\Models\Setting;
 use App\Services\Admin\AdminSettingService;
+use App\Services\User\PublicWebsiteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,15 +18,19 @@ class AdminDiscoveryMediaController extends Controller
 {
     protected AdminSettingService $settingService;
 
-    // Inject the Service into the Controller through the Constructor
-    public function __construct(AdminSettingService $settingService)
-    {
+    protected PublicWebsiteService $publicWebsiteService;
+
+    public function __construct(
+        AdminSettingService $settingService,
+        PublicWebsiteService $publicWebsiteService,
+    ) {
         $this->settingService = $settingService;
+        $this->publicWebsiteService = $publicWebsiteService;
     }
 
     public function index(): JsonResponse
     {
-        $currentImages = Setting::get('discovery_media', []);
+        $currentImages = $this->publicWebsiteService->getDiscoveryMediaUrls();
 
         return $this->successResponse(
             new DiscoveryMediaResource($currentImages),

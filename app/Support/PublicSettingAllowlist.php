@@ -20,7 +20,7 @@ final class PublicSettingAllowlist
         'hero_subtitle_ar',
         'discovery_media',
         'about_media',
-        'hero_media',
+        'hero_image',
     ];
 
     public static function isAllowed(string $key): bool
