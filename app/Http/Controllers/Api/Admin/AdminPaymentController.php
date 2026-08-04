@@ -52,10 +52,12 @@ class AdminPaymentController extends Controller
 
         $paginator = $this->payments->index($filters, $perPage);
 
-        $stats = $this->analytics->getRecentStats(
-            $filters['date_from'] ?: null,
-            $filters['date_to'] ?: null,
-        );
+        $stats = $request->routeIs('receptionist.*')
+            ? null
+            : $this->analytics->getRecentStats(
+                $filters['date_from'] ?: null,
+                $filters['date_to'] ?: null,
+            );
 
         return new AdminPaymentCollection($paginator, $stats);
     }

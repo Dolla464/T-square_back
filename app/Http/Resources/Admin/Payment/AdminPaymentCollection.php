@@ -10,7 +10,7 @@ class AdminPaymentCollection extends ResourceCollection
    // بنعرف متغير عشان نستقبل فيه الـ Stats من الكنترولر
     protected $stats;
 
-    public function __construct($resource, $stats)
+    public function __construct($resource, $stats = null)
     {
         parent::__construct($resource);
         $this->stats = $stats;
@@ -21,10 +21,15 @@ class AdminPaymentCollection extends ResourceCollection
      */
     public function toArray(Request $request): array
     {
-        return [
+        $payload = [
             'success' => true,
-            'stats'   => $this->stats, // الإحصائيات المكيشة هتنزل هنا فوق
-            'orders'  => $this->collection, // هنا الـ لارافيل تلقائياً هيعدي كل Order على الـ AdminPaymentResource ويحوله لـ Array
+            'orders'  => $this->collection,
         ];
+
+        if ($this->stats !== null) {
+            $payload['stats'] = $this->stats;
+        }
+
+        return $payload;
     }
 }
