@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -10,7 +11,14 @@ class Question extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['exam_id', 'question_text', 'marks'];
+    protected $fillable = [
+        'exam_id',
+        'question_text',
+        'question_image',
+        'question_code',
+        'question_code_language',
+        'marks',
+    ];
 
     /**
      * Monitor model operations and apply automatic deletion and restoration of choices
@@ -37,6 +45,23 @@ class Question extends Model
         'marks' => 'float',
     ];
 
+    protected function questionImageUrl(): Attribute
+    {
+        return Attribute::get(function ($value, array $attributes) {
+            $path = $attributes['question_image'] ?? null;
+
+            if (! $path) {
+                return null;
+            }
+
+            if (filter_var($path, FILTER_VALIDATE_URL)) {
+                return $path;
+            }
+
+            return asset('storage/'.$path);
+        });
+    }
+
     public function exam()
     {
         return $this->belongsTo(Exam::class);
@@ -54,7 +79,7 @@ class Question extends Model
 
     public function choices()
     {
-        return $this->hasMany(Choice::class, 'question_id')->inRandomOrder();
+        return $this->hasMany(Choice::class, 'question_id')->orderBy('id');
     }
 
     public function studentAnswers()

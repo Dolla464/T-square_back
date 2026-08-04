@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\StudentScanned;
 use App\Http\Controllers\Controller;
+use App\Models\AttendanceDevice;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\Instructor;
@@ -39,7 +40,7 @@ class AttendanceController extends Controller
 
         // Resolve whether this is a student QR (att_*) or a session QR (sess_*)
         if (str_starts_with($qrCode, 'att_')) {
-            return $this->processStudentQr($qrCode);
+            return $this->processStudentQr($request, $qrCode);
         }
 
         return $this->errorResponse('Invalid QR code format.', 400);
@@ -192,6 +193,14 @@ class AttendanceController extends Controller
             return $this->errorResponse('Access denied. You do not own this session.', 403);
         }
 
+        $isEnrolled = $session->learningGroup->students()
+            ->where('students.id', $request->student_id)
+            ->exists();
+
+        if (! $isEnrolled) {
+            return $this->errorResponse('Student is not enrolled in this group.', 422);
+        }
+
         $record = AttendanceRecord::updateOrCreate(
             [
                 'session_id' => $request->session_id,
@@ -301,26 +310,36 @@ class AttendanceController extends Controller
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    private function processStudentQr(string $qrCode): JsonResponse
+    private function processStudentQr(Request $request, string $qrCode): JsonResponse
     {
         $record = AttendanceRecord::where('student_qr_code', $qrCode)->first();
 
-        if (!$record) {
-            return $this->errorResponse('QR code not found.', 404);
+        if (! $record) {
+            return $this->structuredErrorResponse(
+                error: 'Resource not found',
+                code: 'NOT_FOUND',
+                httpCode: 404,
+                message: 'QR code not found.',
+            );
         }
 
         if ($record->qr_expires_at && Carbon::now()->gt($record->qr_expires_at)) {
             return $this->errorResponse('QR code has expired.', 410);
         }
 
-        // Verify the linked session is still active
         $session = $record->session;
 
         if ($session->status !== 'active') {
             return $this->errorResponse("Session is not active (status: {$session->status}).", 422);
         }
 
-        // Mark as present
+        $session->loadMissing('learningGroup');
+        $group = $session->learningGroup;
+
+        if ($denied = $this->assertDeviceCanAccessGroup($request, $group)) {
+            return $denied;
+        }
+
         $record->update([
             'status'    => 'present',
             'marked_by' => 'student_qr',
@@ -337,6 +356,42 @@ class AttendanceController extends Controller
             'status'     => $record->status,
             'marked_at'  => $record->marked_at->toDateTimeString(),
         ], 'Attendance recorded successfully');
+    }
+
+    private function assertDeviceCanAccessGroup(Request $request, LearningGroup $group): ?JsonResponse
+    {
+        /** @var AttendanceDevice|null $device */
+        $device = $request->attributes->get('attendance_device');
+
+        if (! $device) {
+            return $this->structuredErrorResponse(
+                error: 'Unknown or inactive attendance device.',
+                code: 'FORBIDDEN',
+                httpCode: 403,
+            );
+        }
+
+        if ($device->branch_id !== null && $group->branch_id !== null && $device->branch_id !== $group->branch_id) {
+            return $this->structuredErrorResponse(
+                error: 'Device not authorized for this branch.',
+                code: 'FORBIDDEN',
+                httpCode: 403,
+            );
+        }
+
+        if ($device->instructor_id !== null) {
+            $instructor = $device->instructor;
+
+            if (! $instructor || ! $this->instructorCanAccessGroup($group, $instructor)) {
+                return $this->structuredErrorResponse(
+                    error: 'Device not authorized for this learning group.',
+                    code: 'FORBIDDEN',
+                    httpCode: 403,
+                );
+            }
+        }
+
+        return null;
     }
 
     private function instructorCanAccessGroup(LearningGroup $group, Instructor $instructor): bool

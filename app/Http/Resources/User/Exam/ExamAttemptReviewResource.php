@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\User\Exam;
 
+use App\Services\User\ExamService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -12,8 +13,16 @@ class ExamAttemptReviewResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        /** @var ExamService $examService */
+        $examService = app(ExamService::class);
+
         $answersByQuestion = $this->answers->keyBy('question_id');
-        $questions = $this->relationLoaded('questions') ? $this->questions : collect();
+        $questions = $this->resolveAttemptQuestions()
+            ->unique('id')
+            ->values();
+
+        $attemptMaxMarks = $examService->getAttemptMaxMarks($this->resource);
+        $attemptPassingMark = $examService->getAttemptPassingMark($this->resource);
 
         $questionItems = $questions->map(function ($question) use ($answersByQuestion) {
             $answer = $answersByQuestion->get($question->id);
@@ -29,6 +38,9 @@ class ExamAttemptReviewResource extends JsonResource
             return [
                 'id' => $question->id,
                 'question_text' => $question->question_text,
+                'question_image' => $question->question_image_url,
+                'question_code' => $question->question_code,
+                'question_code_language' => $question->question_code_language,
                 'marks' => $question->marks,
                 'result_status' => $resultStatus,
                 'selected_choice_id' => $selectedId,
@@ -61,11 +73,32 @@ class ExamAttemptReviewResource extends JsonResource
             'exam_title' => $this->exam->title,
             'status' => $this->status,
             'score' => $this->score,
-            'total_marks' => $this->exam->total_marks,
-            'passing_mark' => $this->exam->passing_mark,
+            'total_marks' => $attemptMaxMarks,
+            'attempt_max_marks' => $attemptMaxMarks,
+            'passing_mark' => $attemptPassingMark,
+            'attempt_passing_mark' => $attemptPassingMark,
+            'exam_total_marks' => $this->exam->total_marks,
+            'exam_passing_mark' => $this->exam->passing_mark,
             'finished_at' => $this->finished_at?->format('Y-m-d H:i'),
             'summary' => $summary,
             'questions' => $questionItems,
         ];
+    }
+
+    private function resolveAttemptQuestions()
+    {
+        if ($this->relationLoaded('questions') && $this->questions->isNotEmpty()) {
+            return $this->questions;
+        }
+
+        if ($this->relationLoaded('questionsWithTrashed')) {
+            return $this->questionsWithTrashed;
+        }
+
+        if ($this->relationLoaded('questions')) {
+            return $this->questions;
+        }
+
+        return collect();
     }
 }

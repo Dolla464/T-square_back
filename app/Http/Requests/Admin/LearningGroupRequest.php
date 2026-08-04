@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\SuspiciousRequestLogger;
 use App\Models\LearningGroupSchedule;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -10,9 +11,34 @@ use Illuminate\Validation\Validator;
 
 class LearningGroupRequest extends FormRequest
 {
+    public const ALLOWED = [
+        'group_name',
+        'course_id',
+        'course_instructor_id',
+        'instructor_id',
+        'start_date',
+        'is_historical',
+        'status',
+        'schedules',
+        'student_ids',
+        'student_statuses',
+    ];
+
+    private const FORBIDDEN_DETECTORS = [
+        'branch_id',
+    ];
+
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $extra = SuspiciousRequestLogger::detectExtraFields($this, self::ALLOWED);
+        if ($extra !== []) {
+            SuspiciousRequestLogger::log($this, 'forbidden_fields_on_learning_group', $extra);
+        }
     }
 
     /**
@@ -20,6 +46,10 @@ class LearningGroupRequest extends FormRequest
      */
     public function rules(): array
     {
+        $forbiddenRules = collect(self::FORBIDDEN_DETECTORS)
+            ->mapWithKeys(fn (string $field) => [$field => ['prohibited']])
+            ->all();
+
         $isUpdate = $this->route('learning_group') !== null;
 
         // Historical create allows past start_date; normal create requires today or later.
@@ -38,7 +68,7 @@ class LearningGroupRequest extends FormRequest
             ? 'nullable|array|min:1'
             : 'required|array|min:1';
 
-        return [
+        return array_merge($forbiddenRules, [
             'group_name'   => 'required|string|max:255',
             'course_id'    => 'required|exists:courses,id',
             'course_instructor_id' => 'required|exists:course_instructor,id',
@@ -57,7 +87,12 @@ class LearningGroupRequest extends FormRequest
             'student_ids.*'      => 'integer|exists:students,id',
             'student_statuses'   => 'nullable|array',
             'student_statuses.*' => 'boolean',
-        ];
+        ]);
+    }
+
+    public function safePayload(): array
+    {
+        return $this->safe()->only(self::ALLOWED);
     }
 
     /**

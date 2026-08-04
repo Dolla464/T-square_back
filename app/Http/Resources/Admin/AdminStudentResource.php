@@ -24,6 +24,12 @@ class AdminStudentResource extends JsonResource
                 ? asset('storage/' . $this->avatar)
                 : null,
             'gender'            => $this->gender,
+            'age'               => $this->age,
+            'qualification'     => $this->qualification,
+            'guardian_phone'    => $this->guardian_phone,
+            'national_id'       => $this->national_id,
+            'address'           => $this->address,
+            'notes'             => $this->notes,
             'status'            => $this->status,
             'created_by'        => $this->created_by,
 

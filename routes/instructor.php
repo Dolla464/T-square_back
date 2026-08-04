@@ -48,6 +48,7 @@ Route::middleware(['auth:sanctum', 'role:instructor'])
 
         // ── Questions ───────────────────────────────────────────────────────
         Route::prefix('questions')->name('questions.')->group(function () {
+            Route::post('upload-image', [InstructorQuestionController::class, 'uploadImage'])->name('upload-image');
             Route::get('trash', [InstructorQuestionController::class, 'trash'])->name('trash');
             Route::post('{id}/restore', [InstructorQuestionController::class, 'restore'])->name('restore');
             Route::delete('{id}/force-delete', [InstructorQuestionController::class, 'forceDelete'])->name('force-delete');

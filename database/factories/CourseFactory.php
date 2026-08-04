@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\CourseInstructor;
 use App\Models\Instructor;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Arr;
 
 /**
  * @extends Factory<Course>
@@ -62,7 +63,20 @@ class CourseFactory extends Factory
 
     public function configure(): static
     {
-        return $this->afterCreating(function (Course $course) {
+        return $this->afterCreating(function (Course $course, ?array $attributes = null) {
+            $attributes ??= [];
+
+            $stats = Arr::only($attributes, [
+                'avg_rating',
+                'total_reviews',
+                'total_students',
+                'total_revenue',
+            ]);
+
+            if ($stats !== []) {
+                $course->forceFill($stats)->saveQuietly();
+            }
+
             if ($course->instructor_id) {
                 CourseInstructor::firstOrCreate(
                     [

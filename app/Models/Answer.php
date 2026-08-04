@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Answer extends Model
 {
-    protected $fillable = ['attempt_id', 'question_id', 'choice_id', 'is_correct', 'marks_earned'];
+    protected $fillable = ['attempt_id', 'question_id', 'choice_id'];
 
     protected $casts = [
         'is_correct' => 'boolean',

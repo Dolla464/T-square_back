@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Instructor;
 use App\Http\Controllers\Concerns\EnsuresInstructorOwnsResource;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUpdateQuestionRequest;
+use App\Http\Requests\Admin\UploadQuestionImageRequest;
 use App\Http\Resources\Admin\AdminQuestionResource;
 use App\Models\Exam;
 use App\Models\Question;
@@ -182,5 +183,17 @@ class InstructorQuestionController extends Controller
         $this->questionService->forceDeleteQuestion($id);
 
         return $this->successResponse(null, 'Question and its choices deleted permanently from system');
+    }
+
+    public function uploadImage(UploadQuestionImageRequest $request): JsonResponse
+    {
+        $instructor = $this->resolveInstructor($request);
+        if (! $instructor) {
+            return $this->instructorNotFoundResponse();
+        }
+
+        $upload = $this->questionService->uploadQuestionImage($request->file('image'));
+
+        return $this->successResponse($upload, 'Question image uploaded successfully', 201);
     }
 }

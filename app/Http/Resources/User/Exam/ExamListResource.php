@@ -7,24 +7,22 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class ExamListResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
-        // Since we added withCount('attempts') in the service, the value is ready as an Attribute
+        $studentId = $request->user()->student->id;
         $attemptsCount = $this->attempts_count ?? 0;
 
-        // Calculate the remaining attempts smartly to handle the null (infinite attempts)
         $remainingAttempts = is_null($this->max_attempts) || $this->max_attempts == 0
             ? 'unlimited'
             : max(0, $this->max_attempts - $attemptsCount);
 
-        // Check if the student has passed any previous attempt for this exam
+        $hasOngoingAttempt = $this->attempts()
+            ->where('student_id', $studentId)
+            ->where('status', 'ongoing')
+            ->exists();
+
         $isPassedBefore = $this->attempts()
-            ->where('student_id', $request->user()->student->id)
+            ->where('student_id', $studentId)
             ->where('status', 'passed')
             ->exists();
 
@@ -38,15 +36,14 @@ class ExamListResource extends JsonResource
             'is_final' => (bool) $this->is_final,
             'course_title' => $this->course?->title,
 
-            // The new data for the attempts
             'max_attempts' => $this->max_attempts,
             'attempts_count' => $attemptsCount,
             'remaining_attempts' => $remainingAttempts,
             'has_attempt' => $attemptsCount > 0,
-            'is_locked' => $remainingAttempts !== 'unlimited' && $remainingAttempts <= 0,
+            'has_ongoing_attempt' => $hasOngoingAttempt,
+            'is_locked' => ! $hasOngoingAttempt && $remainingAttempts !== 'unlimited' && $remainingAttempts <= 0,
             'is_passed_before' => $isPassedBefore,
 
-            // Lets the frontend warn the student before they start an empty exam
             'questions_count' => $this->questions_count ?? $this->questions()->count(),
             'has_questions' => ($this->questions_count ?? $this->questions()->count()) > 0,
         ];

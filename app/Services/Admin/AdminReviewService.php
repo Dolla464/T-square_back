@@ -96,9 +96,9 @@ class AdminReviewService
     public function update(CourseReview $review, array $data): CourseReview
     {
         if (array_key_exists('review_status', $data)) {
-            $review->update([
+            $review->forceFill([
                 'review_status' => $data['review_status'],
-            ]);
+            ])->save();
         }
 
         return $review->load(['course', 'student', 'instructor']);

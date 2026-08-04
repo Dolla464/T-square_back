@@ -2,11 +2,25 @@
 
 namespace App\Http\Requests\Api\Student;
 
+use App\Support\SuspiciousRequestLogger;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Validator;
+use Illuminate\Validation\Validator as IlluminateValidator;
 
 class StoreCourseReviewRequest extends FormRequest
 {
+    public const ALLOWED = [
+        'course_id',
+        'overall_comment',
+        'ratings',
+        'instructor_ratings',
+    ];
+
+    private const FORBIDDEN_DETECTORS = [
+        'review_status',
+        'status',
+        'student_id',
+    ];
+
     private const COURSE_QUESTION_IDS = [
         'course_organization',
         'course_materials',
@@ -38,8 +52,20 @@ class StoreCourseReviewRequest extends FormRequest
         return $user !== null && $user->student()->exists();
     }
 
+    protected function prepareForValidation(): void
+    {
+        $extra = SuspiciousRequestLogger::detectExtraFields($this, self::ALLOWED);
+        if ($extra !== []) {
+            SuspiciousRequestLogger::log($this, 'forbidden_fields_on_course_review', $extra);
+        }
+    }
+
     public function rules(): array
     {
+        $forbiddenRules = collect(self::FORBIDDEN_DETECTORS)
+            ->mapWithKeys(fn (string $field) => [$field => ['prohibited']])
+            ->all();
+
         $ratingRule = ['required', 'integer', 'min:1', 'max:5'];
         $hasPerInstructorRatings = is_array($this->input('instructor_ratings'))
             && count($this->input('instructor_ratings')) > 0;
@@ -71,12 +97,17 @@ class StoreCourseReviewRequest extends FormRequest
             }
         }
 
-        return $rules;
+        return array_merge($forbiddenRules, $rules);
     }
 
-    public function withValidator(Validator $validator): void
+    public function safePayload(): array
     {
-        $validator->after(function (Validator $v) {
+        return $this->safe()->only(self::ALLOWED);
+    }
+
+    public function withValidator(IlluminateValidator $validator): void
+    {
+        $validator->after(function (IlluminateValidator $v) {
             $entries = $this->input('instructor_ratings', []);
             if (! is_array($entries) || $entries === []) {
                 return;

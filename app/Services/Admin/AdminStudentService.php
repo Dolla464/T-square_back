@@ -95,7 +95,15 @@ class AdminStudentService
             unset($data['avatar']);
         }
 
-        $student->update($data);
+        $profileData = collect($data)->except('status')->all();
+
+        if ($profileData !== []) {
+            $student->update($profileData);
+        }
+
+        if (array_key_exists('status', $data)) {
+            $student->forceFill(['status' => $data['status']])->save();
+        }
 
         return $student->load('user:id,email');
     }
@@ -118,7 +126,7 @@ class AdminStudentService
      */
     public function updateStatus(Student $student, string $status)
     {
-        $student->update(['status' => $status]);
+        $student->forceFill(['status' => $status])->save();
         return $student;
     }
 

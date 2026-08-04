@@ -22,7 +22,7 @@ class ProfileService
             if ($relation === 'student') {
                 $this->ensureStudentProfile($user);
                 $user->load([
-                    'student:id,user_id,full_name,avatar,gender,phone',
+                    'student:id,user_id,full_name,avatar,gender,phone,age,qualification,guardian_phone,national_id,address,notes',
                 ]);
             } elseif ($relation === 'instructor') {
                 $user->load([
@@ -76,6 +76,17 @@ class ProfileService
                     'facebook_url' => $validated['facebook_url'] ?? null,
                 ];
 
+                if ($relation === 'student') {
+                    $profileFields = array_merge($profileFields, [
+                        'age' => $validated['age'] ?? null,
+                        'qualification' => $validated['qualification'] ?? null,
+                        'guardian_phone' => $validated['guardian_phone'] ?? null,
+                        'national_id' => $validated['national_id'] ?? null,
+                        'address' => $validated['address'] ?? null,
+                        'notes' => $validated['notes'] ?? null,
+                    ]);
+                }
+
                 $profileData = array_filter(
                     $profileFields,
                     fn ($value) => ! is_null($value)
@@ -117,19 +128,26 @@ class ProfileService
 
     private function ensureStudentProfile(User $user): Student
     {
-        return Student::firstOrCreate(
-            ['user_id' => $user->id],
-            [
-                'full_name' => $user->name,
-                'phone' => null,
-                'enrollment_number' => 'TEMP-' . $user->id,
-                'group_id' => null,
-                'avatar' => null,
-                'gender' => null,
-                'status' => 'active',
-                'created_by' => 'site',
-            ]
-        );
+        $student = Student::firstOrNew(['user_id' => $user->id]);
+
+        if ($student->exists) {
+            return $student;
+        }
+
+        $student->fill([
+            'full_name' => $user->name,
+            'phone' => null,
+            'avatar' => null,
+            'gender' => null,
+        ]);
+
+        $student->forceFill([
+            'enrollment_number' => 'TEMP-'.$user->id,
+            'status' => 'active',
+            'created_by' => 'site',
+        ])->save();
+
+        return $student;
     }
 
     /**

@@ -15,6 +15,7 @@ class LearningGroup extends Model
     protected $fillable = [
         'group_name',
         'course_id',
+        'branch_id',
         'course_instructor_id',
         'start_date',
         'end_date',
@@ -29,6 +30,11 @@ class LearningGroup extends Model
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function courseInstructor(): BelongsTo

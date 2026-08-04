@@ -94,7 +94,8 @@ it('allows receptionist to list payments', function (): void {
     createReceptionistOrder($student, $this->course);
 
     $this->getJson('/api/receptionist/payments')
-        ->assertOk();
+        ->assertOk()
+        ->assertJsonMissing(['stats']);
 });
 
 it('forbids receptionist from exporting payments', function (): void {

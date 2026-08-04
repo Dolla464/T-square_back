@@ -14,12 +14,22 @@ class Student extends Model
         'user_id',
         'full_name',
         'phone',
-        'enrollment_number',
         'avatar',
         'gender',
-        'status',
-        'created_by',
+        'age',
+        'qualification',
+        'guardian_phone',
+        'national_id',
+        'address',
+        'notes',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'age' => 'integer',
+        ];
+    }
 
     public function user()
     {

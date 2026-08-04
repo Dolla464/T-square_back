@@ -53,6 +53,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])
 
         // Users
         Route::post('users', [AdminUserController::class, 'store'])
+            ->middleware('throttle:20,1')
             ->name('users.store');
 
         // Tags (full CRUD)
@@ -97,6 +98,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])
 
         // Questions
         Route::prefix('questions')->name('questions.')->group(function () {
+            Route::post('upload-image', [AdminQuestionController::class, 'uploadImage'])->name('upload-image');
             Route::get('trash', [AdminQuestionController::class, 'trash'])->name('trash');
             Route::post('{id}/restore', [AdminQuestionController::class, 'restore'])->name('restore');
             Route::delete('{id}/force-delete', [AdminQuestionController::class, 'forceDelete'])->name('force-delete');

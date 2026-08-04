@@ -53,7 +53,7 @@ class AdminLearningGroupController extends Controller
 
     public function store(LearningGroupRequest $request): JsonResponse
     {
-        $groupResource = $this->adminLearningGroupService->createGroup($request->validated());
+        $groupResource = $this->adminLearningGroupService->createGroup($request->safePayload());
 
         return $this->successResponse($groupResource, 'Learning group created successfully', 201);
     }
@@ -67,7 +67,7 @@ class AdminLearningGroupController extends Controller
 
     public function update(LearningGroupRequest $request, LearningGroup $learningGroup): JsonResponse
     {
-        $groupResource = $this->adminLearningGroupService->updateGroup($learningGroup, $request->validated());
+        $groupResource = $this->adminLearningGroupService->updateGroup($learningGroup, $request->safePayload());
 
         return $this->successResponse($groupResource, 'Learning group and students updated successfully');
     }
@@ -648,15 +648,14 @@ class AdminLearningGroupController extends Controller
 
         fputcsv($handle, ['#', 'Student Name', 'Email', 'Attempts', 'Highest Score', 'Status']);
 
-        $totalMarks = $payload['total_marks'] ?? null;
-
         foreach ($payload['students'] as $idx => $student) {
             $hasAttempts = $student['has_attempts'] ?? false;
             $highestScore = $student['highest_score'] ?? null;
+            $attemptMaxMarks = $student['highest_attempt_max_marks'] ?? null;
 
             if ($hasAttempts && $highestScore !== null) {
-                $scoreDisplay = $totalMarks !== null
-                    ? $highestScore.' / '.$totalMarks
+                $scoreDisplay = $attemptMaxMarks !== null
+                    ? $highestScore.' / '.$attemptMaxMarks
                     : (string) $highestScore;
                 $status = ($student['is_passed'] ?? false) ? 'Passed' : 'Failed';
             } else {

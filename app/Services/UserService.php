@@ -4,54 +4,70 @@ namespace App\Services;
 
 use App\Models\Student;
 use App\Models\User;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class UserService
 {
-    public function handleUserCreation(array $data)
+    public function registerStudent(array $data): User
+    {
+        $data['role'] = 'student';
+        $data['created_by'] = 'site';
+
+        return $this->handleUserCreation($data);
+    }
+
+    public function handleUserCreation(array $data): User
     {
         return DB::transaction(function () use ($data) {
-            // 1. create the user record (login data)
-            $user = User::create([
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'password' => $data['password'],
+            $user = User::create(Arr::only($data, ['name', 'email', 'password']));
+
+            $user->forceFill([
                 'role' => $data['role'],
                 'email_verified_at' => $data['verified'] ?? null,
                 'last_login_at' => now(),
-            ]);
+            ])->save();
 
-            // assign the role (Spatie Permissions usually)
             $user->assignRole($data['role']);
 
-            // 2. create the sub-records based on the type
             if ($data['role'] === 'student') {
-                $user->student()->create([
-                    'full_name' => $data['full_name'], // modify here: the original full name
-                    'phone' => $data['phone'] ?? null,
+                $student = $user->student()->make(Arr::only($data, [
+                    'full_name',
+                    'phone',
+                    'avatar',
+                    'gender',
+                    'age',
+                    'qualification',
+                    'guardian_phone',
+                    'national_id',
+                    'address',
+                    'notes',
+                ]));
+
+                $student->forceFill([
                     'enrollment_number' => $this->generateEnrollmentNumber(),
-                    'group_id' => $data['group_id'] ?? null,
-                    'avatar' => $data['avatar'] ?? null,
-                    'gender' => $data['gender'] ?? null,
                     'status' => 'active',
                     'created_by' => $data['created_by'] ?? 'admin',
-                ]);
+                ])->save();
             } elseif ($data['role'] === 'instructor') {
-                $user->instructor()->create([
-                    'full_name' => $data['full_name'], // modify here: the original full name
-                    'phone' => $data['phone'] ?? null,
-                    'bio' => $data['bio'] ?? null,
-                    'field' => $data['field'] ?? null,
-                    'avatar' => $data['avatar'] ?? null,
-                    'gender' => $data['gender'] ?? null,
-                    'insta_url' => $data['insta_url'] ?? null,
-                    'linkedin_url' => $data['linkedin_url'] ?? null,
-                    'facebook_url' => $data['facebook_url'] ?? null,
-                    'status' => 'active',
+                $instructor = $user->instructor()->make(Arr::only($data, [
+                    'full_name',
+                    'phone',
+                    'bio',
+                    'field',
+                    'avatar',
+                    'gender',
+                    'insta_url',
+                    'linkedin_url',
+                    'facebook_url',
+                ]));
+
+                $instructor->forceFill([
+                    'status' => $data['status'] ?? 'active',
                     'avg_rating' => 0,
                     'reviews_count' => 0,
-                ]);
+                ])->save();
             }
 
             return $user;
@@ -61,13 +77,11 @@ class UserService
     /**
      * generate the enrollment number: text part + random numbers
      */
-    private function generateEnrollmentNumber()
+    private function generateEnrollmentNumber(): string
     {
         do {
-            // generate the number: TSQ-A1B2-2026
             $number = 'TSQ-'.strtoupper(Str::random(4)).'-'.date('Y');
 
-            // check for duplication
             $exists = Student::where('enrollment_number', $number)->exists();
         } while ($exists);
 

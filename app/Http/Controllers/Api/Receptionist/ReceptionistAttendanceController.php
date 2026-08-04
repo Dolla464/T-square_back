@@ -157,6 +157,14 @@ class ReceptionistAttendanceController extends Controller
 
         $session = AttendanceSession::findOrFail($request->session_id);
 
+        $isEnrolled = $session->learningGroup->students()
+            ->where('students.id', $request->student_id)
+            ->exists();
+
+        if (! $isEnrolled) {
+            return $this->errorResponse('Student is not enrolled in this group.', 422);
+        }
+
         $record = AttendanceRecord::updateOrCreate(
             [
                 'session_id' => $request->session_id,

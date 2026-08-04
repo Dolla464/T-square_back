@@ -3,13 +3,13 @@
 namespace App\Services\Admin;
 
 use App\Models\Question;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class AdminQuestionService
 {
-    /**
-     * Get questions by exam id with their choices.
-     */
     public function getQuestionsByExam(int $examId)
     {
         return Question::where('exam_id', $examId)
@@ -18,61 +18,36 @@ class AdminQuestionService
             ->get();
     }
 
-    /**
-     * Create a new question with its choices in a single transaction
-     */
     public function createQuestion(array $data): Question
     {
         return DB::transaction(function () use ($data) {
-            // 1. Save the question first
-            $question = Question::create([
-                'exam_id'       => $data['exam_id'],
-                'question_text' => $data['question_text'],
-                'marks'         => $data['marks'],
-            ]);
+            $question = Question::create($this->questionAttributes($data));
 
-            // 2. Save the choices in a single transaction
             $question->choices()->createMany($data['choices']);
 
             return $question->load('choices');
         });
     }
 
-    /**
-     * Update the question and its choices
-     */
     public function updateQuestion(Question $question, array $data): Question
     {
         return DB::transaction(function () use ($question, $data) {
-            // 1. Update the basic question data
-            $question->update([
-                'exam_id'       => $data['exam_id'],
-                'question_text' => $data['question_text'],
-                'marks'         => $data['marks'],
-            ]);
+            $this->deleteQuestionImageIfReplaced($question, $data['question_image'] ?? null);
 
-            // 2. Delete the old choices and rebuild the new ones (easier and safer way to update)
-            $question->choices()->forceDelete();
-            // 3. Convert the choices to an explicit Array
+            $question->update($this->questionAttributes($data));
+
             $choices = is_array($data['choices']) ? $data['choices'] : iterator_to_array($data['choices']);
-            // 4. Create the new choices
-            $question->choices()->createMany($choices);
+            $this->syncChoices($question, $choices);
 
             return $question->load('choices');
         });
     }
 
-    /**
-     * Delete a question (Soft Delete)
-     */
     public function deleteQuestion(Question $question): bool
     {
         return $question->delete();
     }
 
-    /**
-     * Get trashed questions, optionally scoped to an exam.
-     */
     public function getTrashedQuestions(?int $examId = null)
     {
         return Question::onlyTrashed()
@@ -82,38 +57,114 @@ class AdminQuestionService
             ->get();
     }
 
-    /**
-     * Restore a deleted question and its choices
-     */
     public function restoreQuestion(int $id): Question
     {
         return DB::transaction(function () use ($id) {
-            // Get the question even if it is deleted
             $question = Question::withTrashed()->findOrFail($id);
-
-            // Restore the question
             $question->restore();
-
-            // Restore the choices that are associated with it (if the Model Events are working, you will get it automatically, if not, this line is an additional security)
             $question->choices()->restore();
 
             return $question->load('choices');
         });
     }
 
-    /**
-     * Force delete a question and its choices from the database
-     */
     public function forceDeleteQuestion(int $id): bool
     {
         return DB::transaction(function () use ($id) {
             $question = Question::withTrashed()->findOrFail($id);
 
-            // Delete the choices first to ensure a clean deletion (or they will be deleted Cascade if not secured in the database)
+            $this->deleteStoredQuestionImage($question->question_image);
             $question->choices()->forceDelete();
 
-            // Delete the question finally
             return (bool) $question->forceDelete();
         });
+    }
+
+    public function uploadQuestionImage(UploadedFile $file): array
+    {
+        $path = $file->store('question-media', 'public');
+
+        return [
+            'path' => $path,
+            'url' => asset('storage/'.$path),
+        ];
+    }
+
+    private function syncChoices(Question $question, array $choices): void
+    {
+        if ($question->studentAnswers()->exists()) {
+            $this->updateChoicesInPlace($question, $choices);
+
+            return;
+        }
+
+        $question->choices()->forceDelete();
+        $question->choices()->createMany($choices);
+    }
+
+    private function updateChoicesInPlace(Question $question, array $choices): void
+    {
+        $existingChoices = $question->choices()->orderBy('id')->get();
+
+        if ($choices !== [] && count($choices) !== $existingChoices->count()) {
+            throw ValidationException::withMessages([
+                'choices' => 'Choice structure cannot be changed after students have answered this question.',
+            ]);
+        }
+
+        foreach ($choices as $index => $choiceData) {
+            if (! $existingChoices->has($index)) {
+                throw ValidationException::withMessages([
+                    'choices' => 'Choice structure cannot be changed after students have answered this question.',
+                ]);
+            }
+
+            $existingChoices[$index]->update([
+                'choice_text' => $choiceData['choice_text'],
+                'is_correct' => $choiceData['is_correct'],
+            ]);
+        }
+    }
+
+    private function questionAttributes(array $data): array
+    {
+        return [
+            'exam_id' => $data['exam_id'],
+            'question_text' => filled(trim((string) ($data['question_text'] ?? '')))
+                ? trim((string) $data['question_text'])
+                : null,
+            'question_image' => filled($data['question_image'] ?? null)
+                ? (string) $data['question_image']
+                : null,
+            'question_code' => filled(trim((string) ($data['question_code'] ?? '')))
+                ? trim((string) $data['question_code'])
+                : null,
+            'question_code_language' => filled(trim((string) ($data['question_code'] ?? '')))
+                ? ($data['question_code_language'] ?? null)
+                : null,
+            'marks' => $data['marks'],
+        ];
+    }
+
+    private function deleteQuestionImageIfReplaced(Question $question, ?string $newPath): void
+    {
+        $currentPath = $question->question_image;
+
+        if (! $currentPath) {
+            return;
+        }
+
+        if ($newPath === null || $newPath === '' || $newPath !== $currentPath) {
+            $this->deleteStoredQuestionImage($currentPath);
+        }
+    }
+
+    private function deleteStoredQuestionImage(?string $path): void
+    {
+        if (! $path || filter_var($path, FILTER_VALIDATE_URL)) {
+            return;
+        }
+
+        Storage::disk('public')->delete($path);
     }
 }

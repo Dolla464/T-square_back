@@ -31,7 +31,7 @@ class SettingSeeder extends Seeder
             // sections media
             ['key' => 'discovery_media', 'value' => '[]', 'type' => 'json', 'group_name' => 'general'],
             ['key' => 'about_media', 'value' => '[]', 'type' => 'json', 'group_name' => 'general'],
-            ['key' => 'hero_media', 'value' => '[]', 'type' => 'json', 'group_name' => 'general'],
+            ['key' => 'hero_image', 'value' => '', 'type' => 'string', 'group_name' => 'general'],
             ['key' => 'hero_title_en', 'value' => 'Start Your Tech Journey with  ', 'type' => 'string', 'group_name' => 'general'],
             ['key' => 'hero_title_ar', 'value' => 'ابدأ رحلتك التقنية بـ ', 'type' => 'string', 'group_name' => 'general'],
             ['key' => 'hero_title_highlight_en', 'value' => 'Confidence', 'type' => 'string', 'group_name' => 'general'],

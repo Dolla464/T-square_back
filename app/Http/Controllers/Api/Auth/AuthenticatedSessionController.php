@@ -21,7 +21,7 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $user = $request->user();
-        $user->update(['last_login_at' => now()]);
+        $user->forceFill(['last_login_at' => now()])->save();
 
         $token = $user->createToken('T-Square-Access-Token')->plainTextToken;
 
