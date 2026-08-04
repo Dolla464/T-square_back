@@ -22,7 +22,7 @@ class ProfileService
             if ($relation === 'student') {
                 $this->ensureStudentProfile($user);
                 $user->load([
-                    'student:id,user_id,full_name,avatar,gender,phone',
+                    'student:id,user_id,full_name,avatar,gender,phone,age,qualification,guardian_phone,national_id,address,notes',
                 ]);
             } elseif ($relation === 'instructor') {
                 $user->load([
@@ -75,6 +75,17 @@ class ProfileService
                     'linkedin_url' => $validated['linkedin_url'] ?? null,
                     'facebook_url' => $validated['facebook_url'] ?? null,
                 ];
+
+                if ($relation === 'student') {
+                    $profileFields = array_merge($profileFields, [
+                        'age' => $validated['age'] ?? null,
+                        'qualification' => $validated['qualification'] ?? null,
+                        'guardian_phone' => $validated['guardian_phone'] ?? null,
+                        'national_id' => $validated['national_id'] ?? null,
+                        'address' => $validated['address'] ?? null,
+                        'notes' => $validated['notes'] ?? null,
+                    ]);
+                }
 
                 $profileData = array_filter(
                     $profileFields,

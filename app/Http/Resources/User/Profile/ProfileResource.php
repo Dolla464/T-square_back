@@ -26,6 +26,12 @@ class ProfileResource extends JsonResource
                         : asset('assets/default-student.png'),
                     'gender'    => $this->student->gender ?? 'not_set',
                     'phone'     => $this->student->phone ?? '',
+                    'age'               => $this->student->age,
+                    'qualification'     => $this->student->qualification ?? '',
+                    'guardian_phone'    => $this->student->guardian_phone ?? '',
+                    'national_id'       => $this->student->national_id ?? '',
+                    'address'           => $this->student->address ?? '',
+                    'notes'             => $this->student->notes ?? '',
                 ];
             }),
             'instructor'  => $this->whenLoaded('instructor', function () {

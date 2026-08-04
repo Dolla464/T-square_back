@@ -24,6 +24,12 @@ class StudentFactory extends Factory
             'phone' => $this->faker->unique()->phoneNumber(),
             'avatar' => 'default_student.png',
             'gender' => $this->faker->randomElement(['male', 'female']),
+            'age' => $this->faker->optional()->numberBetween(18, 40),
+            'qualification' => $this->faker->optional()->jobTitle(),
+            'guardian_phone' => $this->faker->optional()->phoneNumber(),
+            'national_id' => $this->faker->optional()->numerify('##############'),
+            'address' => $this->faker->optional()->address(),
+            'notes' => $this->faker->optional()->sentence(),
         ];
     }
 

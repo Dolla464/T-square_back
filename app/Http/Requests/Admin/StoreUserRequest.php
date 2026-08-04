@@ -19,6 +19,12 @@ class StoreUserRequest extends FormRequest
         'avatar',
         'group_id',
         'role',
+        'age',
+        'qualification',
+        'guardian_phone',
+        'national_id',
+        'address',
+        'notes',
     ];
 
     private const INSTRUCTOR_KEYS = [
@@ -103,6 +109,12 @@ class StoreUserRequest extends FormRequest
             'insta_url' => ['nullable', 'url'],
             'linkedin_url' => ['nullable', 'url'],
             'facebook_url' => ['nullable', 'url'],
+            'age' => ['nullable', 'integer', 'min:1', 'max:120'],
+            'qualification' => ['nullable', 'string', 'max:255'],
+            'guardian_phone' => ['nullable', 'string', 'max:20'],
+            'national_id' => ['nullable', 'digits:14', 'unique:students,national_id'],
+            'address' => ['nullable', 'string'],
+            'notes' => ['nullable', 'string'],
         ]);
     }
 

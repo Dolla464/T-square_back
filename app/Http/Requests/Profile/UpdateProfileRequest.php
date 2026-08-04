@@ -21,6 +21,12 @@ class UpdateProfileRequest extends FormRequest
         'name',
         'password',
         'password_confirmation',
+        'age',
+        'qualification',
+        'guardian_phone',
+        'national_id',
+        'address',
+        'notes',
     ];
 
     private const FORBIDDEN_DETECTORS = [
@@ -70,6 +76,17 @@ class UpdateProfileRequest extends FormRequest
             'linkedin_url' => ['sometimes', 'nullable', 'url', 'max:255'],
             'facebook_url' => ['sometimes', 'nullable', 'url', 'max:255'],
             'phone' => $phoneRules,
+            'age' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:120'],
+            'qualification' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'guardian_phone' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'national_id' => [
+                'sometimes',
+                'nullable',
+                'digits:14',
+                Rule::unique('students', 'national_id')->ignore($user?->student?->id),
+            ],
+            'address' => ['sometimes', 'nullable', 'string'],
+            'notes' => ['sometimes', 'nullable', 'string'],
         ]);
 
         if ($user && $user->role === 'student') {
@@ -109,6 +126,8 @@ class UpdateProfileRequest extends FormRequest
             'name.prohibited' => 'Name can not be changed.',
             'full_name.prohibited' => 'Name can not be changed.',
             'phone.unique' => 'This phone number is already in use.',
+            'national_id.digits' => 'National ID must be exactly 14 digits.',
+            'national_id.unique' => 'This national ID is already registered.',
         ];
     }
 }

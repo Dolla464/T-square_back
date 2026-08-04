@@ -16,7 +16,20 @@ class Student extends Model
         'phone',
         'avatar',
         'gender',
+        'age',
+        'qualification',
+        'guardian_phone',
+        'national_id',
+        'address',
+        'notes',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'age' => 'integer',
+        ];
+    }
 
     public function user()
     {

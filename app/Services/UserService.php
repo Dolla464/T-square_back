@@ -37,6 +37,12 @@ class UserService
                     'phone',
                     'avatar',
                     'gender',
+                    'age',
+                    'qualification',
+                    'guardian_phone',
+                    'national_id',
+                    'address',
+                    'notes',
                 ]));
 
                 $student->forceFill([
