@@ -132,12 +132,16 @@ class ExamService
         ]);
     }
 
-    public function saveAnswer(int $attemptId, int $questionId, int $choiceId): Answer
+    public function saveAnswer(int $attemptId, int $questionId, int $choiceId, ?int $studentId = null): Answer
     {
         $attempt = ExamAttempt::with([
             'exam',
             'questions',
         ])->findOrFail($attemptId);
+
+        if ($studentId !== null && $attempt->student_id !== $studentId) {
+            abort(403, 'This attempt does not belong to the authenticated student.');
+        }
 
         if ($attempt->status !== 'ongoing') {
             abort(403, 'This attempt is already closed and cannot be modified.');

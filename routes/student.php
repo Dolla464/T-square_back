@@ -28,6 +28,7 @@ Route::prefix('student')->name('student.')->group(function () {
         ->name('instructors.index');
 
     Route::post('contact-us', [ContactUsController::class, 'store'])
+        ->middleware('throttle:10,1')
         ->name('contact-us.store');
 
     // Solutions
@@ -64,7 +65,7 @@ Route::prefix('student')->name('student.')->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth:sanctum', 'role:student'])
+Route::middleware(['auth:sanctum', 'verified', 'role:student'])
     ->prefix('student')
     ->name('student.')
     ->group(function () {
@@ -112,7 +113,7 @@ Route::middleware(['auth:sanctum', 'role:student'])
             });
     });
 
-Route::middleware(['auth:sanctum', 'role:student'])
+Route::middleware(['auth:sanctum', 'verified', 'role:student'])
     ->prefix('exams')
     ->name('exams.')
     ->controller(ExamController::class)

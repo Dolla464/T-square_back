@@ -177,7 +177,7 @@ class AdminCourseService
      */
     public function update($id, array $data): Course
     {
-        \Log::info('UPDATE SERVICE', [
+        \Log::debug('UPDATE SERVICE', [
             'id' => $id,
             'has_previews' => isset($data['previews']),
             'previews_type' => gettype($data['previews'] ?? null),
@@ -272,17 +272,17 @@ class AdminCourseService
         // 7. Sync Previews
         $existingPreviews = $course->previews()->pluck('video_url', 'id')->toArray();
 
-        \Log::info('BEFORE SYNC CHECK', [
+        \Log::debug('BEFORE SYNC CHECK', [
             'has_previews' => $previews !== null,
             'previews_empty' => empty($previews),
             'previews_count' => $previews !== null ? count($previews) : 0,
         ]);
 
         if ($previews !== null && !empty($previews)) {
-            \Log::info('RUNNING SYNC PREVIEWS');
+            \Log::debug('RUNNING SYNC PREVIEWS');
             $this->syncPreviews($course, $previews, $existingPreviews);
         } else {
-            \Log::info('RUNNING DELETE ALL PREVIEWS');
+            \Log::debug('RUNNING DELETE ALL PREVIEWS');
             $this->deleteAllPreviews($course, $existingPreviews);
         }
 
@@ -316,7 +316,7 @@ class AdminCourseService
      */
     private function syncPreviews(Course $course, array $previews, array $existingVideoUrls): void
     {
-        \Log::info('SYNC PREVIEWS START', [
+        \Log::debug('SYNC PREVIEWS START', [
             'course_id' => $course->id,
             'previews_count' => count($previews),
             'existing_count' => count($existingVideoUrls),
@@ -335,7 +335,7 @@ class AdminCourseService
             $hasVideo = (! empty($item['video']) && $item['video'] instanceof UploadedFile)
                 || ! empty($item['video_url']);
 
-            \Log::info('PREVIEW ITEM', [
+            \Log::debug('PREVIEW ITEM', [
                 'index' => $index,
                 'hasTitle' => $hasTitle,
                 'hasVideo' => $hasVideo,
@@ -346,7 +346,7 @@ class AdminCourseService
 
             // Skip completely empty rows that would violate the NOT NULL constraint
             if (! $hasTitle && ! $hasVideo) {
-                \Log::info('SKIPPING EMPTY PREVIEW', ['index' => $index]);
+                \Log::debug('SKIPPING EMPTY PREVIEW', ['index' => $index]);
                 continue;
             }
 
@@ -451,14 +451,14 @@ class AdminCourseService
      */
     private function deleteAllPreviews(Course $course, array $existingVideoUrls): void
     {
-        \Log::info('DELETE ALL PREVIEWS', [
+        \Log::debug('DELETE ALL PREVIEWS', [
             'course_id' => $course->id,
             'existing_count' => count($existingVideoUrls),
         ]);
 
         foreach ($existingVideoUrls as $previewId => $videoUrl) {
 
-            \Log::info('DELETING PREVIEW FILE', [
+            \Log::debug('DELETING PREVIEW FILE', [
                 'preview_id' => $previewId,
                 'video_url' => $videoUrl,
                 'exists' => $videoUrl ? Storage::disk('public')->exists($videoUrl) : false,
@@ -471,7 +471,7 @@ class AdminCourseService
         }
 
         $deleted = $course->previews()->forceDelete();
-        \Log::info('DELETED FROM DB', ['count' => $deleted]);
+        \Log::debug('DELETED FROM DB', ['count' => $deleted]);
         // Delete all records from the database
         // $course->previews()->delete();
     }

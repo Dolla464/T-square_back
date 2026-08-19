@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Rules\NoDoubleExtension;
 use App\Support\SuspiciousRequestLogger;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\Validator;
@@ -71,10 +72,10 @@ class RegisterStudentRequest extends FormRequest
             'full_name' => ['required', 'string', 'max:255', 'min:10'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', Password::min(8)],
+            'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()],
             'phone' => ['required', 'string', 'max:20'],
             'gender' => ['nullable', Rule::in(['male', 'female'])],
-            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048', 'dimensions:max=4096,4096', new NoDoubleExtension],
         ]);
     }
 

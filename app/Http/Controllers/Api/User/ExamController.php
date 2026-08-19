@@ -61,10 +61,13 @@ class ExamController extends Controller
 
     public function answer(SaveAnswerRequest $request)
     {
+        $student = $request->user()->student;
+
         $this->examService->saveAnswer(
             $request->attempt_id,
             $request->question_id,
-            $request->choice_id
+            $request->choice_id,
+            $student?->id,
         );
 
         return response()->json(['status' => 'saved']);

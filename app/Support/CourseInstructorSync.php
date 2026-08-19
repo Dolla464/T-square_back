@@ -145,4 +145,28 @@ class CourseInstructorSync
             self::resolveForEnrollment($course, $enrollment)
         ));
     }
+
+    /**
+     * Resolve the instructor name for an enrollment:
+     * group instructor when assigned to a learning group, otherwise the course primary instructor.
+     */
+    public static function instructorNameForEnrollment(Enrollment $enrollment): string
+    {
+        $enrollment->loadMissing([
+            'course.instructor:id,full_name',
+            'learningGroup.courseInstructor.instructor:id,full_name',
+        ]);
+
+        if ($enrollment->group_id) {
+            $groupInstructorName = $enrollment->learningGroup?->instructor?->full_name;
+
+            if (! empty($groupInstructorName)) {
+                return $groupInstructorName;
+            }
+        }
+
+        $primaryInstructorName = $enrollment->course?->instructor?->full_name;
+
+        return ! empty($primaryInstructorName) ? $primaryInstructorName : 'Instructor';
+    }
 }

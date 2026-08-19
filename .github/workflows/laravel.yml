@@ -73,6 +73,12 @@ jobs:
     - name: Run Pint (Code Style)
       run: ./vendor/bin/pint --test
 
+    - name: Run Composer Audit
+      run: composer audit --format=plain || true
+
+    - name: Run NPM Audit
+      run: npm audit --audit-level=high || true
+
     - name: Execute tests with Coverage
       run: php artisan test --coverage-html=coverage-report
 

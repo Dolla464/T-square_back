@@ -7,7 +7,6 @@ use App\Models\LearningGroup;
 use App\Models\Order;
 use App\Models\Student;
 use App\Models\User;
-use App\Services\User\CertificateService;
 use App\Support\CourseInstructorSync;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -55,11 +54,7 @@ function courseWithTwoInstructorsForCertificate(): array
 
 function resolveCertificateInstructorName(Enrollment $enrollment): string
 {
-    $service = app(CertificateService::class);
-    $method = new ReflectionMethod(CertificateService::class, 'getInstructorNameForEnrollment');
-    $method->setAccessible(true);
-
-    return $method->invoke($service, $enrollment);
+    return CourseInstructorSync::instructorNameForEnrollment($enrollment);
 }
 
 it('uses the group instructor on the certificate when enrollment has a group', function (): void {

@@ -62,7 +62,7 @@ class AdminSettingService
                 continue;
             }
 
-            $pendingName = 'pending/website-media/' . uniqid() . '_' . Str::random(5) . '.' . ($file->getClientOriginalExtension() ?: 'jpg');
+            $pendingName = 'pending/website-media/'.uniqid().'_'.Str::random(5).'.'.$this->extensionFromMime($file);
             Storage::disk('local')->put($pendingName, $file->getContent());
             $pendingPaths[] = $pendingName;
         }
@@ -134,5 +134,15 @@ class AdminSettingService
     protected function resolveWebsiteMediaFolder(string $settingsKey): string
     {
         return explode('_', $settingsKey)[0] ?? 'media';
+    }
+
+    private function extensionFromMime(UploadedFile $file): string
+    {
+        return match ($file->getMimeType()) {
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            default => 'bin',
+        };
     }
 }

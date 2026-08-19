@@ -3,6 +3,7 @@
 namespace App\Services\Admin;
 
 use App\Models\Question;
+use App\Traits\HandleImageUploadTrait;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -10,6 +11,7 @@ use Illuminate\Validation\ValidationException;
 
 class AdminQuestionService
 {
+    use HandleImageUploadTrait;
     public function getQuestionsByExam(int $examId)
     {
         return Question::where('exam_id', $examId)
@@ -82,11 +84,11 @@ class AdminQuestionService
 
     public function uploadQuestionImage(UploadedFile $file): array
     {
-        $path = $file->store('question-media', 'public');
+        $path = $this->uploadImage($file, 'question-media', null, 1200, false);
 
         return [
             'path' => $path,
-            'url' => asset('storage/'.$path),
+            'url' => Storage::url($path),
         ];
     }
 

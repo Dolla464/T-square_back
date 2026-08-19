@@ -17,12 +17,22 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
+        if (app()->environment('production') && ! env('ALLOW_DEMO_SEEDERS')) {
+            $this->command?->warn('AdminUserSeeder skipped in production. Set ALLOW_DEMO_SEEDERS=true to override.');
+
+            return;
+        }
+
+        $adminPassword = env('SEED_ADMIN_PASSWORD', 'Admin@12345');
+        $studentPassword = env('SEED_STUDENT_PASSWORD', 'Student@12345');
+        $instructorPassword = env('SEED_INSTRUCTOR_PASSWORD', 'Instructor@12345');
+
         // ─── المدير الرئيسي ───────────────────────────────────────────────
         $adminUser = User::updateOrCreate(
             ['email' => 'admin@tsquare.com'],
             [
                 'name'              => 'T-Square Admin',
-                'password'          => Hash::make('Admin@12345'),
+                'password'          => Hash::make($adminPassword),
                 'email_verified_at' => now(),
             ]
         );
@@ -44,7 +54,7 @@ class AdminUserSeeder extends Seeder
             ['email' => 'student@tsquare.com'],
             [
                 'name'              => 'Test Student',
-                'password'          => Hash::make('Student@12345'),
+                'password'          => Hash::make($studentPassword),
                 'email_verified_at' => now(),
             ]
         );
@@ -67,7 +77,7 @@ class AdminUserSeeder extends Seeder
             ['email' => 'instructor@tsquare.com'],
             [
                 'name'              => 'Test Instructor',
-                'password'          => Hash::make('Instructor@12345'),
+                'password'          => Hash::make($instructorPassword),
                 'email_verified_at' => now(),
             ]
         );
@@ -86,14 +96,6 @@ class AdminUserSeeder extends Seeder
             ]
         );
 
-        $this->command->info('✓ AdminUserSeeder: تم إنشاء حسابات النظام الأساسية.');
-        $this->command->table(
-            ['Role', 'Email', 'Password'],
-            [
-                ['Admin',      'admin@tsquare.com',      'Admin@12345'],
-                ['Student',    'student@tsquare.com',    'Student@12345'],
-                ['Instructor', 'instructor@tsquare.com', 'Instructor@12345'],
-            ]
-        );
+        $this->command->info('✓ AdminUserSeeder: demo accounts ready (passwords from SEED_* env vars in non-production).');
     }
 }
