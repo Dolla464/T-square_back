@@ -20,10 +20,13 @@ beforeEach(function (): void {
 
 function validRegistrationPayload(array $overrides = []): array
 {
+    $password = $overrides['password'] ?? 'Password123';
+
     return array_merge([
         'full_name' => 'Public Student Name',
         'email' => 'public-student@example.com',
-        'password' => 'Password123',
+        'password' => $password,
+        'password_confirmation' => $password,
         'phone' => '01098765432',
         'gender' => 'male',
     ], $overrides);

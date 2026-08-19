@@ -9,6 +9,7 @@ use App\Models\Enrollment;
 use App\Models\ExamAttempt;
 use App\Notifications\CertificateReady;
 use App\Services\Pdf\DompdfExportService;
+use App\Support\CourseInstructorSync;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -315,21 +316,7 @@ class CertificateService
     {
         $this->loadCertificateRelations($enrollment);
 
-        if ($enrollment->group_id) {
-            $groupInstructorName = $enrollment->learningGroup?->instructor?->full_name;
-
-            if (! empty($groupInstructorName)) {
-                return $groupInstructorName;
-            }
-        }
-
-        $primaryInstructorName = $enrollment->course?->instructor?->full_name;
-
-        if (! empty($primaryInstructorName)) {
-            return $primaryInstructorName;
-        }
-
-        return 'Instructor';
+        return CourseInstructorSync::instructorNameForEnrollment($enrollment);
     }
 
     private function userAlreadyNotifiedAboutCertificate(object $user, int $enrollmentId): bool

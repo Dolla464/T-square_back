@@ -12,10 +12,28 @@ class UpdateAdminStudentRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('email')) {
+            $this->merge([
+                'email' => strtolower(trim((string) $this->email)),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
             'full_name' => ['sometimes', 'required', 'string', 'max:255'],
+            'email' => [
+                Rule::prohibitedIf(fn () => $this->user()?->hasRole('receptionist')),
+                'sometimes',
+                'required',
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($this->route('student')->user_id),
+            ],
             'enrollment_number' => [
                 'sometimes',
                 'required',
@@ -47,6 +65,8 @@ class UpdateAdminStudentRequest extends FormRequest
     {
         return [
             'phone.prohibited' => 'لا يمكن تعديل رقم الهاتف من هنا.',
+            'email.prohibited' => 'Email cannot be updated from this endpoint.',
+            'email.unique' => 'This email is already registered.',
             'national_id.digits' => 'National ID must be exactly 14 digits.',
             'national_id.unique' => 'This national ID is already registered.',
         ];

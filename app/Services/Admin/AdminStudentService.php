@@ -25,9 +25,9 @@ class AdminStudentService
         // define the basic relations to be loaded for the Resource
         $relations = [
             'user:id,email,email_verified_at',
-            'enrollments.learningGroup',
-            'enrollments.course.instructor',
-            'enrollments.course.learningGroups'
+            'enrollments.learningGroup.courseInstructor.instructor:id,full_name',
+            'enrollments.course.instructor:id,full_name',
+            'enrollments.course.learningGroups',
         ];
 
         // if there is a group_id filter, filter the loaded relations to get the first group
@@ -74,8 +74,9 @@ class AdminStudentService
     {
         return $student->load([
             'user',
+            'enrollments.course.instructor:id,full_name',
             'enrollments.course.learningGroups:id,course_id,group_name',
-            'enrollments.learningGroup:id,group_name',  // per-enrollment group
+            'enrollments.learningGroup.courseInstructor.instructor:id,full_name',
         ]);
     }
 
@@ -95,6 +96,9 @@ class AdminStudentService
             unset($data['avatar']);
         }
 
+        $email = isset($data['email']) ? strtolower(trim((string) $data['email'])) : null;
+        unset($data['email']);
+
         $profileData = collect($data)->except('status')->all();
 
         if ($profileData !== []) {
@@ -105,7 +109,19 @@ class AdminStudentService
             $student->forceFill(['status' => $data['status']])->save();
         }
 
-        return $student->load('user:id,email');
+        if ($email !== null) {
+            $student->loadMissing('user');
+
+            if ($student->user && $student->user->email !== $email) {
+                $student->user->forceFill([
+                    'email' => $email,
+                    'email_verified_at' => null,
+                ])->save();
+                $student->unsetRelation('user');
+            }
+        }
+
+        return $student->load('user:id,email,email_verified_at');
     }
 
     /**

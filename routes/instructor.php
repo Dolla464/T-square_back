@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth:sanctum', 'role:instructor'])
+Route::middleware(['auth:sanctum', 'verified', 'role:instructor'])
     ->prefix('instructor')
     ->name('instructor.')
     ->group(function () {

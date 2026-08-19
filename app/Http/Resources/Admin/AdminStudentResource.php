@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Support\CourseInstructorSync;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -42,7 +43,7 @@ class AdminStudentResource extends JsonResource
                     return [
                         'id'              => $enrollment->course_id,
                         'title'           => $enrollment->course?->title,
-                        'instructor_name' => $enrollment->course?->instructor?->full_name,
+                        'instructor_name' => CourseInstructorSync::instructorNameForEnrollment($enrollment),
 
                         // get the group id and group name from the enrollment
                         'group_id'        => $enrollment->group_id,

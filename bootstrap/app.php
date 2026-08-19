@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\CheckMaintenanceMode;
 use App\Http\Middleware\EnsureEmailIsVerified;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\ValidateAttendanceDevice;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Auth\AuthenticationException;
@@ -29,8 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(CheckMaintenanceMode::class);
+        $middleware->append(SecurityHeaders::class);
         $middleware->api(prepend: [
-            // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
         $middleware->alias([
@@ -116,7 +118,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 }
 
                 // Error 500: Any other programming error on the server
-                $message = $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine();
+                report($e);
+
+                $message = app()->environment('production')
+                    ? 'An internal server error occurred.'
+                    : $e->getMessage().' in '.$e->getFile().' on line '.$e->getLine();
 
                 return $responder->errorResponse($message, 500);
             }

@@ -17,11 +17,19 @@ class ReceptionistSeeder extends Seeder
 {
     public function run(): void
     {
+        if (app()->environment('production') && ! env('ALLOW_DEMO_SEEDERS')) {
+            $this->command?->warn('ReceptionistSeeder skipped in production. Set ALLOW_DEMO_SEEDERS=true to override.');
+
+            return;
+        }
+
+        $password = env('SEED_RECEPTIONIST_PASSWORD', 'Receptionist@12345');
+
         $user = User::updateOrCreate(
             ['email' => 'receptionist@tsquare.com'],
             [
                 'name'              => 'T-Square Receptionist',
-                'password'          => Hash::make('Receptionist@12345'),
+                'password'          => Hash::make($password),
                 'role'              => 'receptionist',
                 'email_verified_at' => now(),
             ]
@@ -34,10 +42,6 @@ class ReceptionistSeeder extends Seeder
             $user->updateQuietly(['role' => 'receptionist']);
         }
 
-        $this->command->info('✓ ReceptionistSeeder: تم إنشاء حساب موظف الاستقبال.');
-        $this->command->table(
-            ['Role', 'Email', 'Password'],
-            [['Receptionist', 'receptionist@tsquare.com', 'Receptionist@12345']]
-        );
+        $this->command->info('✓ ReceptionistSeeder: demo receptionist ready (password from SEED_RECEPTIONIST_PASSWORD).');
     }
 }

@@ -7,6 +7,9 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Resources\User\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
+use Laravel\Sanctum\PersonalAccessToken;
 
 /**
  * @tags Authentication
@@ -23,9 +26,18 @@ class AuthenticatedSessionController extends Controller
         $user = $request->user();
         $user->forceFill(['last_login_at' => now()])->save();
 
-        $token = $user->createToken('T-Square-Access-Token')->plainTextToken;
+        if ($this->isStatefulRequest($request)) {
+            $request->session()->regenerate();
 
-        // $request->session()->regenerate();
+            return $this->successResponse(
+                [
+                    'user' => new UserResource($user->load(['roles', 'student'])),
+                ],
+                'Success'
+            );
+        }
+
+        $token = $user->createToken('T-Square-Access-Token')->plainTextToken;
 
         return $this->successResponse(
             [
@@ -47,11 +59,22 @@ class AuthenticatedSessionController extends Controller
             return $this->errorResponse('User not found or already logged out', 401);
         }
 
-        // Check if there is a token before deleting it and delete it
-        if ($user->currentAccessToken()) {
-            $user->currentAccessToken()->delete();
+        if ($this->isStatefulRequest($request)) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        } else {
+            $token = $user->currentAccessToken();
+            if ($token instanceof PersonalAccessToken) {
+                $token->delete();
+            }
         }
 
         return $this->successResponse(null, 'Logged out successfully');
+    }
+
+    private function isStatefulRequest(Request $request): bool
+    {
+        return EnsureFrontendRequestsAreStateful::fromFrontend($request);
     }
 }

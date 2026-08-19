@@ -158,7 +158,7 @@ MD,
 
     'middleware' => [
         'web',
-        // RestrictedDocsAccess::class, // Remove to allow public access to docs
+        RestrictedDocsAccess::class,
     ],
 
     'extensions' => [],

@@ -63,7 +63,7 @@ require __DIR__ . '/admin.php';
 
 // Attendance — hardware device QR scanner (device authenticates via device_id)
 Route::post('attendance/scan', [AttendanceController::class, 'scan'])
-    ->middleware('attendance.device')
+    ->middleware(['attendance.device', 'throttle:60,1'])
     ->name('attendance.scan');
 
 Route::middleware('auth:sanctum')->group(function () {
