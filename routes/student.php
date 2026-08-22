@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\User\CourseController;
 use App\Http\Controllers\Api\User\CourseDashboardController;
 use App\Http\Controllers\Api\User\CourseReviewController;
 use App\Http\Controllers\Api\User\EnrollmentController;
+use App\Http\Controllers\Api\User\InstructorController;
 use App\Http\Controllers\Api\User\LessonPlaybackController;
 use App\Http\Controllers\Api\User\SolutionsController;
 use App\Http\Controllers\Api\Student\StudentAttendanceController;
