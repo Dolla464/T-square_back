@@ -22,16 +22,20 @@ class AdminStudentService
      */
     public function index(int $perPage = 10, array $filters = []): LengthAwarePaginator
     {
-        // define the basic relations to be loaded for the Resource
-        $relations = [
-            'user:id,email,email_verified_at',
-            'enrollments.learningGroup.courseInstructor.instructor:id,full_name',
-            'enrollments.course.instructor:id,full_name',
-            'enrollments.course.learningGroups',
-        ];
+        $forSelect = ! empty($filters['for_select']);
+
+        // Lightweight relations for dropdown/select UIs (e.g. Create Order)
+        $relations = $forSelect
+            ? ['user:id,email,email_verified_at']
+            : [
+                'user:id,email,email_verified_at',
+                'enrollments.learningGroup.courseInstructor.instructor:id,full_name',
+                'enrollments.course.instructor:id,full_name',
+                'enrollments.course.learningGroups',
+            ];
 
         // if there is a group_id filter, filter the loaded relations to get the first group
-        if (!empty($filters['group_id'])) {
+        if (! $forSelect && ! empty($filters['group_id'])) {
             $relations['enrollments'] = function ($query) use ($filters) {
                 $query->orderByRaw('group_id = ? DESC', [$filters['group_id']])
                     ->latest();
@@ -39,10 +43,13 @@ class AdminStudentService
         }
 
         return Student::with($relations)
-            ->when(isset($filters['search']), function ($query) use ($filters) {
+            ->when(! empty($filters['search']), function ($query) use ($filters) {
                 $search = $filters['search'];
                 $query->where(function ($q) use ($search) {
                     $q->where('full_name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('enrollment_number', 'like', "%{$search}%")
+                        ->orWhere('national_id', 'like', "%{$search}%")
                         ->orWhereHas('user', function ($u) use ($search) {
                             $u->where('email', 'like', "%{$search}%");
                         });

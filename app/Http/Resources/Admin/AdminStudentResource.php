@@ -10,14 +10,15 @@ class AdminStudentResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        // get the first enrollment
-        $firstEnrollment = $this->enrollments?->first();
+        $firstEnrollment = $this->relationLoaded('enrollments')
+            ? $this->enrollments->first()
+            : null;
 
         return [
             'id'                => $this->id,
             'user_id'           => $this->user_id,
-            'email'             => $this->whenLoaded('user', fn() => $this->user?->email),
-            'is_verified'       => (bool) optional($this->user)->email_verified_at,
+            'email'             => $this->whenLoaded('user', fn () => $this->user?->email),
+            'is_verified'       => $this->whenLoaded('user', fn () => (bool) $this->user?->email_verified_at),
             'full_name'         => $this->full_name,
             'phone'             => $this->phone,
             'enrollment_number' => $this->enrollment_number,
@@ -34,7 +35,6 @@ class AdminStudentResource extends JsonResource
             'status'            => $this->status,
             'created_by'        => $this->created_by,
 
-            // get the group id and group name from the first enrollment
             'group_id'          => $firstEnrollment?->group_id,
             'learning_group'    => $firstEnrollment?->learningGroup?->group_name ?? '---------',
 
