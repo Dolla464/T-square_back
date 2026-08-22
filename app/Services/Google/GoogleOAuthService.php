@@ -9,6 +9,8 @@ class GoogleOAuthService
 {
     private const DRIVE_READONLY_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 
+    private const STATE_TTL_SECONDS = 900;
+
     public function makeClient(?string $accessToken = null): Client
     {
         $client = new Client;
@@ -84,6 +86,13 @@ class GoogleOAuthService
 
         if (! is_array($payload) || empty($payload['account_id']) || empty($payload['admin_user_id'])) {
             throw new \InvalidArgumentException('Invalid OAuth state.');
+        }
+
+        if (
+            empty($payload['issued_at'])
+            || now()->timestamp - (int) $payload['issued_at'] > self::STATE_TTL_SECONDS
+        ) {
+            throw new \InvalidArgumentException('OAuth state expired.');
         }
 
         return $payload;
