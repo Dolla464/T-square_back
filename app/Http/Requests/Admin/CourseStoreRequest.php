@@ -31,6 +31,8 @@ class CourseStoreRequest extends FormRequest
             'cover_image'       => [$isPublished ? 'required' : 'nullable', 'image', 'max:5120'],
             'preview_video'     => ['nullable', 'string', 'max:191'],
             'google_drive_link' => [$isPublished ? 'required' : 'nullable', 'url'],
+            'google_storage_account_id' => ['nullable', 'integer', 'exists:google_storage_accounts,id'],
+            'google_drive_folder_id' => ['nullable', 'string', 'max:255'],
             'attendance_type'   => [$isPublished ? 'required' : 'nullable', 'in:online,offline,hybrid'],
             'price_before'      => [$isPublished ? 'required' : 'nullable', 'numeric', 'min:0'],
             'level'             => [$isPublished ? 'required' : 'nullable', 'string', 'max:50'],

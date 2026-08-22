@@ -20,6 +20,8 @@ class CourseUpdateRequest extends FormRequest
             'thumbnail' => ['sometimes', 'nullable', 'image', 'max:5120'],
             'cover_image' => ['sometimes', 'nullable', 'image', 'max:5120'],
             'google_drive_link' => ['sometimes', 'nullable', 'url'],
+            'google_storage_account_id' => ['sometimes', 'nullable', 'integer', 'exists:google_storage_accounts,id'],
+            'google_drive_folder_id' => ['sometimes', 'nullable', 'string', 'max:255'],
             'attendance_type' => ['sometimes', 'nullable', 'in:online,offline,hybrid'],
             'price_before' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'discount_price' => ['sometimes', 'nullable', 'numeric', 'min:0'],

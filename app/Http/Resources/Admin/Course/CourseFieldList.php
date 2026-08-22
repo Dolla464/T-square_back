@@ -19,6 +19,8 @@ class CourseFieldList
             'cover_image',
             'preview_video',
             'google_drive_link',
+            'google_storage_account_id',
+            'google_drive_folder_id',
             'attendance_type',
             'price',
             'level',

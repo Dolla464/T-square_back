@@ -62,6 +62,18 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->ip());
         });
 
+        RateLimiter::for('video-play', function (Request $request) {
+            $userId = $request->user()?->id ?? $request->ip();
+
+            return Limit::perMinute(30)->by('video-play:'.$userId);
+        });
+
+        RateLimiter::for('video-stream', function (Request $request) {
+            $userId = $request->user()?->id ?? $request->ip();
+
+            return Limit::perMinute(600)->by('video-stream:'.$userId);
+        });
+
         // لو إنت في بيئة الـ Local (أو أي بيئة تانية)، افرض الـ HTTPS
         // if (config('app.env') !== 'production') {
         //     URL::forceScheme('https');

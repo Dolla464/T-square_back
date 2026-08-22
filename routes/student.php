@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\User\CourseController;
 use App\Http\Controllers\Api\User\CourseDashboardController;
 use App\Http\Controllers\Api\User\CourseReviewController;
 use App\Http\Controllers\Api\User\EnrollmentController;
-use App\Http\Controllers\Api\User\InstructorController;
+use App\Http\Controllers\Api\User\LessonPlaybackController;
 use App\Http\Controllers\Api\User\SolutionsController;
 use App\Http\Controllers\Api\Student\StudentAttendanceController;
 use Illuminate\Support\Facades\Route;
@@ -110,6 +110,18 @@ Route::middleware(['auth:sanctum', 'verified', 'role:student'])
                 Route::get('qr', 'qr')->name('qr');
                 Route::post('check-in', 'checkIn')->name('check-in');
                 Route::get('groups/{learningGroup}', 'groupHistory')->name('groups.history');
+            });
+
+        Route::controller(LessonPlaybackController::class)
+            ->prefix('lessons')
+            ->name('lessons.')
+            ->group(function () {
+                Route::post('{lesson}/playback', 'authorizePlayback')
+                    ->middleware('throttle:video-play')
+                    ->name('playback');
+                Route::get('{lesson}/stream', 'stream')
+                    ->middleware('throttle:video-stream')
+                    ->name('stream');
             });
     });
 

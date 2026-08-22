@@ -83,6 +83,8 @@ class CourseDashboardResource extends JsonResource
                 'sort_order' => $preview->sort_order,
             ])->values(), []),
 
+            'lessons' => $this->whenLoaded('lessons', fn () => StudentLessonResource::collection($this->lessons)->resolve(), []),
+
         // ── حالة الـ Enrollment ─────────────────────────────────────────
             'enrollment' => $enrollment ? (function () use ($enrollment) {
                 $review = CourseReview::query()
