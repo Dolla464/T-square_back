@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminLessonController;
+use App\Http\Controllers\Api\Admin\GoogleStorageAccountController;
 use App\Http\Controllers\Api\Admin\AdminCategoryController;
 use App\Http\Controllers\Api\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\Admin\AdminScheduleController;
@@ -84,8 +86,21 @@ Route::middleware(['auth:sanctum', 'role:admin'])
             Route::get('{course:id}/previews/uploads/{upload_id}/status', [ChunkedUploadController::class, 'status'])
                 ->whereUuid('upload_id')
                 ->name('previews.upload-status');
+
+            Route::get('{course:id}/lessons', [AdminLessonController::class, 'index'])->name('lessons.index');
+            Route::post('{course:id}/lessons', [AdminLessonController::class, 'store'])->name('lessons.store');
+            Route::put('{course:id}/lessons/{lesson}', [AdminLessonController::class, 'update'])->name('lessons.update');
+            Route::delete('{course:id}/lessons/{lesson}', [AdminLessonController::class, 'destroy'])->name('lessons.destroy');
         });
         Route::apiResource('courses', AdminCourseController::class);
+
+        Route::prefix('google-storage-accounts')->name('google-storage-accounts.')->group(function () {
+            Route::get('callback', [GoogleStorageAccountController::class, 'callback'])->name('callback');
+            Route::post('{googleStorageAccount}/connect', [GoogleStorageAccountController::class, 'connect'])->name('connect');
+            Route::post('{googleStorageAccount}/disconnect', [GoogleStorageAccountController::class, 'disconnect'])->name('disconnect');
+            Route::post('{googleStorageAccount}/test-connection', [GoogleStorageAccountController::class, 'testConnection'])->name('test-connection');
+        });
+        Route::apiResource('google-storage-accounts', GoogleStorageAccountController::class);
 
         // Exams
         Route::prefix('exams')->name('exams.')->group(function () {

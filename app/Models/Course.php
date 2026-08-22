@@ -24,6 +24,8 @@ class Course extends Model
         'cover_image',
         'preview_video',
         'google_drive_link',
+        'google_storage_account_id',
+        'google_drive_folder_id',
         'attendance_type',
         'price_before',
         'discount_price',
@@ -211,6 +213,16 @@ class Course extends Model
     public function previews()
     {
         return $this->hasMany(CoursePreview::class)->orderBy('sort_order');
+    }
+
+    public function lessons()
+    {
+        return $this->hasMany(Lesson::class)->orderBy('sort_order');
+    }
+
+    public function googleStorageAccount()
+    {
+        return $this->belongsTo(GoogleStorageAccount::class);
     }
 
     public function enrollments()

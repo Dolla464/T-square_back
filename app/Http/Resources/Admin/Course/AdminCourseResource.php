@@ -94,6 +94,15 @@ class AdminCourseResource extends JsonResource
             ])->values();
         }
 
+        if ($this->relationLoaded('googleStorageAccount')) {
+            $data['google_storage_account'] = $this->googleStorageAccount ? [
+                'id' => $this->googleStorageAccount->id,
+                'name' => $this->googleStorageAccount->name,
+                'email' => $this->googleStorageAccount->email,
+                'status' => $this->googleStorageAccount->status,
+            ] : null;
+        }
+
         return $data;
     }
 }

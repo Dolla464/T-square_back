@@ -14,6 +14,7 @@
         "cviebrock/eloquent-sluggable": "^13.0",
         "dedoc/scramble": "^0.13.17",
         "doctrine/dbal": "^4.4",
+        "google/apiclient": "^2.18",
         "james-heinrich/getid3": "^1.9",
         "khaled.alshamaa/ar-php": "@dev",
         "laravel/framework": "^13.0",

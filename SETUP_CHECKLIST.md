@@ -168,6 +168,33 @@ tail -f storage/logs/laravel.log
 
 ---
 
+## Google Drive Secure Video Playback
+
+See [`docs/GOOGLE_DRIVE_VIDEO_PLAYBACK.md`](docs/GOOGLE_DRIVE_VIDEO_PLAYBACK.md) for:
+
+- Google Cloud OAuth setup
+- Required env vars (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`)
+- Admin/student workflows
+- Nginx streaming recommendations
+
+After deploying backend changes, run:
+
+```bash
+composer install
+php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+```
+
+Frontend:
+
+```bash
+npm install
+npm run build
+```
+
+---
+
 ## ملاحظة — Upload Timeout في الـ Frontend
 
 الـ axios instance في الفرونت (`src/api/axios.js`) عنده `timeout: 150000` (150 ثانية) على كل الـ requests.

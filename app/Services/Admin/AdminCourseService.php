@@ -524,6 +524,7 @@ class AdminCourseService
                 'tags:id,name,slug',
                 'previews:id,course_id,title,video_url,description,video_provider,duration_seconds,sort_order',
                 'learnings:id,course_id,title',
+                'googleStorageAccount:id,name,email,status',
             ])
             ->findOrFail($id);
     }

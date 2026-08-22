@@ -207,6 +207,10 @@ class CourseDashboardService
                 'tags:id,name,slug',
                 'previews:id,course_id,title,video_url,description,video_provider,duration_seconds,sort_order',
                 'learnings:id,course_id,title',
+                'lessons' => fn ($q) => $q
+                    ->active()
+                    ->select('id', 'course_id', 'title', 'description', 'sort_order', 'is_active', 'video_source_type', 'duration_seconds')
+                    ->ordered(),
             ])
             // Get the enrollment data for this student only to read the completion status and date in the frontend
             ->with([
