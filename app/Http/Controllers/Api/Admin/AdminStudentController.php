@@ -28,11 +28,12 @@ class AdminStudentController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filters = [
-            'search' => $request->query('search'),
+            'search' => $request->filled('search') ? $request->query('search') : null,
             'status' => $request->query('status'),      // like: active
             'gender' => $request->query('gender'), // like: 1 or 0
             'group_id' => $request->query('group_id'), // like: 1 or 0
             'created_by' => $request->query('created_by'),
+            'for_select' => $request->boolean('for_select'),
         ];
 
         $students = $this->studentService->index(
