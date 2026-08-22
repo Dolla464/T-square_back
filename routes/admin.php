@@ -29,6 +29,14 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
+// Google OAuth callback — public route; Google redirects cross-site without Sanctum credentials.
+// Admin identity is verified via the encrypted state issued at connect time.
+Route::prefix('admin/google-storage-accounts')
+    ->name('admin.google-storage-accounts.')
+    ->group(function () {
+        Route::get('callback', [GoogleStorageAccountController::class, 'callback'])->name('callback');
+    });
+
 Route::middleware(['auth:sanctum', 'role:admin'])
     ->prefix('admin')
     ->name('admin.')
@@ -95,7 +103,6 @@ Route::middleware(['auth:sanctum', 'role:admin'])
         Route::apiResource('courses', AdminCourseController::class);
 
         Route::prefix('google-storage-accounts')->name('google-storage-accounts.')->group(function () {
-            Route::get('callback', [GoogleStorageAccountController::class, 'callback'])->name('callback');
             Route::post('{googleStorageAccount}/connect', [GoogleStorageAccountController::class, 'connect'])->name('connect');
             Route::post('{googleStorageAccount}/disconnect', [GoogleStorageAccountController::class, 'disconnect'])->name('disconnect');
             Route::post('{googleStorageAccount}/test-connection', [GoogleStorageAccountController::class, 'testConnection'])->name('test-connection');

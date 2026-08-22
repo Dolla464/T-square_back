@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\GoogleStorageAccountStoreRequest;
 use App\Http\Requests\Admin\GoogleStorageAccountUpdateRequest;
 use App\Http\Resources\Admin\GoogleStorageAccountResource;
 use App\Models\GoogleStorageAccount;
+use App\Models\User;
 use App\Services\Google\GoogleOAuthService;
 use App\Services\Google\GoogleStorageAccountService;
 use Illuminate\Http\JsonResponse;
@@ -95,8 +96,9 @@ class GoogleStorageAccountController extends Controller
 
         try {
             $state = $this->oauthService->decodeState($request->string('state')->toString());
+            $adminUser = User::find($state['admin_user_id']);
 
-            if ((int) $state['admin_user_id'] !== (int) $request->user()->id) {
+            if (! $adminUser || ! $adminUser->hasRole('admin')) {
                 return redirect("{$redirectBase}?error=invalid_oauth_state");
             }
 
@@ -111,7 +113,7 @@ class GoogleStorageAccountController extends Controller
                     : now()->addHour(),
                 'scope' => $token['scope'] ?? null,
                 'status' => GoogleStorageAccount::STATUS_CONNECTED,
-                'connected_by' => $request->user()->id,
+                'connected_by' => $adminUser->id,
                 'last_error' => null,
             ]);
 
