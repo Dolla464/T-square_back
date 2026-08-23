@@ -209,7 +209,7 @@ class CourseDashboardService
                 'learnings:id,course_id,title',
                 'lessons' => fn ($q) => $q
                     ->active()
-                    ->select('id', 'course_id', 'title', 'description', 'sort_order', 'is_active', 'video_source_type', 'duration_seconds')
+                    ->select('id', 'course_id', 'title', 'description', 'sort_order', 'is_active', 'video_source_type', 'google_drive_file_id', 'duration_seconds')
                     ->ordered(),
             ])
             // Get the enrollment data for this student only to read the completion status and date in the frontend
