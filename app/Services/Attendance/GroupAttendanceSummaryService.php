@@ -16,9 +16,12 @@ class GroupAttendanceSummaryService
     {
         $group->load(['course:id,title', 'attendanceSessions']);
 
-        $totalSessions     = $group->attendanceSessions->count();
-        $completedSessions = $group->attendanceSessions->where('status', 'completed')->count();
-        $sessionIds        = $group->attendanceSessions->pluck('id');
+        $totalSessions      = $group->attendanceSessions->count();
+        $completedSessions  = $group->attendanceSessions->where('status', 'completed')->count();
+        $sessionIds         = $group->attendanceSessions->pluck('id');
+        $completedSessionIds = $group->attendanceSessions
+            ->where('status', 'completed')
+            ->pluck('id');
 
         $completionPercentage = $totalSessions > 0
             ? round(($completedSessions / $totalSessions) * 100, 1)
@@ -31,12 +34,32 @@ class GroupAttendanceSummaryService
             ->groupBy('student_id')
             ->pluck('count', 'student_id');
 
-        $studentsData = $students->map(function ($student) use ($attendanceCounts, $totalSessions) {
+        $completedRecords = AttendanceRecord::whereIn('session_id', $completedSessionIds)
+            ->get()
+            ->groupBy('student_id');
+
+        $studentsData = $students->map(function ($student) use (
+            $attendanceCounts,
+            $totalSessions,
+            $completedSessionIds,
+            $completedRecords
+        ) {
             $attendedSessions = $attendanceCounts[$student->id] ?? 0;
 
             $attendancePercentage = $totalSessions > 0
                 ? round(($attendedSessions / $totalSessions) * 100, 1)
                 : 0;
+
+            $studentRecords = ($completedRecords->get($student->id) ?? collect())->keyBy('session_id');
+            $absentSessions = $completedSessionIds->sum(function ($sessionId) use ($studentRecords) {
+                $record = $studentRecords->get($sessionId);
+
+                if (! $record) {
+                    return 1;
+                }
+
+                return in_array($record->status, ['absent', 'not_marked'], true) ? 1 : 0;
+            });
 
             return [
                 'student_id'            => $student->id,
@@ -44,6 +67,7 @@ class GroupAttendanceSummaryService
                 'email'                 => $student->user?->email ?? null,
                 'avatar'                => $student->avatar ?? null,
                 'attended_sessions'     => $attendedSessions,
+                'absent_sessions'       => $absentSessions,
                 'attendance_percentage' => $attendancePercentage,
             ];
         });
@@ -107,6 +131,7 @@ class GroupAttendanceSummaryService
             'group_name'            => $group->group_name,
             'course_title'          => $summary['course_title'],
             'attended_sessions'     => $studentData['attended_sessions'],
+            'absent_sessions'       => $studentData['absent_sessions'],
             'attendance_percentage' => $studentData['attendance_percentage'],
             'total_sessions'        => $summary['completion']['total_sessions'],
             'sessions'              => $sessionRows->values()->all(),
