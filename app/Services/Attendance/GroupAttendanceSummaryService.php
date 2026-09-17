@@ -137,4 +137,65 @@ class GroupAttendanceSummaryService
             'sessions'              => $sessionRows->values()->all(),
         ];
     }
+
+    public function getAttendanceMatrix(LearningGroup $group): array
+    {
+        $group->load(['course:id,title']);
+
+        $sessions = $group->attendanceSessions()
+            ->with('schedule')
+            ->orderBy('session_date')
+            ->get();
+
+        $sessionIds = $sessions->pluck('id');
+        $sessionColumns = $sessions->map(function ($session) {
+            $times = $this->attendanceSessionService->getEffectiveTimes($session);
+
+            return [
+                'id'           => $session->id,
+                'session_date' => $times['session_date'],
+                'start_time'   => $times['start_time'],
+                'end_time'     => $times['end_time'],
+                'status'       => $session->status,
+            ];
+        })->values()->all();
+
+        $students = $group->students()->with('user:id,email')->get();
+
+        $records = AttendanceRecord::whereIn('session_id', $sessionIds)
+            ->get()
+            ->groupBy('student_id')
+            ->map(fn ($studentRecords) => $studentRecords->keyBy('session_id'));
+
+        $studentsData = $students->map(function ($student) use ($sessions, $records) {
+            $studentRecords = $records->get($student->id) ?? collect();
+            $statuses = [];
+
+            foreach ($sessions as $session) {
+                if ($session->status === 'cancelled') {
+                    $statuses[(string) $session->id] = 'cancelled';
+
+                    continue;
+                }
+
+                $record = $studentRecords->get($session->id);
+                $statuses[(string) $session->id] = $record?->status ?? 'not_marked';
+            }
+
+            return [
+                'student_id' => $student->id,
+                'full_name'  => $student->full_name ?? $student->user?->name ?? 'Unknown',
+                'email'      => $student->user?->email ?? null,
+                'statuses'   => $statuses,
+            ];
+        })->values()->all();
+
+        return [
+            'id'           => $group->id,
+            'group_name'   => $group->group_name,
+            'course_title' => $group->course->title ?? null,
+            'sessions'     => $sessionColumns,
+            'students'     => $studentsData,
+        ];
+    }
 }

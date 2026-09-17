@@ -125,6 +125,22 @@ class ExamController extends Controller
         );
     }
 
+    public function timeStatus(Request $request, int $attemptId)
+    {
+        $student = $request->user()->student;
+
+        if (! $student) {
+            return $this->errorResponse('Student profile not found', 404);
+        }
+
+        $status = $this->examService->getAttemptTimeStatus($attemptId, $student->id);
+
+        return $this->successResponse(
+            data: $status,
+            message: 'Exam time status retrieved successfully.',
+        );
+    }
+
     public function reviewAttempt(Request $request, int $attemptId)
     {
         $student = $request->user()->student;

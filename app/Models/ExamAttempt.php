@@ -14,9 +14,10 @@ class ExamAttempt extends Model
 
     public const STATUS_ONGOING = 'ongoing';
 
-    protected $fillable = ['student_id', 'exam_id', 'started_at', 'finished_at'];
+    protected $fillable = ['student_id', 'exam_id', 'duration_minutes', 'started_at', 'finished_at'];
 
     protected $casts = [
+        'duration_minutes' => 'integer',
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
     ];

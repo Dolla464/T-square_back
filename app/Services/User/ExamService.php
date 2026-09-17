@@ -98,6 +98,7 @@ class ExamService
         $attempt = ExamAttempt::create([
             'student_id' => $studentId,
             'exam_id' => $examId,
+            'duration_minutes' => $exam->duration,
             'started_at' => now(),
         ]);
         $attempt->forceFill(['status' => 'ongoing'])->save();
@@ -145,6 +146,12 @@ class ExamService
 
         if ($attempt->status !== 'ongoing') {
             abort(403, 'This attempt is already closed and cannot be modified.');
+        }
+
+        if ($this->attemptAuthorizationService->isTimedOut($attempt)) {
+            $this->completeAttempt($attemptId, $studentId);
+
+            abort(403, 'Exam time has expired.');
         }
 
         $question = $attempt->questions->firstWhere('id', $questionId);
@@ -243,6 +250,37 @@ class ExamService
         }
 
         return round(($exam->passing_mark / $exam->total_marks) * $attemptMax, 2);
+    }
+
+    public function getAttemptTimeStatus(int $attemptId, int $studentId): array
+    {
+        $attempt = ExamAttempt::with('exam')->findOrFail($attemptId);
+
+        if ($attempt->student_id !== $studentId) {
+            abort(403, 'This attempt does not belong to the authenticated student.');
+        }
+
+        if (
+            $attempt->status === ExamAttempt::STATUS_ONGOING
+            && $this->attemptAuthorizationService->isTimedOut($attempt)
+        ) {
+            $this->completeAttempt($attemptId, $studentId);
+            $attempt->refresh()->load('exam');
+        }
+
+        $payload = array_merge(
+            [
+                'attempt_id' => $attempt->id,
+                'status' => $attempt->status,
+            ],
+            $this->attemptAuthorizationService->getTimeStatusPayload($attempt),
+        );
+
+        if ($attempt->status !== ExamAttempt::STATUS_ONGOING) {
+            $payload['results'] = $this->getAttemptResultsPayload($attempt);
+        }
+
+        return $payload;
     }
 
     public function getAttemptReview(int $attemptId): ExamAttempt

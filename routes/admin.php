@@ -144,6 +144,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])
             Route::get('{learningGroup}/schedule',   [AdminLearningGroupController::class, 'getSchedule'])->name('learning-groups.schedule');
             Route::get('{learningGroup}/sessions',   [AdminLearningGroupController::class, 'getSessions'])->name('learning-groups.sessions');
             Route::get('{learningGroup}/attendance-summary', [AdminLearningGroupController::class, 'getAttendanceSummary'])->name('learning-groups.attendance-summary');
+            Route::get('{learningGroup}/attendance-matrix/export', [AdminLearningGroupController::class, 'exportAttendanceMatrix'])->name('learning-groups.attendance-matrix.export');
+            Route::get('{learningGroup}/attendance-matrix', [AdminLearningGroupController::class, 'getAttendanceMatrix'])->name('learning-groups.attendance-matrix');
             Route::get('{learningGroup}/sessions/{session}/attendance/export', [AdminLearningGroupController::class, 'exportSessionAttendance'])->name('learning-groups.sessions.attendance.export');
             Route::get('{learningGroup}/sessions/{session}/attendance', [AdminLearningGroupController::class, 'getSessionAttendance'])->name('learning-groups.sessions.attendance');
             Route::post('{learningGroup}/sessions/{session}/attendance/mark', [AdminLearningGroupController::class, 'markSessionAttendance'])->name('learning-groups.sessions.attendance.mark');

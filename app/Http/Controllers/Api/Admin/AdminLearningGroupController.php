@@ -351,6 +351,36 @@ class AdminLearningGroupController extends Controller
     }
 
     /**
+     * GET /api/admin/learning-groups/{learningGroup}/attendance-matrix
+     */
+    public function getAttendanceMatrix(LearningGroup $learningGroup): JsonResponse
+    {
+        return $this->successResponse(
+            $this->groupAttendanceSummaryService->getAttendanceMatrix($learningGroup),
+            'Attendance matrix retrieved successfully'
+        );
+    }
+
+    /**
+     * GET /api/admin/learning-groups/{learningGroup}/attendance-matrix/export
+     */
+    public function exportAttendanceMatrix(Request $request, LearningGroup $learningGroup): JsonResponse
+    {
+        $validated = $request->validate([
+            'format' => 'nullable|string|in:pdf,excel',
+        ]);
+
+        $format = $validated['format'] ?? 'pdf';
+        $payload = $this->groupAttendanceSummaryService->getAttendanceMatrix($learningGroup);
+
+        if ($format === 'excel') {
+            return $this->exportAttendanceMatrixExcel($payload);
+        }
+
+        return $this->exportAttendanceMatrixPdf($payload);
+    }
+
+    /**
      * GET /api/admin/learning-groups/{learningGroup}/sessions/{session}/attendance/export
      */
     public function exportSessionAttendance(Request $request, LearningGroup $learningGroup, AttendanceSession $session): JsonResponse
@@ -412,6 +442,78 @@ class AdminLearningGroupController extends Controller
         }
 
         return $this->exportStudentCourseAttendancePdf($payload);
+    }
+
+    private function exportAttendanceMatrixPdf(array $payload): JsonResponse
+    {
+        $pdf = $this->pdfExporter->loadView('exports.attendance-matrix-pdf', [
+            'payload' => $payload,
+            'generatedAt' => now()->format('Y-m-d H:i'),
+        ], 'a4', 'landscape');
+
+        $filename = 'attendance-matrix-'.$payload['id'].'-'.now()->format('Ymd').'.pdf';
+
+        return $this->successResponse([
+            'content' => base64_encode($pdf->output()),
+            'filename' => $filename,
+            'mime' => 'application/pdf',
+        ], 'PDF export ready');
+    }
+
+    private function exportAttendanceMatrixExcel(array $payload): JsonResponse
+    {
+        $filename = 'attendance-matrix-'.$payload['id'].'-'.now()->format('Ymd').'.csv';
+        $sessions = $payload['sessions'] ?? [];
+        $students = $payload['students'] ?? [];
+
+        ob_start();
+        $handle = fopen('php://output', 'w');
+        fwrite($handle, "\xEF\xBB\xBF");
+
+        $header = ['#', 'Student Name', 'Email'];
+        foreach ($sessions as $session) {
+            $date = $session['session_date'] ?? '';
+            $start = $session['start_time'] ?? '';
+            $end = $session['end_time'] ?? '';
+            $header[] = trim("{$date} {$start}-{$end}");
+        }
+        fputcsv($handle, $header);
+
+        foreach ($students as $idx => $student) {
+            $row = [
+                $idx + 1,
+                $student['full_name'] ?? '',
+                $student['email'] ?? '',
+            ];
+
+            foreach ($sessions as $session) {
+                $status = $student['statuses'][(string) $session['id']] ?? 'not_marked';
+                $row[] = $this->formatAttendanceStatusLabel($status);
+            }
+
+            fputcsv($handle, $row);
+        }
+
+        fclose($handle);
+        $content = ob_get_clean();
+
+        return $this->successResponse([
+            'content' => base64_encode($content),
+            'filename' => $filename,
+            'mime' => 'text/csv',
+        ], 'CSV export ready');
+    }
+
+    private function formatAttendanceStatusLabel(string $status): string
+    {
+        return match ($status) {
+            'present' => 'Present',
+            'absent' => 'Absent',
+            'late' => 'Late',
+            'excused' => 'Excused',
+            'cancelled' => 'Cancelled',
+            default => 'Not Marked',
+        };
     }
 
     private function exportSessionAttendancePdf(array $payload): JsonResponse

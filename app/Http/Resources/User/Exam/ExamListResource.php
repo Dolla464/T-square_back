@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\User\Exam;
 
+use App\Services\Exam\ExamAttemptAuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,10 +17,16 @@ class ExamListResource extends JsonResource
             ? 'unlimited'
             : max(0, $this->max_attempts - $attemptsCount);
 
-        $hasOngoingAttempt = $this->attempts()
+        $authorizationService = app(ExamAttemptAuthorizationService::class);
+        $ongoingAttempts = $this->attempts()
             ->where('student_id', $studentId)
             ->where('status', 'ongoing')
-            ->exists();
+            ->with('exam')
+            ->get();
+
+        $hasOngoingAttempt = $ongoingAttempts->contains(
+            fn ($attempt) => $authorizationService->isEffectivelyOngoing($attempt)
+        );
 
         $isPassedBefore = $this->attempts()
             ->where('student_id', $studentId)
