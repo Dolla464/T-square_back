@@ -243,11 +243,19 @@ class InstructorLearningGroupController extends Controller
             $highestScore = $student['highest_score'] ?? null;
             $attemptMaxMarks = $student['highest_attempt_max_marks'] ?? null;
 
-            if ($hasAttempts && $highestScore !== null) {
+            if ($hasAttempts && ($student['has_pending_grading'] ?? false) && $highestScore === null) {
+                $scoreDisplay = '—';
+                $status = 'Pending Grading';
+            } elseif ($hasAttempts && $highestScore !== null) {
                 $scoreDisplay = $attemptMaxMarks !== null
                     ? $highestScore.' / '.$attemptMaxMarks
                     : (string) $highestScore;
                 $status = ($student['is_passed'] ?? false) ? 'Passed' : 'Failed';
+            } elseif ($hasAttempts && ($student['has_pending_grading'] ?? false)) {
+                $scoreDisplay = $highestScore !== null
+                    ? ($attemptMaxMarks !== null ? $highestScore.' / '.$attemptMaxMarks : (string) $highestScore)
+                    : '—';
+                $status = 'Pending Grading';
             } else {
                 $scoreDisplay = '—';
                 $status = 'No attempts';

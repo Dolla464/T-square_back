@@ -25,7 +25,9 @@ class AdminQuestionService
         return DB::transaction(function () use ($data) {
             $question = Question::create($this->questionAttributes($data));
 
-            $question->choices()->createMany($data['choices']);
+            if ($this->isMcqType($data)) {
+                $question->choices()->createMany($data['choices']);
+            }
 
             return $question->load('choices');
         });
@@ -38,8 +40,12 @@ class AdminQuestionService
 
             $question->update($this->questionAttributes($data));
 
-            $choices = is_array($data['choices']) ? $data['choices'] : iterator_to_array($data['choices']);
-            $this->syncChoices($question, $choices);
+            if ($this->isMcqType($data)) {
+                $choices = is_array($data['choices']) ? $data['choices'] : iterator_to_array($data['choices']);
+                $this->syncChoices($question, $choices);
+            } else {
+                $question->choices()->forceDelete();
+            }
 
             return $question->load('choices');
         });
@@ -128,10 +134,16 @@ class AdminQuestionService
         }
     }
 
+    private function isMcqType(array $data): bool
+    {
+        return ($data['type'] ?? Question::TYPE_MCQ) === Question::TYPE_MCQ;
+    }
+
     private function questionAttributes(array $data): array
     {
         return [
             'exam_id' => $data['exam_id'],
+            'type' => $data['type'] ?? Question::TYPE_MCQ,
             'question_text' => filled(trim((string) ($data['question_text'] ?? '')))
                 ? trim((string) $data['question_text'])
                 : null,

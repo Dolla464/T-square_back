@@ -11,8 +11,13 @@ class Question extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const TYPE_MCQ = 'mcq';
+
+    public const TYPE_ESSAY = 'essay';
+
     protected $fillable = [
         'exam_id',
+        'type',
         'question_text',
         'question_image',
         'question_code',
@@ -85,5 +90,15 @@ class Question extends Model
     public function studentAnswers()
     {
         return $this->hasMany(Answer::class);
+    }
+
+    public function isEssay(): bool
+    {
+        return $this->type === self::TYPE_ESSAY;
+    }
+
+    public function isMcq(): bool
+    {
+        return $this->type === self::TYPE_MCQ;
     }
 }

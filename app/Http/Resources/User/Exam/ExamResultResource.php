@@ -39,7 +39,7 @@ class ExamResultResource extends JsonResource
             'passing_mark' => $attemptPassingMark,
             'attempt_passing_mark' => $attemptPassingMark,
             'status' => $this->status,
-            'is_passed' => $studentScore >= $attemptPassingMark,
+            'is_passed' => $this->resolveIsPassed(),
             'can_download_certificate' => $canDownloadCertificate,
             'enrollment_id' => $enrollmentId,
             'finished_at' => $this->finished_at?->format('Y-m-d H:i'),

@@ -65,6 +65,7 @@ class GroupExamResultsService
                 'highest_attempt_passing_mark' => $summary['highest_attempt_passing_mark'],
                 'is_passed' => $summary['is_passed'],
                 'has_attempts' => $summary['has_attempts'],
+                'has_pending_grading' => $summary['has_pending_grading'],
             ];
         });
 
@@ -129,24 +130,36 @@ class GroupExamResultsService
                 'highest_attempt_passing_mark' => null,
                 'is_passed' => false,
                 'has_attempts' => false,
+                'has_pending_grading' => false,
             ];
         }
 
+        $hasPendingGrading = $attempts->contains(
+            fn (ExamAttempt $attempt) => $attempt->status === ExamAttempt::STATUS_AWAITING_GRADING
+        );
+
         $isPassed = $attempts->contains(fn (ExamAttempt $attempt) => $attempt->status === 'passed');
 
-        $bestAttempt = $attempts
-            ->sortByDesc(fn (ExamAttempt $attempt) => (float) $attempt->score)
-            ->first();
+        $finalizedAttempts = $attempts->reject(
+            fn (ExamAttempt $attempt) => $attempt->status === ExamAttempt::STATUS_AWAITING_GRADING
+        );
+
+        $bestAttempt = $finalizedAttempts->isNotEmpty()
+            ? $finalizedAttempts->sortByDesc(fn (ExamAttempt $attempt) => (float) $attempt->score)->first()
+            : $attempts->first();
 
         $bestAttempt->setRelation('exam', $exam);
 
         return [
             'attempts_count' => $attemptsCount,
-            'highest_score' => (float) $bestAttempt->score,
+            'highest_score' => $hasPendingGrading && $finalizedAttempts->isEmpty()
+                ? null
+                : (float) $bestAttempt->score,
             'highest_attempt_max_marks' => $this->examService->getAttemptMaxMarks($bestAttempt),
             'highest_attempt_passing_mark' => $this->examService->getAttemptPassingMark($bestAttempt),
             'is_passed' => $isPassed,
             'has_attempts' => true,
+            'has_pending_grading' => $hasPendingGrading,
         ];
     }
 }

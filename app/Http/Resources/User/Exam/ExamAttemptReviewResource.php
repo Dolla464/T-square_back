@@ -26,17 +26,41 @@ class ExamAttemptReviewResource extends JsonResource
 
         $questionItems = $questions->map(function ($question) use ($answersByQuestion) {
             $answer = $answersByQuestion->get($question->id);
+
+            if ($question->isEssay()) {
+                $resultStatus = match (true) {
+                    $answer === null => 'unanswered',
+                    $answer->graded_at !== null => 'graded',
+                    default => 'pending_grading',
+                };
+
+                return [
+                    'id' => $question->id,
+                    'type' => $question->type,
+                    'question_text' => $question->question_text,
+                    'question_image' => $question->question_image_url,
+                    'question_code' => $question->question_code,
+                    'question_code_language' => $question->question_code_language,
+                    'marks' => $question->marks,
+                    'result_status' => $resultStatus,
+                    'answer_id' => $answer?->id,
+                    'answer_text' => $answer?->answer_text,
+                    'marks_earned' => $answer?->marks_earned ?? 0,
+                ];
+            }
+
             $selectedId = $answer?->choice_id;
             $correctChoice = $question->choices->firstWhere('is_correct', true);
 
             $resultStatus = match (true) {
                 $answer === null => 'unanswered',
-                $answer->is_correct => 'correct',
+                $answer->is_correct === true => 'correct',
                 default => 'incorrect',
             };
 
             return [
                 'id' => $question->id,
+                'type' => $question->type ?? 'mcq',
                 'question_text' => $question->question_text,
                 'question_image' => $question->question_image_url,
                 'question_code' => $question->question_code,
@@ -65,6 +89,8 @@ class ExamAttemptReviewResource extends JsonResource
             'correct' => $questionItems->where('result_status', 'correct')->count(),
             'incorrect' => $questionItems->where('result_status', 'incorrect')->count(),
             'unanswered' => $questionItems->where('result_status', 'unanswered')->count(),
+            'pending_grading' => $questionItems->where('result_status', 'pending_grading')->count(),
+            'graded' => $questionItems->where('result_status', 'graded')->count(),
         ];
 
         return [

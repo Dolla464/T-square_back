@@ -38,7 +38,17 @@ class ExamAttemptResource extends JsonResource
             'exam_total_marks' => $examTotalMarks,
             'passing_mark' => $attemptPassingMark,
             'attempt_passing_mark' => $attemptPassingMark,
-            'user_answers' => $this->whenLoaded('answers', fn () => $this->answers->pluck('choice_id', 'question_id'), []),
+            'user_answers' => $this->whenLoaded('answers', function () {
+                return $this->answers->mapWithKeys(function ($answer) {
+                    $question = $this->questions->firstWhere('id', $answer->question_id);
+
+                    if ($question?->isEssay()) {
+                        return [$answer->question_id => $answer->answer_text];
+                    }
+
+                    return [$answer->question_id => $answer->choice_id];
+                });
+            }, []),
             'questions' => QuestionResource::collection($attemptQuestions),
         ];
 

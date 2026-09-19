@@ -33,6 +33,7 @@ function validQuestionPayload(int $examId, array $overrides = []): array
 {
     return array_merge([
         'exam_id' => $examId,
+        'type' => 'mcq',
         'question_text' => 'What is Laravel?',
         'marks' => 1,
         'choices' => [
@@ -54,16 +55,27 @@ it('creates a text-only question', function (): void {
     ]);
 });
 
-it('creates a code-only question', function (): void {
+it('creates a question with optional code when text is provided', function (): void {
+    $response = $this->postJson('/api/admin/questions', validQuestionPayload($this->exam->id, [
+        'question_code' => 'echo "Hello";',
+        'question_code_language' => 'php',
+    ]));
+
+    $response->assertCreated()
+        ->assertJsonPath('data.question_text', 'What is Laravel?')
+        ->assertJsonPath('data.question_code', 'echo "Hello";')
+        ->assertJsonPath('data.question_code_language', 'php');
+});
+
+it('rejects a code-only question without text', function (): void {
     $response = $this->postJson('/api/admin/questions', validQuestionPayload($this->exam->id, [
         'question_text' => null,
         'question_code' => 'echo "Hello";',
         'question_code_language' => 'php',
     ]));
 
-    $response->assertCreated()
-        ->assertJsonPath('data.question_code', 'echo "Hello";')
-        ->assertJsonPath('data.question_code_language', 'php');
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['question_text']);
 });
 
 it('rejects a question without any content', function (): void {

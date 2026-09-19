@@ -20,8 +20,23 @@ class QuestionFactory extends Factory
     {
         return [
             'exam_id' => Exam::inRandomOrder()->first()->id ?? Exam::factory(),
+            'type' => Question::TYPE_MCQ,
             'question_text' => $this->faker->sentence(10).'?',
             'marks' => $this->faker->randomElement([5, 10, 15]),
         ];
+    }
+
+    public function essay(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => Question::TYPE_ESSAY,
+        ]);
+    }
+
+    public function mcq(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => Question::TYPE_MCQ,
+        ]);
     }
 }

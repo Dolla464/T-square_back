@@ -2,6 +2,7 @@
 
 namespace App\Services\User;
 
+use App\Events\StudentExamAttemptAwaitingGrading;
 use App\Events\StudentExamAttemptCompleted;
 use App\Models\Answer;
 use App\Models\Choice;
@@ -118,13 +119,18 @@ class ExamService
     {
         $attempt->loadMissing(['exam', 'questions']);
 
-        $isPassed = $attempt->status === 'passed';
         $result = $this->buildAttemptResult(
             $attempt,
             $attempt->score,
-            $isPassed,
-            $attempt->status,
+            status: $attempt->status,
         );
+
+        if ($attempt->status === ExamAttempt::STATUS_AWAITING_GRADING) {
+            return array_merge($result, [
+                'percentage' => null,
+            ]);
+        }
+
         $totalMarks = $result['total_marks'] > 0 ? $result['total_marks'] : 1;
         $percentage = round(((float) $result['score'] / $totalMarks) * 100, 2);
 
@@ -133,8 +139,13 @@ class ExamService
         ]);
     }
 
-    public function saveAnswer(int $attemptId, int $questionId, int $choiceId, ?int $studentId = null): Answer
-    {
+    public function saveAnswer(
+        int $attemptId,
+        int $questionId,
+        ?int $choiceId = null,
+        ?int $studentId = null,
+        ?string $answerText = null,
+    ): Answer {
         $attempt = ExamAttempt::with([
             'exam',
             'questions',
@@ -159,6 +170,33 @@ class ExamService
             abort(403, 'This question does not belong to this attempt.');
         }
 
+        if ($question->isEssay()) {
+            $trimmedText = trim((string) $answerText);
+            if ($trimmedText === '') {
+                abort(422, 'Essay answer cannot be empty.');
+            }
+
+            $answer = Answer::updateOrCreate(
+                ['attempt_id' => $attemptId, 'question_id' => $questionId],
+                [
+                    'choice_id' => null,
+                    'answer_text' => $trimmedText,
+                ]
+            );
+            $answer->forceFill([
+                'is_correct' => null,
+                'marks_earned' => 0,
+                'graded_at' => null,
+                'graded_by' => null,
+            ])->save();
+
+            return $answer;
+        }
+
+        if ($choiceId === null) {
+            abort(422, 'A choice is required for this question.');
+        }
+
         $choice = Choice::findOrFail($choiceId);
         if ($choice->question_id != $question->id) {
             abort(403, 'Selected choice does not belong to this question.');
@@ -166,11 +204,16 @@ class ExamService
 
         $answer = Answer::updateOrCreate(
             ['attempt_id' => $attemptId, 'question_id' => $questionId],
-            ['choice_id' => $choiceId]
+            [
+                'choice_id' => $choiceId,
+                'answer_text' => null,
+            ]
         );
         $answer->forceFill([
             'is_correct' => $choice->is_correct,
             'marks_earned' => $choice->is_correct ? $question->marks : 0,
+            'graded_at' => null,
+            'graded_by' => null,
         ])->save();
 
         return $answer;
@@ -189,11 +232,38 @@ class ExamService
         $attempt = ExamAttempt::with(['exam', 'questions'])->findOrFail($attemptId);
 
         if ($attempt->status !== 'ongoing') {
-            return $this->buildAttemptResult($attempt, $attempt->score);
+            return $this->buildAttemptResult($attempt, $attempt->score, status: $attempt->status);
         }
 
-        $result = DB::transaction(function () use ($attempt) {
-            $totalScore = $attempt->answers()->sum('marks_earned');
+        $totalScore = (float) $attempt->answers()->sum('marks_earned');
+
+        if ($this->attemptNeedsEssayGrading($attempt)) {
+            $result = DB::transaction(function () use ($attempt, $totalScore) {
+                $attempt->forceFill([
+                    'score' => $totalScore,
+                    'status' => ExamAttempt::STATUS_AWAITING_GRADING,
+                    'finished_at' => now(),
+                ])->save();
+
+                return $this->buildAttemptResult(
+                    $attempt,
+                    $totalScore,
+                    status: ExamAttempt::STATUS_AWAITING_GRADING,
+                );
+            });
+
+            $attempt->refresh()->loadMissing(['student.user', 'exam.course']);
+            StudentExamAttemptAwaitingGrading::dispatch($attempt);
+
+            return $result;
+        }
+
+        return $this->finalizeAttemptScore($attempt, $totalScore);
+    }
+
+    public function finalizeAttemptScore(ExamAttempt $attempt, float $totalScore): array
+    {
+        $result = DB::transaction(function () use ($attempt, $totalScore) {
             $attemptPassingMark = $this->getAttemptPassingMark($attempt);
             $isPassed = $totalScore >= $attemptPassingMark;
             $timedOut = $this->attemptAuthorizationService->isTimedOut($attempt);
@@ -203,7 +273,7 @@ class ExamService
             $attempt->forceFill([
                 'score' => $totalScore,
                 'status' => $status,
-                'finished_at' => now(),
+                'finished_at' => $attempt->finished_at ?? now(),
             ])->save();
 
             if ($isPassed && $attempt->exam->is_final) {
@@ -328,8 +398,17 @@ class ExamService
     ): array {
         $attemptMaxMarks = $this->getAttemptMaxMarks($attempt);
         $attemptPassingMark = $this->getAttemptPassingMark($attempt);
-        $isPassed ??= $score >= $attemptPassingMark;
-        $status ??= $isPassed ? 'passed' : 'failed';
+        $status ??= $attempt->status;
+
+        if ($status === ExamAttempt::STATUS_AWAITING_GRADING) {
+            $isPassed = null;
+        } elseif ($isPassed === null) {
+            $attempt->forceFill(['status' => $status]);
+            $isPassed = $attempt->resolveIsPassed();
+            if ($isPassed === null) {
+                $isPassed = $score >= $attemptPassingMark;
+            }
+        }
 
         return [
             'score' => $score,
@@ -343,8 +422,25 @@ class ExamService
             'status' => $status,
             'is_final' => (bool) $attempt->exam->is_final,
             'course_id' => $attempt->exam->course_id,
-            'requires_review' => $isPassed && $attempt->exam->is_final,
+            'requires_review' => $isPassed === true && $attempt->exam->is_final,
         ];
+    }
+
+    private function attemptNeedsEssayGrading(ExamAttempt $attempt): bool
+    {
+        $essayQuestionIds = $attempt->questions
+            ->filter(fn (Question $question) => $question->isEssay())
+            ->pluck('id');
+
+        if ($essayQuestionIds->isEmpty()) {
+            return false;
+        }
+
+        return $attempt->answers()
+            ->whereIn('question_id', $essayQuestionIds)
+            ->whereNotNull('answer_text')
+            ->where('answer_text', '!=', '')
+            ->exists();
     }
 
     private function resolveSampleLimit(Exam $exam, int $bankCount): int
