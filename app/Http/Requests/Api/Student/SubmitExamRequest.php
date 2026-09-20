@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Api\Student;
 
 use App\DTO\AuthorizationResult;
-use App\Services\Exam\ExamAttemptAuthorizationService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -20,11 +19,7 @@ class SubmitExamRequest extends FormRequest
             return false;
         }
 
-        $attemptId = (int) $this->route('id');
-        $result = app(ExamAttemptAuthorizationService::class)->checkSubmittable($attemptId, $student->id);
-        $this->attributes->set('auth_result', $result);
-
-        return $result->isAllowed();
+        return true;
     }
 
     protected function failedAuthorization(): void

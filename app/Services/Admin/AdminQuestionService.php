@@ -38,7 +38,10 @@ class AdminQuestionService
         return DB::transaction(function () use ($question, $data) {
             $this->deleteQuestionImageIfReplaced($question, $data['question_image'] ?? null);
 
-            $question->update($this->questionAttributes($data));
+            $attributes = $this->questionAttributes($data);
+            unset($attributes['exam_id']);
+
+            $question->update($attributes);
 
             if ($this->isMcqType($data)) {
                 $choices = is_array($data['choices']) ? $data['choices'] : iterator_to_array($data['choices']);

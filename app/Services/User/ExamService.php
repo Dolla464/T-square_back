@@ -2,6 +2,7 @@
 
 namespace App\Services\User;
 
+use App\DTO\AuthorizationResult;
 use App\Events\StudentExamAttemptAwaitingGrading;
 use App\Events\StudentExamAttemptCompleted;
 use App\Models\Answer;
@@ -66,50 +67,60 @@ class ExamService
             abort(422, 'This exam has no questions yet. Please contact the administrator.');
         }
 
-        $existingAttempt = ExamAttempt::where('student_id', $studentId)
-            ->where('exam_id', $examId)
-            ->where('status', 'ongoing')
-            ->first();
+        return DB::transaction(function () use ($studentId, $examId, $exam, $bankCount) {
+            ExamAttempt::query()
+                ->where('student_id', $studentId)
+                ->where('exam_id', $examId)
+                ->lockForUpdate()
+                ->get();
 
-        if ($existingAttempt) {
-            if ($existingAttempt->questions()->count() === 0) {
-                $this->attachSampledQuestions(
-                    $existingAttempt,
-                    $this->sampleQuestionIdsForAttempt($exam, $examId, $bankCount)
-                );
+            $existingAttempt = ExamAttempt::query()
+                ->where('student_id', $studentId)
+                ->where('exam_id', $examId)
+                ->where('status', ExamAttempt::STATUS_ONGOING)
+                ->first();
+
+            if ($existingAttempt) {
+                if ($existingAttempt->questions()->count() === 0) {
+                    $this->attachSampledQuestions(
+                        $existingAttempt,
+                        $this->sampleQuestionIdsForAttempt($exam, $examId, $bankCount)
+                    );
+                }
+
+                if ($this->attemptAuthorizationService->isTimedOut($existingAttempt)) {
+                    $this->completeAttempt($existingAttempt->id, $studentId);
+
+                    return $existingAttempt->refresh()->load(['questions.choices', 'answers', 'exam']);
+                }
+
+                return $existingAttempt->load(['questions.choices', 'answers', 'exam']);
             }
 
-            if ($this->attemptAuthorizationService->isTimedOut($existingAttempt)) {
-                $this->completeAttempt($existingAttempt->id, $studentId);
+            $attemptsCount = ExamAttempt::query()
+                ->where('student_id', $studentId)
+                ->where('exam_id', $examId)
+                ->count();
 
-                return $existingAttempt->refresh()->load(['questions.choices', 'answers', 'exam']);
+            if ($exam->max_attempts && $attemptsCount >= $exam->max_attempts) {
+                abort(403, 'Sorry, you have exhausted the maximum number of attempts available for this exam!');
             }
 
-            return $existingAttempt->load(['questions.choices', 'answers', 'exam']);
-        }
+            $attempt = ExamAttempt::create([
+                'student_id' => $studentId,
+                'exam_id' => $examId,
+                'duration_minutes' => $exam->duration,
+                'started_at' => now(),
+            ]);
+            $attempt->forceFill(['status' => ExamAttempt::STATUS_ONGOING])->save();
 
-        $attemptsCount = ExamAttempt::where('student_id', $studentId)
-            ->where('exam_id', $examId)
-            ->count();
+            $this->attachSampledQuestions(
+                $attempt,
+                $this->sampleQuestionIdsForAttempt($exam, $examId, $bankCount)
+            );
 
-        if ($exam->max_attempts && $attemptsCount >= $exam->max_attempts) {
-            abort(403, 'Sorry, you have exhausted the maximum number of attempts available for this exam!');
-        }
-
-        $attempt = ExamAttempt::create([
-            'student_id' => $studentId,
-            'exam_id' => $examId,
-            'duration_minutes' => $exam->duration,
-            'started_at' => now(),
-        ]);
-        $attempt->forceFill(['status' => 'ongoing'])->save();
-
-        $this->attachSampledQuestions(
-            $attempt,
-            $this->sampleQuestionIdsForAttempt($exam, $examId, $bankCount)
-        );
-
-        return $attempt->load(['questions.choices', 'answers', 'exam']);
+            return $attempt->load(['questions.choices', 'answers', 'exam']);
+        });
     }
 
     /**
@@ -151,11 +162,17 @@ class ExamService
             'questions',
         ])->findOrFail($attemptId);
 
-        if ($studentId !== null && $attempt->student_id !== $studentId) {
-            abort(403, 'This attempt does not belong to the authenticated student.');
-        }
+        if ($studentId !== null) {
+            $access = $this->attemptAuthorizationService->validateMutableAttempt($attempt, $studentId);
 
-        if ($attempt->status !== 'ongoing') {
+            if (! $access->isAllowed()) {
+                if ($this->attemptAuthorizationService->isExamContextRevoked($access)) {
+                    $this->closeOngoingAttempt($attemptId, $studentId);
+                }
+
+                abort($access->getStatusCode(), $access->getMessage());
+            }
+        } elseif ($attempt->status !== ExamAttempt::STATUS_ONGOING) {
             abort(403, 'This attempt is already closed and cannot be modified.');
         }
 
@@ -219,80 +236,137 @@ class ExamService
         return $answer;
     }
 
-    public function completeAttempt($attemptId, ?int $studentId = null): array
+    public function completeAttempt($attemptId, ?int $studentId = null, bool $skipAvailabilityCheck = false): array
     {
-        if ($studentId) {
-            $authResult = $this->attemptAuthorizationService->checkSubmittable((int) $attemptId, $studentId);
+        $result = DB::transaction(function () use ($attemptId, $studentId, $skipAvailabilityCheck) {
+            $attempt = ExamAttempt::query()
+                ->with(['exam', 'questions'])
+                ->whereKey($attemptId)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-            if (! $authResult->isAllowed()) {
-                abort($authResult->getStatusCode(), $authResult->getMessage());
+            if ($studentId !== null) {
+                $authResult = $skipAvailabilityCheck
+                    ? $this->authorizeAttemptOwnership($attempt, $studentId)
+                    : $this->attemptAuthorizationService->validateSubmittableAttempt($attempt, $studentId);
+
+                if (! $authResult->isAllowed()) {
+                    abort($authResult->getStatusCode(), $authResult->getMessage());
+                }
             }
-        }
 
-        $attempt = ExamAttempt::with(['exam', 'questions'])->findOrFail($attemptId);
+            if ($attempt->status !== ExamAttempt::STATUS_ONGOING) {
+                return [
+                    'kind' => 'existing',
+                    'payload' => $this->buildAttemptResult($attempt, $attempt->score, status: $attempt->status),
+                ];
+            }
 
-        if ($attempt->status !== 'ongoing') {
-            return $this->buildAttemptResult($attempt, $attempt->score, status: $attempt->status);
-        }
+            $totalScore = (float) $attempt->answers()->sum('marks_earned');
 
-        $totalScore = (float) $attempt->answers()->sum('marks_earned');
-
-        if ($this->attemptNeedsEssayGrading($attempt)) {
-            $result = DB::transaction(function () use ($attempt, $totalScore) {
+            if ($this->attemptNeedsEssayGrading($attempt)) {
                 $attempt->forceFill([
                     'score' => $totalScore,
                     'status' => ExamAttempt::STATUS_AWAITING_GRADING,
                     'finished_at' => now(),
                 ])->save();
 
-                return $this->buildAttemptResult(
-                    $attempt,
-                    $totalScore,
-                    status: ExamAttempt::STATUS_AWAITING_GRADING,
-                );
-            });
+                return [
+                    'kind' => 'awaiting_grading',
+                    'attempt' => $attempt,
+                    'payload' => $this->buildAttemptResult(
+                        $attempt,
+                        $totalScore,
+                        status: ExamAttempt::STATUS_AWAITING_GRADING,
+                    ),
+                ];
+            }
 
-            $attempt->refresh()->loadMissing(['student.user', 'exam.course']);
+            return [
+                'kind' => 'finalized',
+                'attempt' => $attempt,
+                'payload' => $this->finalizeAttemptScoreWithinTransaction($attempt, $totalScore),
+            ];
+        });
+
+        if ($result['kind'] === 'awaiting_grading') {
+            $attempt = $result['attempt']->refresh()->loadMissing(['student.user', 'exam.course']);
             StudentExamAttemptAwaitingGrading::dispatch($attempt);
 
-            return $result;
+            return $result['payload'];
         }
 
-        return $this->finalizeAttemptScore($attempt, $totalScore);
+        if ($result['kind'] === 'finalized') {
+            $attempt = $result['attempt']->refresh()->loadMissing(['student.user', 'exam.course']);
+            StudentExamAttemptCompleted::dispatch($attempt);
+
+            return $result['payload'];
+        }
+
+        return $result['payload'];
     }
 
     public function finalizeAttemptScore(ExamAttempt $attempt, float $totalScore): array
     {
         $result = DB::transaction(function () use ($attempt, $totalScore) {
-            $attemptPassingMark = $this->getAttemptPassingMark($attempt);
-            $isPassed = $totalScore >= $attemptPassingMark;
-            $timedOut = $this->attemptAuthorizationService->isTimedOut($attempt);
+            $lockedAttempt = ExamAttempt::query()
+                ->with(['exam', 'questions'])
+                ->whereKey($attempt->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-            $status = $isPassed ? 'passed' : ($timedOut ? 'timed_out' : 'failed');
-
-            $attempt->forceFill([
-                'score' => $totalScore,
-                'status' => $status,
-                'finished_at' => $attempt->finished_at ?? now(),
-            ])->save();
-
-            if ($isPassed && $attempt->exam->is_final) {
-                $enrollment = Enrollment::where('student_id', '=', $attempt->student_id, 'and')
-                    ->where('course_id', '=', $attempt->exam->course_id, 'and')
-                    ->first();
-
-                if ($enrollment && ! $enrollment->is_completed) {
-                    $enrollment->markAsCompleted();
-                }
-            }
-
-            return $this->buildAttemptResult($attempt, $totalScore, $isPassed, $status);
+            return $this->finalizeAttemptScoreWithinTransaction($lockedAttempt, $totalScore);
         });
 
         $attempt->refresh()->loadMissing(['student.user', 'exam.course']);
         StudentExamAttemptCompleted::dispatch($attempt);
 
         return $result;
+    }
+
+    private function closeOngoingAttempt(int $attemptId, int $studentId): array
+    {
+        return $this->completeAttempt($attemptId, $studentId, skipAvailabilityCheck: true);
+    }
+
+    private function authorizeAttemptOwnership(ExamAttempt $attempt, int $studentId): AuthorizationResult
+    {
+        if ($attempt->student_id !== $studentId) {
+            return AuthorizationResult::forbidden('You do not own this attempt.');
+        }
+
+        if ($attempt->status !== ExamAttempt::STATUS_ONGOING) {
+            return AuthorizationResult::unprocessable('This attempt is no longer active.');
+        }
+
+        return AuthorizationResult::allowed();
+    }
+
+    private function finalizeAttemptScoreWithinTransaction(ExamAttempt $attempt, float $totalScore): array
+    {
+        $attemptPassingMark = $this->getAttemptPassingMark($attempt);
+        $isPassed = $totalScore >= $attemptPassingMark;
+        $timedOut = $this->attemptAuthorizationService->isTimedOut($attempt);
+
+        $status = $isPassed ? 'passed' : ($timedOut ? 'timed_out' : 'failed');
+
+        $attempt->forceFill([
+            'score' => $totalScore,
+            'status' => $status,
+            'finished_at' => $attempt->finished_at ?? now(),
+        ])->save();
+
+        if ($isPassed && $attempt->exam?->is_final) {
+            $enrollment = Enrollment::where('student_id', '=', $attempt->student_id, 'and')
+                ->where('course_id', '=', $attempt->exam->course_id, 'and')
+                ->first();
+
+            if ($enrollment && ! $enrollment->is_completed) {
+                $enrollment->markAsCompleted();
+            }
+        }
+
+        return $this->buildAttemptResult($attempt, $totalScore, $isPassed, $status);
     }
 
     public function getAttemptMaxMarks(ExamAttempt $attempt): float

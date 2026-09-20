@@ -57,6 +57,15 @@ class StoreUpdateQuestionRequest extends FormRequest
             }
 
             $question = $this->route('question');
+            if ($question instanceof Question) {
+                if ((int) $this->input('exam_id') !== (int) $question->exam_id) {
+                    $validator->errors()->add(
+                        'exam_id',
+                        'Questions cannot be moved to another exam.'
+                    );
+                }
+            }
+
             if ($question instanceof Question && $question->studentAnswers()->exists()) {
                 $requestedType = $this->input('type');
                 if ($requestedType !== null && $requestedType !== $question->type) {

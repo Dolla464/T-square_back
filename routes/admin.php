@@ -37,7 +37,7 @@ Route::prefix('admin/google-storage-accounts')
         Route::get('callback', [GoogleStorageAccountController::class, 'callback'])->name('callback');
     });
 
-Route::middleware(['auth:sanctum', 'role:admin'])
+Route::middleware(['auth:sanctum', 'verified', 'role:admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
