@@ -12,6 +12,10 @@ use Illuminate\Validation\ValidationException;
 class AdminQuestionService
 {
     use HandleImageUploadTrait;
+
+    public function __construct(private AdminExamService $adminExamService)
+    {}
+
     public function getQuestionsByExam(int $examId)
     {
         return Question::where('exam_id', $examId)
@@ -20,22 +24,26 @@ class AdminQuestionService
             ->get();
     }
 
-    public function createQuestion(array $data): Question
+    public function createQuestion(array $data, ?int $updatedByUserId = null): Question
     {
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data, $updatedByUserId) {
             $question = Question::create($this->questionAttributes($data));
 
             if ($this->isMcqType($data)) {
                 $question->choices()->createMany($data['choices']);
             }
 
+            if ($updatedByUserId !== null) {
+                $this->adminExamService->recordExamUpdatedBy((int) $data['exam_id'], $updatedByUserId);
+            }
+
             return $question->load('choices');
         });
     }
 
-    public function updateQuestion(Question $question, array $data): Question
+    public function updateQuestion(Question $question, array $data, ?int $updatedByUserId = null): Question
     {
-        return DB::transaction(function () use ($question, $data) {
+        return DB::transaction(function () use ($question, $data, $updatedByUserId) {
             $this->deleteQuestionImageIfReplaced($question, $data['question_image'] ?? null);
 
             $attributes = $this->questionAttributes($data);
@@ -50,13 +58,26 @@ class AdminQuestionService
                 $question->choices()->forceDelete();
             }
 
+            if ($updatedByUserId !== null) {
+                $this->adminExamService->recordExamUpdatedBy($question->exam_id, $updatedByUserId);
+            }
+
             return $question->load('choices');
         });
     }
 
-    public function deleteQuestion(Question $question): bool
+    public function deleteQuestion(Question $question, ?int $updatedByUserId = null): bool
     {
-        return $question->delete();
+        return DB::transaction(function () use ($question, $updatedByUserId) {
+            $examId = $question->exam_id;
+            $deleted = $question->delete();
+
+            if ($updatedByUserId !== null) {
+                $this->adminExamService->recordExamUpdatedBy($examId, $updatedByUserId);
+            }
+
+            return $deleted;
+        });
     }
 
     public function getTrashedQuestions(?int $examId = null)

@@ -14,7 +14,8 @@ class AdminExamService
     public function getFilteredExamsForAdmin(array $filters): LengthAwarePaginator
     {
         // Load the course and questions automatically with the least number of queries
-        $query = Exam::with('course')->withCount('questions');
+        $query = Exam::with(['course', 'updatedBy.admin', 'updatedBy.instructor'])
+            ->withCount('questions');
 
         // 1. Filter the search (exam name, description, course name)
         if (!empty($filters['search'])) {
@@ -53,17 +54,26 @@ class AdminExamService
     /**
      * Create a new exam
      */
-    public function createExam(array $data): Exam
+    public function createExam(array $data, ?int $updatedByUserId = null): Exam
     {
+        if ($updatedByUserId !== null) {
+            $data['updated_by'] = $updatedByUserId;
+        }
+
         return Exam::create($data);
     }
 
     /**
      * Update the exam data
      */
-    public function updateExam(Exam $exam, array $data): Exam
+    public function updateExam(Exam $exam, array $data, ?int $updatedByUserId = null): Exam
     {
+        if ($updatedByUserId !== null) {
+            $data['updated_by'] = $updatedByUserId;
+        }
+
         $exam->update($data);
+
         return $exam;
     }
 
@@ -82,7 +92,7 @@ class AdminExamService
     {
         // onlyTrashed method returns only the records that have a deleted_at value
         return Exam::onlyTrashed()
-            ->with('course')
+            ->with(['course', 'updatedBy.admin', 'updatedBy.instructor'])
             ->withCount('questions')
             ->latest()
             ->paginate($perPage);
@@ -112,14 +122,26 @@ class AdminExamService
     /**
      * Change the active status of the exam (Enable / Disable)
      */
-    public function toggleExamStatus(int $id, int $isActive): Exam
+    public function toggleExamStatus(int $id, int $isActive, ?int $updatedByUserId = null): Exam
     {
         $exam = Exam::findOrFail($id);
 
-        $exam->update([
-            'is_active' => $isActive
-        ]);
+        $payload = ['is_active' => $isActive];
+
+        if ($updatedByUserId !== null) {
+            $payload['updated_by'] = $updatedByUserId;
+        }
+
+        $exam->update($payload);
 
         return $exam;
+    }
+
+    public function recordExamUpdatedBy(int $examId, int $userId): void
+    {
+        Exam::whereKey($examId)->update([
+            'updated_by' => $userId,
+            'updated_at' => now(),
+        ]);
     }
 }

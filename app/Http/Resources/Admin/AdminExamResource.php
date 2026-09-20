@@ -23,6 +23,20 @@ class AdminExamResource extends JsonResource
                     'title' => $this->course->title,
                 ];
             }),
+            'updated_at' => $this->updated_at?->format('Y-m-d H:i'),
+            'updated_by' => $this->whenLoaded('updatedBy', function () {
+                if (! $this->updatedBy) {
+                    return null;
+                }
+
+                return [
+                    'id' => $this->updatedBy->id,
+                    'name' => $this->updatedBy->admin?->full_name
+                        ?? $this->updatedBy->instructor?->full_name
+                        ?? $this->updatedBy->name,
+                    'role' => $this->updatedBy->role,
+                ];
+            }),
         ];
          // Add the additional columns that we need for the show only (the full details)
         // Check if the current route is the show route or if we are not returning a collection
