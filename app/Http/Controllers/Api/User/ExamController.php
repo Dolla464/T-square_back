@@ -66,8 +66,9 @@ class ExamController extends Controller
         $this->examService->saveAnswer(
             $request->attempt_id,
             $request->question_id,
-            $request->choice_id,
+            $request->input('choice_id'),
             $student?->id,
+            $request->input('answer_text'),
         );
 
         return response()->json(['status' => 'saved']);
@@ -83,25 +84,34 @@ class ExamController extends Controller
 
         $result = $this->examService->completeAttempt($id, $student->id);
 
-        // Prevent division by zero
         $totalMarks = $result['total_marks'] > 0 ? $result['total_marks'] : 1;
         $score = $result['score'];
-        $percentage = round(($score / $totalMarks) * 100, 2);
+        $status = $result['status'];
+        $isAwaitingGrading = $status === 'awaiting_grading';
+        $percentage = $isAwaitingGrading
+            ? null
+            : round(($score / $totalMarks) * 100, 2).'%';
+
+        $feedback = match (true) {
+            $isAwaitingGrading => 'Your exam has been submitted and is awaiting instructor grading.',
+            $result['is_passed'] === true => 'Congratulations. You passed this exam.',
+            default => 'Sorry. You failed this exam. Try again.',
+        };
 
         return response()->json([
-            'message' => 'Exam completed successfully',
+            'message' => $isAwaitingGrading
+                ? 'Exam submitted successfully. Awaiting instructor grading.'
+                : 'Exam completed successfully',
             'results' => [
                 'score' => $score,
                 'total_marks' => $totalMarks,
                 'is_passed' => $result['is_passed'],
-                'status' => $result['status'],
-                'percentage' => $percentage . '%',
+                'status' => $status,
+                'percentage' => $percentage,
                 'is_final' => $result['is_final'],
                 'course_id' => $result['course_id'],
                 'requires_review' => $result['requires_review'],
-                'feedback' => $result['is_passed']
-                    ? 'Congratulations. You passed this exam.'
-                    : 'Sorry. You failed this exam. Try again.',
+                'feedback' => $feedback,
             ],
         ]);
     }
@@ -122,6 +132,22 @@ class ExamController extends Controller
         return $this->successResponse(
             data: ExamResultResource::collection($results),
             message: 'Exam results retrieved successfully.',
+        );
+    }
+
+    public function timeStatus(Request $request, int $attemptId)
+    {
+        $student = $request->user()->student;
+
+        if (! $student) {
+            return $this->errorResponse('Student profile not found', 404);
+        }
+
+        $status = $this->examService->getAttemptTimeStatus($attemptId, $student->id);
+
+        return $this->successResponse(
+            data: $status,
+            message: 'Exam time status retrieved successfully.',
         );
     }
 

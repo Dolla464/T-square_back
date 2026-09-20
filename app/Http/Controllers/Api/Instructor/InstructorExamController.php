@@ -44,10 +44,10 @@ class InstructorExamController extends Controller
             return $this->instructorNotFoundResponse();
         }
 
-        $exam = $this->examService->createExam($request->validated());
+        $exam = $this->examService->createExam($request->validated(), $request->user()->id);
 
         return $this->successResponse(
-            new AdminExamResource($exam->load('course')),
+            new AdminExamResource($exam->load(['course', 'updatedBy.admin', 'updatedBy.instructor'])),
             'Exam created successfully',
             201
         );
@@ -64,7 +64,7 @@ class InstructorExamController extends Controller
             return $response;
         }
 
-        $exam->load('course')->loadCount('questions');
+        $exam->load(['course', 'updatedBy.admin', 'updatedBy.instructor'])->loadCount('questions');
 
         return $this->successResponse(
             new AdminExamResource($exam),
@@ -83,10 +83,10 @@ class InstructorExamController extends Controller
             return $response;
         }
 
-        $updatedExam = $this->examService->updateExam($exam, $request->validated());
+        $updatedExam = $this->examService->updateExam($exam, $request->validated(), $request->user()->id);
 
         return $this->successResponse(
-            new AdminExamResource($updatedExam->load('course')),
+            new AdminExamResource($updatedExam->load(['course', 'updatedBy.admin', 'updatedBy.instructor'])),
             'Exam updated successfully'
         );
     }
@@ -161,10 +161,15 @@ class InstructorExamController extends Controller
             'is_active' => 'required|in:0,1',
         ]);
 
-        $exam = $this->examService->toggleExamStatus($id, $request->is_active, $instructor->id);
+        $exam = $this->examService->toggleExamStatus(
+            $id,
+            $request->is_active,
+            $instructor->id,
+            $request->user()->id,
+        );
 
         return $this->successResponse(
-            new AdminExamResource($exam),
+            new AdminExamResource($exam->load(['updatedBy.admin', 'updatedBy.instructor'])),
             'Exam status updated successfully'
         );
     }

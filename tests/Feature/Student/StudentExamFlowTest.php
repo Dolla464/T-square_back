@@ -228,3 +228,106 @@ it('auto-completes a timed-out ongoing attempt when resuming via start', functio
 
     expect(ExamAttempt::find($attemptId)->status)->toBe('timed_out');
 });
+
+it('rejects save-answer after the attempt duration has expired', function (): void {
+    ['exam' => $exam] = createStudentExamContext(['duration' => 30], 5);
+
+    $startResponse = startExam($exam->id);
+    $attemptId = $startResponse->json('data.attempt_id');
+    $question = $startResponse->json('data.questions.0');
+    $choiceId = $question['choices'][0]['id'];
+
+    ExamAttempt::whereKey($attemptId)->update([
+        'started_at' => now()->subMinutes(31),
+    ]);
+
+    $this->postJson('/api/exams/save-answer', [
+        'attempt_id' => $attemptId,
+        'question_id' => $question['id'],
+        'choice_id' => $choiceId,
+    ])->assertForbidden();
+
+    expect(ExamAttempt::find($attemptId)->status)->toBe('timed_out');
+});
+
+it('allows submit after timeout and marks the attempt as timed_out when not passed', function (): void {
+    ['exam' => $exam] = createStudentExamContext(['duration' => 30], 5);
+
+    $startResponse = startExam($exam->id);
+    $attemptId = $startResponse->json('data.attempt_id');
+
+    ExamAttempt::whereKey($attemptId)->update([
+        'started_at' => now()->subMinutes(31),
+    ]);
+
+    $this->postJson("/api/exams/{$attemptId}/submit")
+        ->assertOk()
+        ->assertJsonPath('results.status', 'timed_out');
+
+    expect(ExamAttempt::find($attemptId)->status)->toBe('timed_out');
+});
+
+it('does not expose has_ongoing_attempt after the duration expires', function (): void {
+    ['exam' => $exam] = createStudentExamContext(['duration' => 30], 5);
+
+    $startResponse = startExam($exam->id);
+    $attemptId = $startResponse->json('data.attempt_id');
+
+    ExamAttempt::whereKey($attemptId)->update([
+        'started_at' => now()->subMinutes(31),
+    ]);
+
+    $this->getJson('/api/exams')
+        ->assertOk()
+        ->assertJsonPath('data.0.has_ongoing_attempt', false);
+});
+
+it('returns remaining_seconds and deadline_at when starting an attempt', function (): void {
+    ['exam' => $exam] = createStudentExamContext(['duration' => 30], 5);
+
+    $response = startExam($exam->id);
+
+    $response->assertCreated()
+        ->assertJsonStructure([
+            'data' => [
+                'remaining_seconds',
+                'deadline_at',
+                'server_time',
+                'started_at',
+            ],
+        ])
+        ->assertJsonPath('data.remaining_seconds', fn ($value) => $value > 0 && $value <= 1800);
+});
+
+it('syncs time status via the time-status endpoint', function (): void {
+    ['exam' => $exam] = createStudentExamContext(['duration' => 30], 5);
+
+    $startResponse = startExam($exam->id);
+    $attemptId = $startResponse->json('data.attempt_id');
+
+    ExamAttempt::whereKey($attemptId)->update([
+        'started_at' => now()->subMinutes(31),
+    ]);
+
+    $this->getJson("/api/exams/attempts/{$attemptId}/time-status")
+        ->assertOk()
+        ->assertJsonPath('data.is_timed_out', true)
+        ->assertJsonPath('data.remaining_seconds', 0)
+        ->assertJsonPath('data.status', 'timed_out');
+});
+
+it('freezes duration_minutes on the attempt at start time', function (): void {
+    ['exam' => $exam] = createStudentExamContext(['duration' => 30], 5);
+
+    $startResponse = startExam($exam->id);
+    $attemptId = $startResponse->json('data.attempt_id');
+
+    $exam->update(['duration' => 90]);
+
+    ExamAttempt::whereKey($attemptId)->update([
+        'started_at' => now()->subMinutes(31),
+    ]);
+
+    expect(ExamAttempt::find($attemptId)->duration_minutes)->toBe(30);
+    expect(app(\App\Services\Exam\ExamAttemptAuthorizationService::class)->isTimedOut(ExamAttempt::find($attemptId)))->toBeTrue();
+});

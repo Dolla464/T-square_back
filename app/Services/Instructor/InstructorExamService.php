@@ -13,7 +13,7 @@ class InstructorExamService
      */
     public function getFilteredExamsForInstructor(int $instructorId, array $filters): LengthAwarePaginator
     {
-        $query = Exam::with('course')
+        $query = Exam::with(['course', 'updatedBy.admin', 'updatedBy.instructor'])
             ->withCount('questions')
             ->whereHas('course', fn ($q) => $q->assignedToInstructor($instructorId));
 
@@ -46,13 +46,21 @@ class InstructorExamService
         return $query->latest()->paginate($perPage)->withQueryString();
     }
 
-    public function createExam(array $data): Exam
+    public function createExam(array $data, ?int $updatedByUserId = null): Exam
     {
+        if ($updatedByUserId !== null) {
+            $data['updated_by'] = $updatedByUserId;
+        }
+
         return Exam::create($data);
     }
 
-    public function updateExam(Exam $exam, array $data): Exam
+    public function updateExam(Exam $exam, array $data, ?int $updatedByUserId = null): Exam
     {
+        if ($updatedByUserId !== null) {
+            $data['updated_by'] = $updatedByUserId;
+        }
+
         $exam->update($data);
 
         return $exam;
@@ -66,7 +74,7 @@ class InstructorExamService
     public function getTrashedExams(int $instructorId, int $perPage = 10): LengthAwarePaginator
     {
         return Exam::onlyTrashed()
-            ->with('course')
+            ->with(['course', 'updatedBy.admin', 'updatedBy.instructor'])
             ->withCount('questions')
             ->whereHas('course', fn ($q) => $q->assignedToInstructor($instructorId))
             ->latest()
@@ -93,12 +101,18 @@ class InstructorExamService
         return $exam->forceDelete();
     }
 
-    public function toggleExamStatus(int $id, int $isActive, int $instructorId): Exam
+    public function toggleExamStatus(int $id, int $isActive, int $instructorId, ?int $updatedByUserId = null): Exam
     {
         $exam = Exam::whereHas('course', fn ($q) => $q->assignedToInstructor($instructorId))
             ->findOrFail($id);
 
-        $exam->update(['is_active' => $isActive]);
+        $payload = ['is_active' => $isActive];
+
+        if ($updatedByUserId !== null) {
+            $payload['updated_by'] = $updatedByUserId;
+        }
+
+        $exam->update($payload);
 
         return $exam;
     }

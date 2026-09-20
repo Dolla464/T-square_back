@@ -132,6 +132,11 @@
             color: #374151;
         }
 
+        .badge-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
         .footer {
             margin-top: 20px;
             font-size: 9px;
@@ -183,7 +188,20 @@
                 @foreach ($students as $idx => $student)
                     @php
                         $hasAttempts = $student['has_attempts'] ?? false;
-                        if ($hasAttempts) {
+                        if ($hasAttempts && ($student['has_pending_grading'] ?? false) && ($student['highest_score'] ?? null) === null) {
+                            $scoreDisplay = '—';
+                            $status = 'Pending Grading';
+                            $badgeClass = 'badge-pending';
+                        } elseif ($hasAttempts && ($student['has_pending_grading'] ?? false)) {
+                            $highest = $student['highest_score'] ?? null;
+                            $attemptMaxMarks = $student['highest_attempt_max_marks'] ?? null;
+                            $scoreDisplay =
+                                $highest !== null && $attemptMaxMarks !== null
+                                    ? $highest . ' / ' . $attemptMaxMarks
+                                    : ($highest ?? '—');
+                            $status = 'Pending Grading';
+                            $badgeClass = 'badge-pending';
+                        } elseif ($hasAttempts) {
                             $highest = $student['highest_score'] ?? null;
                             $attemptMaxMarks = $student['highest_attempt_max_marks'] ?? null;
                             $scoreDisplay =

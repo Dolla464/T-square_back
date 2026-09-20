@@ -10,15 +10,27 @@ class ExamAttempt extends Model
     use HasFactory;
 
     /** Statuses allowed for post-submit answer review */
-    public const REVIEWABLE_STATUSES = ['passed', 'failed', 'completed', 'timed_out'];
+    public const REVIEWABLE_STATUSES = ['passed', 'failed', 'completed', 'timed_out', 'awaiting_grading'];
 
     public const STATUS_ONGOING = 'ongoing';
 
-    protected $fillable = ['student_id', 'exam_id', 'started_at', 'finished_at'];
+    public const STATUS_AWAITING_GRADING = 'awaiting_grading';
+
+    protected $fillable = [
+        'student_id',
+        'exam_id',
+        'duration_minutes',
+        'started_at',
+        'finished_at',
+        'graded_at',
+        'graded_by',
+    ];
 
     protected $casts = [
+        'duration_minutes' => 'integer',
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
+        'graded_at' => 'datetime',
     ];
 
     /**
@@ -31,20 +43,6 @@ class ExamAttempt extends Model
         }
 
         return 'Not finished';
-    }
-
-    public function calculateScore()
-    {
-        // With one query, we collect all the scores from the answers table
-        $totalScore = $this->answers()->where('is_correct', true)->sum('marks_earned');
-
-        $this->fill([
-            'score' => $totalScore,
-            'status' => 'completed',
-            'finished_at' => now(),
-        ])->save();
-
-        return $totalScore;
     }
 
     public function student()
@@ -89,5 +87,20 @@ class ExamAttempt extends Model
     public function isReviewable(): bool
     {
         return in_array($this->status, self::REVIEWABLE_STATUSES, true);
+    }
+
+    public function gradedBy()
+    {
+        return $this->belongsTo(Instructor::class, 'graded_by');
+    }
+
+    public function resolveIsPassed(): ?bool
+    {
+        return match ($this->status) {
+            self::STATUS_AWAITING_GRADING => null,
+            'passed' => true,
+            'failed', 'timed_out' => false,
+            default => null,
+        };
     }
 }

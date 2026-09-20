@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\Instructor\InstructorCourseController;
 use App\Http\Controllers\Api\Instructor\InstructorDashboardController;
 use App\Http\Controllers\Api\Instructor\InstructorExamController;
+use App\Http\Controllers\Api\Instructor\InstructorExamGradingController;
 use App\Http\Controllers\Api\Instructor\InstructorLearningGroupController;
 use App\Http\Controllers\Api\Instructor\InstructorQuestionController;
 use Illuminate\Support\Facades\Route;
@@ -54,6 +55,13 @@ Route::middleware(['auth:sanctum', 'verified', 'role:instructor'])
             Route::delete('{id}/force-delete', [InstructorQuestionController::class, 'forceDelete'])->name('force-delete');
         });
         Route::apiResource('questions', InstructorQuestionController::class);
+
+        // ── Exam grading (essay answers) ────────────────────────────────────
+        Route::prefix('exam-grading')->name('exam-grading.')->group(function () {
+            Route::get('/', [InstructorExamGradingController::class, 'index'])->name('index');
+            Route::get('{attempt}', [InstructorExamGradingController::class, 'show'])->name('show');
+            Route::post('{attempt}', [InstructorExamGradingController::class, 'grade'])->name('grade');
+        });
 
         // ── Learning Groups (exam results only) ─────────────────────────────
         Route::prefix('learning-groups')->name('learning-groups.')->group(function () {

@@ -23,3 +23,6 @@ Schedule::command('attendance:complete')->everyFifteenMinutes()->withoutOverlapp
 
 // Generate sessions for the upcoming week for all active groups — runs daily at midnight
 Schedule::command('attendance:generate-weekly')->dailyAt('00:00')->withoutOverlapping()->appendOutputTo(storage_path('logs/attendance-generate-weekly.log'));
+
+// Close exam attempts that exceeded their allowed duration — runs every minute
+Schedule::command('exams:close-expired')->everyMinute()->withoutOverlapping()->appendOutputTo(storage_path('logs/exams-close-expired.log'));

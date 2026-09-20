@@ -59,7 +59,7 @@ class InstructorQuestionController extends Controller
             return $response;
         }
 
-        $question = $this->questionService->createQuestion($request->validated());
+        $question = $this->questionService->createQuestion($request->validated(), $request->user()->id);
 
         return $this->successResponse(
             new AdminQuestionResource($question),
@@ -101,7 +101,7 @@ class InstructorQuestionController extends Controller
             return $response;
         }
 
-        $updatedQuestion = $this->questionService->updateQuestion($question, $request->validated());
+        $updatedQuestion = $this->questionService->updateQuestion($question, $request->validated(), $request->user()->id);
 
         return $this->successResponse(
             new AdminQuestionResource($updatedQuestion),
@@ -121,7 +121,7 @@ class InstructorQuestionController extends Controller
             return $response;
         }
 
-        $this->questionService->deleteQuestion($question);
+        $this->questionService->deleteQuestion($question, $request->user()->id);
 
         return $this->successResponse(null, 'Question deleted successfully');
     }

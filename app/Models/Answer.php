@@ -3,14 +3,23 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Answer extends Model
 {
-    protected $fillable = ['attempt_id', 'question_id', 'choice_id'];
+    protected $fillable = [
+        'attempt_id',
+        'question_id',
+        'choice_id',
+        'answer_text',
+        'graded_at',
+        'graded_by',
+    ];
 
     protected $casts = [
         'is_correct' => 'boolean',
         'marks_earned' => 'decimal:2',
+        'graded_at' => 'datetime',
     ];
 
     // الإجابة تتبع محاولة معينة
@@ -29,5 +38,10 @@ class Answer extends Model
     public function choice()
     {
         return $this->belongsTo(Choice::class);
+    }
+
+    public function gradedBy(): BelongsTo
+    {
+        return $this->belongsTo(Instructor::class, 'graded_by');
     }
 }

@@ -138,6 +138,32 @@ it('returns attempt-scaled totals in the admin review payload', function (): voi
         ->assertJsonCount(3, 'data.questions');
 });
 
+it('flags pending grading in the group summary and csv export', function (): void {
+    ['student' => $student, 'group' => $group, 'exam' => $exam, 'attempt' => $attempt] = createGroupExamResultsContext();
+
+    $attempt->forceFill([
+        'status' => ExamAttempt::STATUS_AWAITING_GRADING,
+        'score' => 10,
+    ])->save();
+
+    $response = $this->getJson("/api/admin/learning-groups/{$group->id}/exams/{$exam->id}/results");
+
+    $response->assertOk()
+        ->assertJsonPath('data.students.0.student_id', $student->id)
+        ->assertJsonPath('data.students.0.has_pending_grading', true)
+        ->assertJsonPath('data.students.0.is_passed', false)
+        ->assertJsonPath('data.students.0.highest_score', null);
+
+    $export = $this->getJson(
+        "/api/admin/learning-groups/{$group->id}/exams/{$exam->id}/results/export?format=excel"
+    );
+
+    $export->assertOk();
+
+    $content = base64_decode($export->json('data.content'), true);
+    expect($content)->toContain('Pending Grading');
+});
+
 it('exports csv scores using attempt max marks as the denominator', function (): void {
     ['group' => $group, 'exam' => $exam] = createGroupExamResultsContext();
 

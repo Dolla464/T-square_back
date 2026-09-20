@@ -33,22 +33,22 @@ class NotificationController extends Controller
     {
         $user = $request->user();
 
-        $notifications = $this->notificationService->getUserNotifications(
-            $user,
-            $request->integer('per_page', 15)
+        $perPage = min(
+            max($request->integer('per_page', NotificationService::DEFAULT_PER_PAGE), 1),
+            NotificationService::MAX_PER_PAGE,
         );
+
+        $notifications = $this->notificationService->getUserNotifications($user, $perPage);
         $unreadCount = $this->notificationService->getUnreadCount($user);
 
-        $resource = NotificationResource::collection($notifications);
-        $payload = $resource->response()->getData(true);
-        $meta = $payload['meta'] ?? [];
-        $meta['unread_count'] = $unreadCount;
-
-        return $resource->additional([
-            'status' => 'success',
-            'message' => 'Notifications retrieved successfully',
-            'meta' => $meta,
-        ]);
+        return NotificationResource::collection($notifications)
+            ->additional([
+                'status' => 'success',
+                'message' => 'Notifications retrieved successfully',
+                'meta' => [
+                    'unread_count' => $unreadCount,
+                ],
+            ]);
     }
 
     /**

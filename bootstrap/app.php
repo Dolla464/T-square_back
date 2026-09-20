@@ -89,7 +89,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
                 // Error 401: The user is not logged in (Token is wrong or expired)
                 if ($e instanceof AuthenticationException) {
-                    return $responder->errorResponse('Unauthenticated access', 401);
+                    return $responder->structuredErrorResponse(
+                        error: 'Session expired',
+                        code: 'SESSION_EXPIRED',
+                        httpCode: 401,
+                        message: 'Unauthenticated access',
+                    );
                 }
 
                 // Error 403: The user is logged in but does not have permission for this action

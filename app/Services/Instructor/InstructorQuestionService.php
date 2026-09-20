@@ -15,19 +15,19 @@ class InstructorQuestionService
         return $this->adminQuestionService->getQuestionsByExam($examId);
     }
 
-    public function createQuestion(array $data): Question
+    public function createQuestion(array $data, ?int $updatedByUserId = null): Question
     {
-        return $this->adminQuestionService->createQuestion($data);
+        return $this->adminQuestionService->createQuestion($data, $updatedByUserId);
     }
 
-    public function updateQuestion(Question $question, array $data): Question
+    public function updateQuestion(Question $question, array $data, ?int $updatedByUserId = null): Question
     {
-        return $this->adminQuestionService->updateQuestion($question, $data);
+        return $this->adminQuestionService->updateQuestion($question, $data, $updatedByUserId);
     }
 
-    public function deleteQuestion(Question $question): bool
+    public function deleteQuestion(Question $question, ?int $updatedByUserId = null): bool
     {
-        return $this->adminQuestionService->deleteQuestion($question);
+        return $this->adminQuestionService->deleteQuestion($question, $updatedByUserId);
     }
 
     public function getTrashedQuestions(int $examId)

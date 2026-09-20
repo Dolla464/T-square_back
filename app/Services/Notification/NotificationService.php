@@ -6,12 +6,16 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class NotificationService
 {
+    public const DEFAULT_PER_PAGE = 30;
+
+    public const MAX_PER_PAGE = 100;
+
     /**
      * جلب إشعارات المستخدم مع التقسيم (Pagination)
      */
-    public function getUserNotifications(object $user, int $perPage = 15): LengthAwarePaginator
+    public function getUserNotifications(object $user, int $perPage = self::DEFAULT_PER_PAGE): LengthAwarePaginator
     {
-        return $user->notifications()->paginate($perPage);
+        return $user->notifications()->latest('created_at')->paginate($perPage);
     }
 
     /**

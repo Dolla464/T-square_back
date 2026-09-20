@@ -22,6 +22,7 @@ class Exam extends Model
         'max_attempts',
         'questions_per_attempt',
         'shuffle_questions',
+        'updated_by',
     ];
 
     // Convert data types when dealing with them in the code
@@ -40,6 +41,11 @@ class Exam extends Model
     public function course()
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     // The exam belongs to many questions

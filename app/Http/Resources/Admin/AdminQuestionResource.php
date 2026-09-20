@@ -17,6 +17,7 @@ class AdminQuestionResource extends JsonResource
         $data = [
             'id'            => $this->id,
             'exam_id'       => (int) $this->exam_id,
+            'type'          => $this->type ?? 'mcq',
             'question_text' => $this->question_text,
             'question_image' => $this->question_image,
             'question_image_url' => $this->question_image_url,
@@ -24,14 +25,15 @@ class AdminQuestionResource extends JsonResource
             'question_code_language' => $this->question_code_language,
             'marks'         => (float) $this->marks,
 
-            // Get the choices associated with the question automatically
-            'choices'       => $this->choices->map(function ($choice) {
-                return [
-                    'id'          => $choice->id,
-                    'choice_text' => $choice->choice_text,
-                    'is_correct'  => (bool) $choice->is_correct,
-                ];
-            }),
+            'choices'       => ($this->type ?? 'mcq') === 'mcq'
+                ? $this->choices->map(function ($choice) {
+                    return [
+                        'id'          => $choice->id,
+                        'choice_text' => $choice->choice_text,
+                        'is_correct'  => (bool) $choice->is_correct,
+                    ];
+                })
+                : [],
         ];
 
         if ($request->routeIs('*.trash')) {

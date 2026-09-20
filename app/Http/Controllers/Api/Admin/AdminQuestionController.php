@@ -46,7 +46,7 @@ class AdminQuestionController extends Controller
      */
     public function store(StoreUpdateQuestionRequest $request): JsonResponse
     {
-        $question = $this->questionService->createQuestion($request->validated());
+        $question = $this->questionService->createQuestion($request->validated(), $request->user()->id);
 
         return $this->successResponse(
             new AdminQuestionResource($question),
@@ -71,7 +71,7 @@ class AdminQuestionController extends Controller
      */
     public function update(StoreUpdateQuestionRequest $request, Question $question): JsonResponse
     {
-        $updatedQuestion = $this->questionService->updateQuestion($question, $request->validated());
+        $updatedQuestion = $this->questionService->updateQuestion($question, $request->validated(), $request->user()->id);
 
         return $this->successResponse(
             new AdminQuestionResource($updatedQuestion),
@@ -82,9 +82,9 @@ class AdminQuestionController extends Controller
     /**
      * Delete a question
      */
-    public function destroy(Question $question): JsonResponse
+    public function destroy(Request $request, Question $question): JsonResponse
     {
-        $this->questionService->deleteQuestion($question);
+        $this->questionService->deleteQuestion($question, $request->user()->id);
 
         return $this->successResponse(
             null,

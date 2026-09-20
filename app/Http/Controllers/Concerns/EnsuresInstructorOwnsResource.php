@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Concerns;
 
 use App\Models\Course;
 use App\Models\Exam;
+use App\Models\ExamAttempt;
 use App\Models\Instructor;
 use App\Models\LearningGroup;
 use App\Models\Question;
@@ -66,6 +67,17 @@ trait EnsuresInstructorOwnsResource
         $question->loadMissing('exam.course.instructors');
 
         if (! $question->exam || ! $question->exam->course || ! $question->exam->course->hasInstructor($instructor->id)) {
+            return $this->accessDeniedResponse();
+        }
+
+        return null;
+    }
+
+    protected function verifyAttemptOwnership(ExamAttempt $attempt, Instructor $instructor): ?JsonResponse
+    {
+        $attempt->loadMissing('exam.course.instructors');
+
+        if (! $attempt->exam || ! $attempt->exam->course || ! $attempt->exam->course->hasInstructor($instructor->id)) {
             return $this->accessDeniedResponse();
         }
 
