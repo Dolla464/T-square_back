@@ -54,7 +54,7 @@ class ExamAttempt extends Model
 
     public function exam()
     {
-        return $this->belongsTo(Exam::class);
+        return $this->belongsTo(Exam::class)->withTrashed();
     }
 
     public function questions()
