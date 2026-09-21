@@ -24,6 +24,8 @@ class ExamAttempt extends Model
         'finished_at',
         'graded_at',
         'graded_by',
+        'status',
+        'score',
     ];
 
     protected $casts = [
@@ -77,6 +79,13 @@ class ExamAttempt extends Model
     public function answers()
     {
         return $this->hasMany(Answer::class, 'attempt_id');
+    }
+
+    public function integrityEvents()
+    {
+        return $this->hasMany(ExamAttemptIntegrityEvent::class, 'exam_attempt_id')
+            ->orderBy('occurred_at')
+            ->orderBy('id');
     }
 
     public function scopeReviewable($query)

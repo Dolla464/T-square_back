@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Api\User;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Student\SaveAnswerRequest;
 use App\Http\Requests\Api\Student\StartExamRequest;
+use App\Http\Requests\Api\Student\StoreIntegrityEventsRequest;
 use App\Http\Requests\Api\Student\SubmitExamRequest;
+use App\Models\ExamAttempt;
+use App\Services\Exam\ExamIntegrityService;
 use App\Http\Resources\User\Exam\ExamAttemptResource;
 use App\Http\Resources\User\Exam\ExamAttemptReviewResource;
 use App\Http\Resources\User\Exam\ExamListResource;
@@ -24,8 +27,10 @@ class ExamController extends Controller
     /** @var ExamService */
     protected $examService;
 
-    public function __construct(ExamService $examService)
-    {
+    public function __construct(
+        ExamService $examService,
+        private ExamIntegrityService $examIntegrityService,
+    ) {
         $this->examService = $examService;
     }
 
@@ -168,6 +173,29 @@ class ExamController extends Controller
         return $this->successResponse(
             new ExamAttemptReviewResource($attempt),
             'Attempt review retrieved successfully.',
+        );
+    }
+
+    public function recordIntegrityEvents(StoreIntegrityEventsRequest $request, int $attemptId)
+    {
+        $student = $request->user()->student;
+
+        if (! $student) {
+            return $this->errorResponse('Student profile not found', 404);
+        }
+
+        $attempt = ExamAttempt::query()->findOrFail($attemptId);
+
+        $recorded = $this->examIntegrityService->recordEvents(
+            $attempt,
+            $student,
+            $request->validated('events'),
+        );
+
+        return $this->successResponse(
+            ['recorded' => $recorded],
+            'Integrity events recorded successfully.',
+            201,
         );
     }
 }

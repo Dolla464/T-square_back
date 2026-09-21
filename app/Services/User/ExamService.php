@@ -2,7 +2,6 @@
 
 namespace App\Services\User;
 
-use App\DTO\AuthorizationResult;
 use App\Events\StudentExamAttemptAwaitingGrading;
 use App\Events\StudentExamAttemptCompleted;
 use App\Models\Answer;
@@ -13,6 +12,8 @@ use App\Models\ExamAttempt;
 use App\Models\Question;
 use App\Services\Exam\ExamAttemptAuthorizationService;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 class ExamService
@@ -50,77 +51,175 @@ class ExamService
     {
         $exam = Exam::findOrFail($examId);
 
-        if (! $exam->is_active) {
-            abort(403, 'This exam is not currently available.');
-        }
-
         if (! $this->hasCompletedEnrollment($studentId, $exam->course_id)) {
             abort(403, 'Sorry, you are not enrolled in this course to take the exam.');
+        }
+
+        $bankCount = Question::where('exam_id', $examId)->count();
+
+        return retry(3, function () use ($studentId, $examId, $exam, $bankCount) {
+            return DB::transaction(function () use ($studentId, $examId, $exam, $bankCount) {
+                return $this->createOrResumeAttemptWithinTransaction(
+                    $studentId,
+                    $examId,
+                    $exam,
+                    $bankCount,
+                );
+            });
+        }, 100, fn (\Throwable $exception) => $this->isDeadlockException($exception));
+    }
+
+    private function createOrResumeAttemptWithinTransaction(
+        int $studentId,
+        int $examId,
+        Exam $exam,
+        int $bankCount,
+    ): ExamAttempt {
+        $existingAttempt = ExamAttempt::query()
+            ->where('student_id', $studentId)
+            ->where('exam_id', $examId)
+            ->where('status', ExamAttempt::STATUS_ONGOING)
+            ->lockForUpdate()
+            ->first();
+
+        if ($existingAttempt) {
+            return $this->resumeExistingAttempt($existingAttempt, $studentId, $exam, $bankCount);
+        }
+
+        return $this->createNewAttempt($studentId, $examId, $exam, $bankCount);
+    }
+
+    private function resumeExistingAttempt(
+        ExamAttempt $existingAttempt,
+        int $studentId,
+        Exam $exam,
+        int $bankCount,
+    ): ExamAttempt {
+        $existingAttempt->loadMissing('exam');
+
+        if ($existingAttempt->questions()->count() === 0) {
+            $this->attachSampledQuestions(
+                $existingAttempt,
+                $this->sampleQuestionIdsForAttempt($exam, $exam->id, $bankCount)
+            );
+            $this->assertAttemptHasQuestions($existingAttempt);
+        }
+
+        if ($this->attemptAuthorizationService->isTimedOut($existingAttempt)) {
+            $this->completeAttempt($existingAttempt->id, $studentId);
+
+            if ($this->studentCanStartNewAttempt($studentId, $exam, $bankCount)) {
+                return $this->createNewAttempt($studentId, $exam->id, $exam, $bankCount);
+            }
+
+            return $existingAttempt->refresh()->load(['questions.choices', 'answers', 'exam']);
+        }
+
+        $access = $this->attemptAuthorizationService->validateSubmittableAttempt($existingAttempt, $studentId);
+
+        if (! $access->isAllowed()) {
+            if ($this->attemptAuthorizationService->isExamContextRevoked($access)) {
+                $this->closeOngoingAttempt($existingAttempt->id, $studentId);
+
+                return $existingAttempt->refresh()->load(['questions.choices', 'answers', 'exam']);
+            }
+
+            abort($access->getStatusCode(), $access->getMessage());
+        }
+
+        return $existingAttempt->load(['questions.choices', 'answers', 'exam']);
+    }
+
+    private function createNewAttempt(
+        int $studentId,
+        int $examId,
+        Exam $exam,
+        int $bankCount,
+    ): ExamAttempt {
+        if (! $exam->is_active) {
+            abort(403, 'This exam is not currently available.');
         }
 
         if (! $this->hasGroupExamAccess($studentId, $examId, $exam->course_id)) {
             abort(403, 'This exam has not been activated for your group yet.');
         }
 
-        $bankCount = Question::where('exam_id', $examId)->count();
         if ($bankCount === 0) {
             abort(422, 'This exam has no questions yet. Please contact the administrator.');
         }
 
-        return DB::transaction(function () use ($studentId, $examId, $exam, $bankCount) {
-            ExamAttempt::query()
-                ->where('student_id', $studentId)
-                ->where('exam_id', $examId)
-                ->lockForUpdate()
-                ->get();
+        $attemptsCount = ExamAttempt::query()
+            ->where('student_id', $studentId)
+            ->where('exam_id', $examId)
+            ->count();
 
-            $existingAttempt = ExamAttempt::query()
-                ->where('student_id', $studentId)
-                ->where('exam_id', $examId)
-                ->where('status', ExamAttempt::STATUS_ONGOING)
-                ->first();
+        if ($exam->max_attempts && $attemptsCount >= $exam->max_attempts) {
+            abort(403, 'Sorry, you have exhausted the maximum number of attempts available for this exam!');
+        }
 
-            if ($existingAttempt) {
-                if ($existingAttempt->questions()->count() === 0) {
-                    $this->attachSampledQuestions(
-                        $existingAttempt,
-                        $this->sampleQuestionIdsForAttempt($exam, $examId, $bankCount)
-                    );
-                }
-
-                if ($this->attemptAuthorizationService->isTimedOut($existingAttempt)) {
-                    $this->completeAttempt($existingAttempt->id, $studentId);
-
-                    return $existingAttempt->refresh()->load(['questions.choices', 'answers', 'exam']);
-                }
-
-                return $existingAttempt->load(['questions.choices', 'answers', 'exam']);
-            }
-
-            $attemptsCount = ExamAttempt::query()
-                ->where('student_id', $studentId)
-                ->where('exam_id', $examId)
-                ->count();
-
-            if ($exam->max_attempts && $attemptsCount >= $exam->max_attempts) {
-                abort(403, 'Sorry, you have exhausted the maximum number of attempts available for this exam!');
-            }
-
+        try {
             $attempt = ExamAttempt::create([
                 'student_id' => $studentId,
                 'exam_id' => $examId,
                 'duration_minutes' => $exam->duration,
                 'started_at' => now(),
+                'status' => ExamAttempt::STATUS_ONGOING,
             ]);
-            $attempt->forceFill(['status' => ExamAttempt::STATUS_ONGOING])->save();
+        } catch (UniqueConstraintViolationException|QueryException $exception) {
+            if (! $this->isDuplicateOngoingSlotException($exception)) {
+                throw $exception;
+            }
 
-            $this->attachSampledQuestions(
-                $attempt,
-                $this->sampleQuestionIdsForAttempt($exam, $examId, $bankCount)
-            );
+            $existingAttempt = ExamAttempt::query()
+                ->where('student_id', $studentId)
+                ->where('exam_id', $examId)
+                ->where('status', ExamAttempt::STATUS_ONGOING)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-            return $attempt->load(['questions.choices', 'answers', 'exam']);
-        });
+            return $this->resumeExistingAttempt($existingAttempt, $studentId, $exam, $bankCount);
+        }
+
+        $this->attachSampledQuestions(
+            $attempt,
+            $this->sampleQuestionIdsForAttempt($exam, $examId, $bankCount)
+        );
+        $this->assertAttemptHasQuestions($attempt);
+
+        return $attempt->load(['questions.choices', 'answers', 'exam']);
+    }
+
+    private function assertAttemptHasQuestions(ExamAttempt $attempt): void
+    {
+        if ($attempt->questions()->count() === 0) {
+            abort(422, 'This exam has no questions available for this attempt. Please contact the administrator.');
+        }
+    }
+
+    private function studentCanStartNewAttempt(int $studentId, Exam $exam, int $bankCount): bool
+    {
+        if (! $exam->is_active) {
+            return false;
+        }
+
+        if (! $this->hasGroupExamAccess($studentId, $exam->id, $exam->course_id)) {
+            return false;
+        }
+
+        if ($bankCount === 0) {
+            return false;
+        }
+
+        $attemptsCount = ExamAttempt::query()
+            ->where('student_id', $studentId)
+            ->where('exam_id', $exam->id)
+            ->count();
+
+        if ($exam->max_attempts && $attemptsCount >= $exam->max_attempts) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -245,14 +344,8 @@ class ExamService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($studentId !== null) {
-                $authResult = $skipAvailabilityCheck
-                    ? $this->authorizeAttemptOwnership($attempt, $studentId)
-                    : $this->attemptAuthorizationService->validateSubmittableAttempt($attempt, $studentId);
-
-                if (! $authResult->isAllowed()) {
-                    abort($authResult->getStatusCode(), $authResult->getMessage());
-                }
+            if ($studentId !== null && $attempt->student_id !== $studentId) {
+                abort(403, 'You do not own this attempt.');
             }
 
             if ($attempt->status !== ExamAttempt::STATUS_ONGOING) {
@@ -260,6 +353,16 @@ class ExamService
                     'kind' => 'existing',
                     'payload' => $this->buildAttemptResult($attempt, $attempt->score, status: $attempt->status),
                 ];
+            }
+
+            if ($studentId !== null && ! $skipAvailabilityCheck) {
+                $authResult = $this->attemptAuthorizationService->validateSubmittableAttempt($attempt, $studentId);
+
+                if (! $authResult->isAllowed()) {
+                    if (! $this->attemptAuthorizationService->isExamContextRevoked($authResult)) {
+                        abort($authResult->getStatusCode(), $authResult->getMessage());
+                    }
+                }
             }
 
             $totalScore = (float) $attempt->answers()->sum('marks_earned');
@@ -327,19 +430,6 @@ class ExamService
     private function closeOngoingAttempt(int $attemptId, int $studentId): array
     {
         return $this->completeAttempt($attemptId, $studentId, skipAvailabilityCheck: true);
-    }
-
-    private function authorizeAttemptOwnership(ExamAttempt $attempt, int $studentId): AuthorizationResult
-    {
-        if ($attempt->student_id !== $studentId) {
-            return AuthorizationResult::forbidden('You do not own this attempt.');
-        }
-
-        if ($attempt->status !== ExamAttempt::STATUS_ONGOING) {
-            return AuthorizationResult::unprocessable('This attempt is no longer active.');
-        }
-
-        return AuthorizationResult::allowed();
     }
 
     private function finalizeAttemptScoreWithinTransaction(ExamAttempt $attempt, float $totalScore): array
@@ -434,6 +524,18 @@ class ExamService
                 'exam:id,title,total_marks,passing_mark,course_id',
                 'questionsWithTrashed.choices',
                 'answers',
+            ])
+            ->findOrFail($attemptId);
+    }
+
+    public function getStaffAttemptReview(int $attemptId): ExamAttempt
+    {
+        return ExamAttempt::reviewable()
+            ->with([
+                'exam:id,title,total_marks,passing_mark,course_id',
+                'questionsWithTrashed.choices',
+                'answers',
+                'integrityEvents',
             ])
             ->findOrFail($attemptId);
     }
@@ -573,5 +675,31 @@ class ExamService
                     ->where('group_exam_activations.exam_id', $examId);
             })
             ->exists();
+    }
+
+    private function isDeadlockException(\Throwable $exception): bool
+    {
+        if (! $exception instanceof QueryException) {
+            return false;
+        }
+
+        return (int) ($exception->errorInfo[1] ?? 0) === 1213;
+    }
+
+    private function isDuplicateOngoingSlotException(\Throwable $exception): bool
+    {
+        if ($exception instanceof UniqueConstraintViolationException) {
+            return true;
+        }
+
+        if (! $exception instanceof QueryException) {
+            return false;
+        }
+
+        if ((int) ($exception->errorInfo[1] ?? 0) !== 1062) {
+            return false;
+        }
+
+        return str_contains(strtolower($exception->getMessage()), 'ongoing_slot');
     }
 }

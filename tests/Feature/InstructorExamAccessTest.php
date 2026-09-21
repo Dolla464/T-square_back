@@ -32,13 +32,6 @@ function courseWithTwoInstructorsForExams(): array
     return compact('course', 'primary', 'secondary');
 }
 
-function actingAsInstructor(Instructor $instructor): void
-{
-    $user = $instructor->user;
-    $user->assignRole('instructor');
-    Sanctum::actingAs($user, ['*']);
-}
-
 function validExamPayload(int $courseId, array $overrides = []): array
 {
     return array_merge([

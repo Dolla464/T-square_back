@@ -135,6 +135,9 @@ Route::middleware(['auth:sanctum', 'verified', 'role:student'])
         Route::get('my-results', 'myResults')->name('my-results');
         Route::get('attempts/{attemptId}/review', 'reviewAttempt')->name('attempts.review');
         Route::get('attempts/{attemptId}/time-status', 'timeStatus')->name('attempts.time-status');
+        Route::post('attempts/{attemptId}/integrity-events', 'recordIntegrityEvents')
+            ->middleware('throttle:exam-integrity-events')
+            ->name('attempts.integrity-events');
         Route::post('start', 'start')->name('start');
         Route::post('save-answer', 'answer')->name('save-answer');
         Route::post('{id}/submit', 'submit')->name('submit');

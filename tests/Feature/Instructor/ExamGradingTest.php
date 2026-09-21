@@ -123,11 +123,6 @@ function createGradingScenario(): array
     );
 }
 
-function actingAsInstructor(Instructor $instructor): void
-{
-    Sanctum::actingAs($instructor->user, ['*']);
-}
-
 it('lists pending grading attempts for assigned instructors', function (): void {
     ['instructor' => $instructor, 'attempt' => $attempt] = createGradingScenario();
 
@@ -149,6 +144,81 @@ it('rejects partial essay grading payloads', function (): void {
     ])->assertUnprocessable();
 
     expect($attempt->fresh()->status)->toBe('awaiting_grading');
+});
+
+it('updates review summary counts after essay grading', function (): void {
+    ['instructor' => $instructor, 'student' => $student, 'attempt' => $attempt, 'essayAnswer' => $essayAnswer] = createGradingScenario();
+
+    Sanctum::actingAs($student->user, ['*']);
+
+    test()->getJson("/api/exams/attempts/{$attempt->id}/review")
+        ->assertOk()
+        ->assertJsonPath('data.summary.correct', 1)
+        ->assertJsonPath('data.summary.incorrect', 0)
+        ->assertJsonPath('data.summary.pending_grading', 1);
+
+    actingAsInstructor($instructor);
+
+    test()->postJson("/api/instructor/exam-grading/{$attempt->id}", [
+        'answers' => [
+            ['answer_id' => $essayAnswer->id, 'marks_earned' => 8],
+        ],
+    ])->assertOk();
+
+    Sanctum::actingAs($student->user, ['*']);
+
+    test()->getJson("/api/exams/attempts/{$attempt->id}/review")
+        ->assertOk()
+        ->assertJsonPath('data.summary.correct', 1)
+        ->assertJsonPath('data.summary.incorrect', 0)
+        ->assertJsonPath('data.summary.partial_credit', 1)
+        ->assertJsonPath('data.summary.pending_grading', 0)
+        ->assertJsonPath(
+            'data.questions',
+            fn ($questions) => collect($questions)->contains(
+                fn ($question) => $question['type'] === 'essay' && $question['result_status'] === 'partial_credit'
+            )
+        );
+});
+
+it('counts zero-mark essay answers as incorrect in review summary', function (): void {
+    ['instructor' => $instructor, 'student' => $student, 'attempt' => $attempt, 'essayAnswer' => $essayAnswer] = createGradingScenario();
+
+    actingAsInstructor($instructor);
+
+    test()->postJson("/api/instructor/exam-grading/{$attempt->id}", [
+        'answers' => [
+            ['answer_id' => $essayAnswer->id, 'marks_earned' => 0],
+        ],
+    ])->assertOk();
+
+    Sanctum::actingAs($student->user, ['*']);
+
+    test()->getJson("/api/exams/attempts/{$attempt->id}/review")
+        ->assertOk()
+        ->assertJsonPath('data.summary.correct', 1)
+        ->assertJsonPath('data.summary.incorrect', 1)
+        ->assertJsonPath('data.summary.partial_credit', 0);
+});
+
+it('counts full-credit essay answers as correct in review summary', function (): void {
+    ['instructor' => $instructor, 'student' => $student, 'attempt' => $attempt, 'essayAnswer' => $essayAnswer] = createGradingScenario();
+
+    actingAsInstructor($instructor);
+
+    test()->postJson("/api/instructor/exam-grading/{$attempt->id}", [
+        'answers' => [
+            ['answer_id' => $essayAnswer->id, 'marks_earned' => 10],
+        ],
+    ])->assertOk();
+
+    Sanctum::actingAs($student->user, ['*']);
+
+    test()->getJson("/api/exams/attempts/{$attempt->id}/review")
+        ->assertOk()
+        ->assertJsonPath('data.summary.correct', 2)
+        ->assertJsonPath('data.summary.incorrect', 0)
+        ->assertJsonPath('data.summary.pending_grading', 0);
 });
 
 it('finalizes attempt after grading all essay answers', function (): void {

@@ -115,7 +115,7 @@ class GroupExamResultsService
             throw new \InvalidArgumentException('This attempt is not available for review.');
         }
 
-        return $this->examService->getAttemptReview($attempt->id);
+        return $this->examService->getStaffAttemptReview($attempt->id);
     }
 
     private function summarizeStudentAttempts(Collection $attempts, Exam $exam): array

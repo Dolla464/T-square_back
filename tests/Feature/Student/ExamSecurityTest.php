@@ -227,7 +227,7 @@ it('rejects save-answer after group exam deactivation and closes the attempt', f
     expect(ExamAttempt::find($attemptId)->status)->not->toBe(ExamAttempt::STATUS_ONGOING);
 });
 
-it('rejects submit after group exam deactivation', function (): void {
+it('finalizes submit after group exam deactivation instead of leaving a zombie attempt', function (): void {
     ['exam' => $exam, 'group' => $group] = createExamSecurityContext();
 
     $start = startExamForSecurity($exam->id)->assertCreated();
@@ -238,7 +238,11 @@ it('rejects submit after group exam deactivation', function (): void {
         ->where('learning_group_id', $group->id)
         ->delete();
 
-    $this->postJson("/api/exams/{$attemptId}/submit")->assertStatus(422);
+    $this->postJson("/api/exams/{$attemptId}/submit")
+        ->assertOk()
+        ->assertJsonPath('results.status', 'failed');
+
+    expect(ExamAttempt::find($attemptId)->status)->not->toBe(ExamAttempt::STATUS_ONGOING);
 });
 
 it('closes an ongoing attempt when the exam becomes inactive during save-answer', function (): void {
@@ -318,9 +322,50 @@ it('finalizes concurrent submit requests idempotently', function (): void {
     ])->assertOk();
 
     $first = $this->postJson("/api/exams/{$attemptId}/submit")->assertOk();
-    $second = $this->postJson("/api/exams/{$attemptId}/submit");
+    $second = $this->postJson("/api/exams/{$attemptId}/submit")->assertOk();
 
-    expect($second->status())->toBeIn([200, 422]);
+    expect($second->json('results.status'))->toBe('passed');
     expect(ExamAttempt::find($attemptId)->status)->not->toBe(ExamAttempt::STATUS_ONGOING);
     expect($first->json('results.status'))->toBe('passed');
+});
+
+it('rejects starting a new attempt when the exam is inactive', function (): void {
+    ['exam' => $exam] = createExamSecurityContext();
+
+    $exam->update(['is_active' => false]);
+
+    startExamForSecurity($exam->id)->assertForbidden();
+});
+
+it('closes an ongoing attempt when resuming start after the exam becomes inactive', function (): void {
+    ['exam' => $exam] = createExamSecurityContext();
+
+    $start = startExamForSecurity($exam->id)->assertCreated();
+    $attemptId = $start->json('data.attempt_id');
+
+    $exam->update(['is_active' => false]);
+
+    $resume = startExamForSecurity($exam->id)->assertOk();
+
+    expect($resume->json('data.attempt_id'))->toBe($attemptId);
+    expect($resume->json('data.status'))->not->toBe(ExamAttempt::STATUS_ONGOING);
+    expect(ExamAttempt::find($attemptId)->status)->not->toBe(ExamAttempt::STATUS_ONGOING);
+});
+
+it('closes an ongoing attempt when resuming start after group exam deactivation', function (): void {
+    ['exam' => $exam, 'group' => $group] = createExamSecurityContext();
+
+    $start = startExamForSecurity($exam->id)->assertCreated();
+    $attemptId = $start->json('data.attempt_id');
+
+    DB::table('group_exam_activations')
+        ->where('exam_id', $exam->id)
+        ->where('learning_group_id', $group->id)
+        ->delete();
+
+    $resume = startExamForSecurity($exam->id)->assertOk();
+
+    expect($resume->json('data.attempt_id'))->toBe($attemptId);
+    expect($resume->json('data.status'))->not->toBe(ExamAttempt::STATUS_ONGOING);
+    expect(ExamAttempt::find($attemptId)->status)->not->toBe(ExamAttempt::STATUS_ONGOING);
 });

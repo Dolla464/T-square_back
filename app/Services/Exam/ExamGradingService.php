@@ -48,7 +48,7 @@ class ExamGradingService
             abort(409, 'This attempt is not awaiting grading.');
         }
 
-        return $this->examService->getAttemptReview($attempt->id);
+        return $this->examService->getStaffAttemptReview($attempt->id);
     }
 
     public function gradeAttempt(int $attemptId, array $answerMarks, int $instructorId): array

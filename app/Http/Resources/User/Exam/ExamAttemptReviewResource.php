@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\User\Exam;
 
+use App\Services\Exam\ExamIntegrityService;
 use App\Services\User\ExamService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -28,11 +29,7 @@ class ExamAttemptReviewResource extends JsonResource
             $answer = $answersByQuestion->get($question->id);
 
             if ($question->isEssay()) {
-                $resultStatus = match (true) {
-                    $answer === null => 'unanswered',
-                    $answer->graded_at !== null => 'graded',
-                    default => 'pending_grading',
-                };
+                $resultStatus = $this->resolveEssayResultStatus($question, $answer);
 
                 return [
                     'id' => $question->id,
@@ -88,10 +85,17 @@ class ExamAttemptReviewResource extends JsonResource
         $summary = [
             'correct' => $questionItems->where('result_status', 'correct')->count(),
             'incorrect' => $questionItems->where('result_status', 'incorrect')->count(),
+            'partial_credit' => $questionItems->where('result_status', 'partial_credit')->count(),
             'unanswered' => $questionItems->where('result_status', 'unanswered')->count(),
             'pending_grading' => $questionItems->where('result_status', 'pending_grading')->count(),
             'graded' => $questionItems->where('result_status', 'graded')->count(),
         ];
+
+        $user = $request->user();
+        $isStaff = $user !== null && $user->hasAnyRole(['admin', 'instructor', 'receptionist']);
+
+        /** @var ExamIntegrityService $integrityService */
+        $integrityService = app(ExamIntegrityService::class);
 
         return [
             'attempt_id' => $this->id,
@@ -108,6 +112,14 @@ class ExamAttemptReviewResource extends JsonResource
             'finished_at' => $this->finished_at?->format('Y-m-d H:i'),
             'summary' => $summary,
             'questions' => $questionItems,
+            'integrity_events' => $this->when(
+                $isStaff && $this->relationLoaded('integrityEvents'),
+                fn () => ExamAttemptIntegrityEventResource::collection($this->integrityEvents),
+            ),
+            'integrity_summary' => $this->when(
+                $isStaff && $this->relationLoaded('integrityEvents'),
+                fn () => $integrityService->buildSummary($this->integrityEvents),
+            ),
         ];
     }
 
@@ -126,5 +138,29 @@ class ExamAttemptReviewResource extends JsonResource
         }
 
         return collect();
+    }
+
+    private function resolveEssayResultStatus($question, $answer): string
+    {
+        if ($answer === null || ! filled(trim((string) ($answer->answer_text ?? '')))) {
+            return 'unanswered';
+        }
+
+        if ($answer->graded_at === null) {
+            return 'pending_grading';
+        }
+
+        $marksEarned = (float) ($answer->marks_earned ?? 0);
+        $maxMarks = (float) $question->marks;
+
+        if ($marksEarned >= $maxMarks) {
+            return 'correct';
+        }
+
+        if ($marksEarned > 0) {
+            return 'partial_credit';
+        }
+
+        return 'incorrect';
     }
 }

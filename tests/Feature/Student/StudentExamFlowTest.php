@@ -198,7 +198,7 @@ it('keeps attempt question order stable across resume requests', function (): vo
     expect($secondQuestionIds)->toBe($firstQuestionIds);
 });
 
-it('auto-completes a timed-out ongoing attempt when resuming via start', function (): void {
+it('starts a fresh attempt when resuming via start closes a timed-out ongoing attempt', function (): void {
     ['exam' => $exam] = createStudentExamContext(['duration' => 30], 5);
 
     $startResponse = startExam($exam->id);
@@ -210,21 +210,35 @@ it('auto-completes a timed-out ongoing attempt when resuming via start', functio
 
     $resumeResponse = startExam($exam->id);
 
+    $resumeResponse->assertCreated()
+        ->assertJsonPath('data.status', ExamAttempt::STATUS_ONGOING)
+        ->assertJsonPath('data.attempt_id', fn ($id) => $id !== $attemptId);
+
+    expect(ExamAttempt::find($attemptId)->status)->toBe('timed_out');
+    expect(
+        ExamAttempt::query()
+            ->where('exam_id', $exam->id)
+            ->where('status', ExamAttempt::STATUS_ONGOING)
+            ->count()
+    )->toBe(1);
+});
+
+it('returns timed-out results when no attempts remain after closing an expired ongoing attempt', function (): void {
+    ['exam' => $exam] = createStudentExamContext(['duration' => 30, 'max_attempts' => 1], 5);
+
+    $startResponse = startExam($exam->id);
+    $attemptId = $startResponse->json('data.attempt_id');
+
+    ExamAttempt::whereKey($attemptId)->update([
+        'started_at' => now()->subMinutes(31),
+    ]);
+
+    $resumeResponse = startExam($exam->id);
+
     $resumeResponse->assertOk()
+        ->assertJsonPath('data.attempt_id', $attemptId)
         ->assertJsonPath('data.status', 'timed_out')
-        ->assertJsonPath('data.results.score', 0)
-        ->assertJsonPath('data.results.status', 'timed_out')
-        ->assertJsonStructure([
-            'data' => [
-                'results' => [
-                    'score',
-                    'total_marks',
-                    'percentage',
-                    'status',
-                    'is_passed',
-                ],
-            ],
-        ]);
+        ->assertJsonPath('data.results.status', 'timed_out');
 
     expect(ExamAttempt::find($attemptId)->status)->toBe('timed_out');
 });
@@ -330,4 +344,20 @@ it('freezes duration_minutes on the attempt at start time', function (): void {
 
     expect(ExamAttempt::find($attemptId)->duration_minutes)->toBe(30);
     expect(app(\App\Services\Exam\ExamAttemptAuthorizationService::class)->isTimedOut(ExamAttempt::find($attemptId)))->toBeTrue();
+});
+
+it('returns the same ongoing attempt when start is called twice', function (): void {
+    ['student' => $student, 'exam' => $exam] = createStudentExamContext();
+
+    $first = startExam($exam->id)->assertCreated();
+    $second = startExam($exam->id)->assertOk();
+
+    expect($second->json('data.attempt_id'))->toBe($first->json('data.attempt_id'));
+    expect(
+        ExamAttempt::query()
+            ->where('student_id', $student->id)
+            ->where('exam_id', $exam->id)
+            ->where('status', ExamAttempt::STATUS_ONGOING)
+            ->count()
+    )->toBe(1);
 });
