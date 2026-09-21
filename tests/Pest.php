@@ -61,3 +61,10 @@ function groupPayloadWithInstructor(\App\Models\Course $course, \App\Models\Inst
         'course_instructor_id' => courseInstructorIdFor($course, $instructor),
     ], $overrides);
 }
+
+function actingAsInstructor(\App\Models\Instructor $instructor): void
+{
+    $user = $instructor->user;
+    $user->assignRole('instructor');
+    \Laravel\Sanctum\Sanctum::actingAs($user, ['*']);
+}

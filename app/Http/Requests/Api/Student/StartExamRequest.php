@@ -23,7 +23,7 @@ class StartExamRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'exam_id' => 'required|exists:exams,id,is_active,1',
+            'exam_id' => 'required|exists:exams,id',
         ];
     }
 }
