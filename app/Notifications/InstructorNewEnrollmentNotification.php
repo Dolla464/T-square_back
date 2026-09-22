@@ -27,7 +27,9 @@ class InstructorNewEnrollmentNotification extends Notification
             'title' => 'New Student Enrollment',
             'message' => ($this->student->full_name ?? 'A student').' enrolled in "'.$this->course->title.'".',
             'course_id' => $this->course->id,
+            'course_title' => $this->course->title,
             'student_id' => $this->student->id,
+            'student_name' => $this->student->full_name ?? 'A student',
             'enrollment_id' => $this->enrollment->id,
             'icon' => 'person-plus',
         ];

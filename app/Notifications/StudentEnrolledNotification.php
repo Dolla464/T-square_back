@@ -25,6 +25,7 @@ class StudentEnrolledNotification extends Notification
             'title' => 'Enrollment Confirmed',
             'message' => 'You have successfully enrolled in "'.$this->course->title.'".',
             'course_id' => $this->course->id,
+            'course_title' => $this->course->title,
             'enrollment_id' => $this->enrollment->id,
             'icon' => 'book',
         ];

@@ -36,6 +36,7 @@ class CourseReviewRequired extends Notification implements ShouldQueue
             'title'         => 'Course Completed',
             'message'       => $message,
             'course_id'     => $this->enrollment->course_id,
+            'course_title'  => $courseTitle,
             'enrollment_id' => $this->enrollment->id,
             'group_id'      => $this->group?->id,
             'icon'          => 'star',
