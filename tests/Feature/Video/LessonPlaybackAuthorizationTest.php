@@ -7,6 +7,7 @@ use App\Models\Lesson;
 use App\Models\Order;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\Google\GoogleDriveStreamingService;
 use App\Services\Video\PlaybackTokenService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -69,6 +70,25 @@ it('authorizes enrolled student and hides google drive urls', function () {
     $fixture = videoLessonFixture();
     Sanctum::actingAs($fixture['user'], ['*']);
 
+    $this->mock(GoogleDriveStreamingService::class, function ($mock) use ($fixture) {
+        $mock->shouldReceive('getFileMetadata')
+            ->once()
+            ->with(
+                \Mockery::on(fn ($account) => $account->id === $fixture['account']->id),
+                $fixture['lesson']->google_drive_file_id
+            )
+            ->andReturn(['id' => $fixture['lesson']->google_drive_file_id, 'mimeType' => 'video/mp4', 'size' => 1024]);
+
+        $mock->shouldReceive('assertPlayableMimeType')
+            ->once()
+            ->with('video/mp4');
+
+        $mock->shouldReceive('normalizePlayableMimeType')
+            ->once()
+            ->with('video/mp4')
+            ->andReturn('video/mp4');
+    });
+
     $response = $this->postJson("/api/student/lessons/{$fixture['lesson']->id}/playback")
         ->assertOk();
 
@@ -76,7 +96,96 @@ it('authorizes enrolled student and hides google drive urls', function () {
     expect($json)->not->toContain('drive.google.com');
     expect($json)->not->toContain($fixture['lesson']->google_drive_file_id);
     expect($response->json('data.stream_url'))->toContain('/api/student/lessons/');
+    expect($response->json('data.content_type'))->toBe('video/mp4');
     expect($response->json('data.watermark.name'))->not->toBeEmpty();
+});
+
+it('returns content_type for supported video mp4 metadata', function () {
+    $fixture = videoLessonFixture();
+    Sanctum::actingAs($fixture['user'], ['*']);
+
+    $this->mock(GoogleDriveStreamingService::class, function ($mock) use ($fixture) {
+        $mock->shouldReceive('getFileMetadata')
+            ->once()
+            ->andReturn(['id' => $fixture['lesson']->google_drive_file_id, 'mimeType' => 'video/mp4', 'size' => 2048]);
+
+        $mock->shouldReceive('assertPlayableMimeType')
+            ->once()
+            ->with('video/mp4');
+
+        $mock->shouldReceive('normalizePlayableMimeType')
+            ->once()
+            ->with('video/mp4')
+            ->andReturn('video/mp4');
+    });
+
+    $this->postJson("/api/student/lessons/{$fixture['lesson']->id}/playback")
+        ->assertOk()
+        ->assertJsonPath('data.content_type', 'video/mp4');
+});
+
+it('rejects unsupported hls mime type on playback authorization', function () {
+    $fixture = videoLessonFixture();
+    Sanctum::actingAs($fixture['user'], ['*']);
+
+    $this->mock(GoogleDriveStreamingService::class, function ($mock) use ($fixture) {
+        $mock->shouldReceive('getFileMetadata')
+            ->once()
+            ->andReturn([
+                'id' => $fixture['lesson']->google_drive_file_id,
+                'mimeType' => 'application/vnd.apple.mpegurl',
+                'size' => 2048,
+            ]);
+
+        $mock->shouldReceive('assertPlayableMimeType')
+            ->once()
+            ->with('application/vnd.apple.mpegurl')
+            ->andThrow(new \App\Exceptions\UnsupportedVideoFormatException());
+    });
+
+    $this->postJson("/api/student/lessons/{$fixture['lesson']->id}/playback")
+        ->assertUnprocessable()
+        ->assertJsonPath('message', 'This video format is not supported for playback.');
+});
+
+it('rejects audio mime type on playback authorization', function () {
+    $fixture = videoLessonFixture();
+    Sanctum::actingAs($fixture['user'], ['*']);
+
+    $this->mock(GoogleDriveStreamingService::class, function ($mock) {
+        $mock->shouldReceive('getFileMetadata')
+            ->once()
+            ->andReturn(['id' => 'file-id', 'mimeType' => 'audio/mpeg', 'size' => 2048]);
+
+        $mock->shouldReceive('assertPlayableMimeType')
+            ->once()
+            ->with('audio/mpeg')
+            ->andThrow(new \App\Exceptions\UnsupportedVideoFormatException());
+    });
+
+    $this->postJson("/api/student/lessons/{$fixture['lesson']->id}/playback")
+        ->assertUnprocessable()
+        ->assertJsonPath('message', 'This video format is not supported for playback.');
+});
+
+it('rejects unknown or empty mime type on playback authorization', function () {
+    $fixture = videoLessonFixture();
+    Sanctum::actingAs($fixture['user'], ['*']);
+
+    $this->mock(GoogleDriveStreamingService::class, function ($mock) {
+        $mock->shouldReceive('getFileMetadata')
+            ->once()
+            ->andReturn(['id' => 'file-id', 'mimeType' => '', 'size' => 0]);
+
+        $mock->shouldReceive('assertPlayableMimeType')
+            ->once()
+            ->with('')
+            ->andThrow(new \App\Exceptions\UnsupportedVideoFormatException());
+    });
+
+    $this->postJson("/api/student/lessons/{$fixture['lesson']->id}/playback")
+        ->assertUnprocessable()
+        ->assertJsonPath('message', 'This video format is not supported for playback.');
 });
 
 it('rejects invalid playback token on stream endpoint', function () {

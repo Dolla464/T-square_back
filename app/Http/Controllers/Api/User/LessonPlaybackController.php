@@ -6,6 +6,7 @@ use App\Exceptions\ExpiredPlaybackTokenException;
 use App\Exceptions\GoogleAccountDisconnectedException;
 use App\Exceptions\GoogleDriveFileAccessException;
 use App\Exceptions\InvalidPlaybackTokenException;
+use App\Exceptions\UnsupportedVideoFormatException;
 use App\Http\Controllers\Controller;
 use App\Models\Lesson;
 use App\Models\Student;
@@ -46,6 +47,40 @@ class LessonPlaybackController extends Controller
         }
 
         $lesson->loadMissing('course.googleStorageAccount');
+        $account = $lesson->course?->googleStorageAccount;
+
+        if (! $account) {
+            return $this->structuredErrorResponse(
+                'Video is unavailable right now.',
+                'UNPROCESSABLE',
+                422
+            );
+        }
+
+        try {
+            $metadata = $this->streamingService->getFileMetadata($account, $lesson->google_drive_file_id);
+            $this->streamingService->assertPlayableMimeType($metadata['mimeType']);
+            $contentType = $this->streamingService->normalizePlayableMimeType($metadata['mimeType']);
+        } catch (UnsupportedVideoFormatException) {
+            return $this->structuredErrorResponse(
+                'This video format is not supported for playback.',
+                'UNPROCESSABLE',
+                422
+            );
+        } catch (GoogleAccountDisconnectedException) {
+            return $this->structuredErrorResponse(
+                'Unable to play video right now. Please try again later.',
+                'UNPROCESSABLE',
+                422
+            );
+        } catch (GoogleDriveFileAccessException) {
+            return $this->structuredErrorResponse(
+                'Video is unavailable right now.',
+                'UNPROCESSABLE',
+                422
+            );
+        }
+
         $tokenData = $this->playbackTokenService->issue(
             $user->id,
             $lesson->id,
@@ -60,11 +95,12 @@ class LessonPlaybackController extends Controller
             'user_id' => $user->id,
             'lesson_id' => $lesson->id,
             'course_id' => $lesson->course_id,
-            'storage_account_id' => $lesson->course?->google_storage_account_id,
+            'storage_account_id' => $account->id,
         ]);
 
         return $this->successResponse([
             'stream_url' => $streamUrl,
+            'content_type' => $contentType,
             'expires_at' => $tokenData['expires_at'],
             'watermark' => [
                 'name' => $student?->full_name ?? $user->name,
