@@ -18,7 +18,7 @@ class CourseListResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'slug' => $this->slug,
-            'image' => $this->cover_image,
+            'image' => $this->thumbnail,
             'attendance_type' => $this->attendance_type,
             'short_description' => $this->short_description,
             'duration_hours' => $this->duration_hours,
