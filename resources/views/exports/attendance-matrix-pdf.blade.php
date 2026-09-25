@@ -169,6 +169,12 @@
             color: #9ca3af;
         }
 
+        .summary-col {
+            min-width: 52px;
+            font-weight: 700;
+            text-align: center;
+        }
+
         .footer {
             margin-top: 20px;
             font-size: 9px;
@@ -249,6 +255,7 @@
             @php
                 $sessionFrom = ($chunkIndex * $sessionsPerPage) + 1;
                 $sessionTo = min(($chunkIndex + 1) * $sessionsPerPage, $totalSessions);
+                $isLastChunk = $chunkIndex === $totalPages - 1;
             @endphp
 
             @if ($totalPages > 1)
@@ -265,6 +272,10 @@
                         @foreach ($sessionChunk as $session)
                             <th class="session-col">{{ $formatSessionHeader($session['session_date'] ?? null) }}</th>
                         @endforeach
+                        @if ($isLastChunk)
+                            <th class="summary-col">Total Present</th>
+                            <th class="summary-col">Total Absences</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -280,6 +291,14 @@
                                     {!! $statusSymbolHtml($status) !!}
                                 </td>
                             @endforeach
+                            @if ($isLastChunk)
+                                <td class="summary-col">
+                                    <span class="status-present">{{ $student['attended_sessions'] ?? 0 }}</span>
+                                </td>
+                                <td class="summary-col">
+                                    <span class="status-absent">{{ $student['absent_sessions'] ?? 0 }}</span>
+                                </td>
+                            @endif
                         </tr>
                     @endforeach
                 </tbody>

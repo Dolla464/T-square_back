@@ -477,6 +477,8 @@ class AdminLearningGroupController extends Controller
             $end = $session['end_time'] ?? '';
             $header[] = trim("{$date} {$start}-{$end}");
         }
+        $header[] = 'Total Present';
+        $header[] = 'Total Absences';
         fputcsv($handle, $header);
 
         foreach ($students as $idx => $student) {
@@ -490,6 +492,9 @@ class AdminLearningGroupController extends Controller
                 $status = $student['statuses'][(string) $session['id']] ?? 'not_marked';
                 $row[] = $this->formatAttendanceStatusLabel($status);
             }
+
+            $row[] = $student['attended_sessions'] ?? 0;
+            $row[] = $student['absent_sessions'] ?? 0;
 
             fputcsv($handle, $row);
         }
