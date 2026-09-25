@@ -1,25 +1,26 @@
 <?php
 
-use App\Http\Controllers\Api\Admin\AdminLessonController;
-use App\Http\Controllers\Api\Admin\GoogleStorageAccountController;
+use App\Http\Controllers\Api\Admin\AdminActivityLogController;
 use App\Http\Controllers\Api\Admin\AdminCategoryController;
-use App\Http\Controllers\Api\Admin\AdminDashboardController;
-use App\Http\Controllers\Api\Admin\AdminScheduleController;
-use App\Http\Controllers\Api\Admin\ChunkedUploadController;
 use App\Http\Controllers\Api\Admin\AdminCertificateController;
 use App\Http\Controllers\Api\Admin\AdminCourseController;
+use App\Http\Controllers\Api\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\Admin\AdminDiscoveryMediaController;
 use App\Http\Controllers\Api\Admin\AdminExamController;
 use App\Http\Controllers\Api\Admin\AdminInstructorController;
 use App\Http\Controllers\Api\Admin\AdminLearningGroupController;
+use App\Http\Controllers\Api\Admin\AdminLessonController;
 use App\Http\Controllers\Api\Admin\AdminMessageController;
 use App\Http\Controllers\Api\Admin\AdminPaymentController;
 use App\Http\Controllers\Api\Admin\AdminQuestionController;
 use App\Http\Controllers\Api\Admin\AdminReviewController;
+use App\Http\Controllers\Api\Admin\AdminScheduleController;
 use App\Http\Controllers\Api\Admin\AdminSolutionController;
 use App\Http\Controllers\Api\Admin\AdminStudentController;
 use App\Http\Controllers\Api\Admin\AdminTagController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
+use App\Http\Controllers\Api\Admin\ChunkedUploadController;
+use App\Http\Controllers\Api\Admin\GoogleStorageAccountController;
 use App\Http\Controllers\Api\Admin\SettingController as AdminSettingController;
 use Illuminate\Support\Facades\Route;
 
@@ -138,11 +139,11 @@ Route::middleware(['auth:sanctum', 'verified', 'role:admin'])
             Route::get('/selection', [AdminLearningGroupController::class, 'selection']);
             // Per-group bulk actions
             Route::get('{groupId}/unassigned-students', [AdminLearningGroupController::class, 'getUnassignedStudents'])->name('learning-groups.unassigned-students');
-            Route::post('{groupId}/bulk-assign',        [AdminLearningGroupController::class, 'bulkAssignStudents'])->name('learning-groups.bulk-assign');
-            Route::post('{groupId}/bulk-complete',      [AdminLearningGroupController::class, 'bulkCompleteStudents'])->name('learning-groups.bulk-complete');
+            Route::post('{groupId}/bulk-assign', [AdminLearningGroupController::class, 'bulkAssignStudents'])->name('learning-groups.bulk-assign');
+            Route::post('{groupId}/bulk-complete', [AdminLearningGroupController::class, 'bulkCompleteStudents'])->name('learning-groups.bulk-complete');
             // Schedule & attendance
-            Route::get('{learningGroup}/schedule',   [AdminLearningGroupController::class, 'getSchedule'])->name('learning-groups.schedule');
-            Route::get('{learningGroup}/sessions',   [AdminLearningGroupController::class, 'getSessions'])->name('learning-groups.sessions');
+            Route::get('{learningGroup}/schedule', [AdminLearningGroupController::class, 'getSchedule'])->name('learning-groups.schedule');
+            Route::get('{learningGroup}/sessions', [AdminLearningGroupController::class, 'getSessions'])->name('learning-groups.sessions');
             Route::get('{learningGroup}/attendance-summary', [AdminLearningGroupController::class, 'getAttendanceSummary'])->name('learning-groups.attendance-summary');
             Route::get('{learningGroup}/attendance-matrix/export', [AdminLearningGroupController::class, 'exportAttendanceMatrix'])->name('learning-groups.attendance-matrix.export');
             Route::get('{learningGroup}/attendance-matrix', [AdminLearningGroupController::class, 'getAttendanceMatrix'])->name('learning-groups.attendance-matrix');
@@ -206,6 +207,15 @@ Route::middleware(['auth:sanctum', 'verified', 'role:admin'])
             Route::get('/', [AdminScheduleController::class, 'index'])->name('index');
             Route::put('{session}', [AdminScheduleController::class, 'reschedule'])->name('reschedule');
             Route::delete('{session}', [AdminScheduleController::class, 'cancel'])->name('cancel');
+        });
+
+        // Activity logs (admin-only, password-gated index)
+        Route::prefix('activity-logs')->name('activity-logs.')->group(function () {
+            Route::post('verify-password', [AdminActivityLogController::class, 'verifyPassword'])
+                ->name('verify-password');
+            Route::middleware('activity_log.verified')->group(function () {
+                Route::get('/', [AdminActivityLogController::class, 'index'])->name('index');
+            });
         });
 
         // Discovery media & website media
