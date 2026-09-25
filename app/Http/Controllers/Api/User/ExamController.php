@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Student\RecordQuestionTimeRequest;
 use App\Http\Requests\Api\Student\SaveAnswerRequest;
 use App\Http\Requests\Api\Student\StartExamRequest;
 use App\Http\Requests\Api\Student\StoreIntegrityEventsRequest;
@@ -81,6 +82,20 @@ class ExamController extends Controller
         );
 
         return response()->json(['status' => 'saved']);
+    }
+
+    public function recordQuestionTime(RecordQuestionTimeRequest $request)
+    {
+        $student = $request->user()->student;
+
+        $this->examService->recordQuestionTime(
+            (int) $request->attempt_id,
+            (int) $request->question_id,
+            (int) $request->time_spent_seconds,
+            $student->id,
+        );
+
+        return response()->json(['status' => 'recorded']);
     }
 
     public function submit(SubmitExamRequest $request, int $id)

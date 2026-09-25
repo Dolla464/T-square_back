@@ -43,6 +43,9 @@ class ExamAttemptReviewResource extends JsonResource
                     'answer_id' => $answer?->id,
                     'answer_text' => $answer?->answer_text,
                     'marks_earned' => $answer?->marks_earned ?? 0,
+                    'time_spent_seconds' => $question->pivot?->time_spent_seconds !== null
+                        ? (int) $question->pivot->time_spent_seconds
+                        : null,
                 ];
             }
 
@@ -67,6 +70,9 @@ class ExamAttemptReviewResource extends JsonResource
                 'selected_choice_id' => $selectedId,
                 'correct_choice_id' => $correctChoice?->id,
                 'marks_earned' => $answer?->marks_earned ?? 0,
+                'time_spent_seconds' => $question->pivot?->time_spent_seconds !== null
+                    ? (int) $question->pivot->time_spent_seconds
+                    : null,
                 'choices' => $question->choices->map(function ($choice) use ($selectedId) {
                     return [
                         'id' => $choice->id,

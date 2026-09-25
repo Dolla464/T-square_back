@@ -140,5 +140,6 @@ Route::middleware(['auth:sanctum', 'verified', 'role:student'])
             ->name('attempts.integrity-events');
         Route::post('start', 'start')->name('start');
         Route::post('save-answer', 'answer')->name('save-answer');
+        Route::post('record-question-time', 'recordQuestionTime')->name('record-question-time');
         Route::post('{id}/submit', 'submit')->name('submit');
     });
