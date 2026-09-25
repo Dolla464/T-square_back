@@ -14,6 +14,7 @@ use App\Http\Resources\User\Exam\ExamAttemptReviewResource;
 use App\Http\Resources\User\Exam\ExamListResource;
 use App\Http\Resources\User\Exam\ExamResultResource;
 use App\Services\User\ExamService;
+use App\Support\ExamTimerDiagnostic;
 use Illuminate\Http\Request;
 use App\Traits\ApiResponseTrait;
 
@@ -61,7 +62,10 @@ class ExamController extends Controller
         // Load the attempt's own question subset with choices and any saved answers.
         $attempt->load(['questions.choices', 'answers', 'exam']);
 
-        return new ExamAttemptResource($attempt);
+        $resource = new ExamAttemptResource($attempt);
+        ExamTimerDiagnostic::logStart($attempt, $resource->resolve($request));
+
+        return $resource;
     }
 
     public function answer(SaveAnswerRequest $request)

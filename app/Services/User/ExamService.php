@@ -11,6 +11,7 @@ use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\Question;
 use App\Services\Exam\ExamAttemptAuthorizationService;
+use App\Support\ExamTimerDiagnostic;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -513,6 +514,8 @@ class ExamService
         if ($attempt->status !== ExamAttempt::STATUS_ONGOING) {
             $payload['results'] = $this->getAttemptResultsPayload($attempt);
         }
+
+        ExamTimerDiagnostic::logTimeStatus($attempt, $payload);
 
         return $payload;
     }
