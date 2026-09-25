@@ -11,6 +11,7 @@ use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\Question;
 use App\Services\Exam\ExamAttemptAuthorizationService;
+use App\Support\ExamTimerDiagnostic;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -335,6 +336,53 @@ class ExamService
         return $answer;
     }
 
+    public function recordQuestionTime(
+        int $attemptId,
+        int $questionId,
+        int $seconds,
+        int $studentId,
+    ): void {
+        $attempt = ExamAttempt::with([
+            'exam',
+            'questions',
+        ])->findOrFail($attemptId);
+
+        $access = $this->attemptAuthorizationService->validateMutableAttempt($attempt, $studentId);
+
+        if (! $access->isAllowed()) {
+            if ($this->attemptAuthorizationService->isExamContextRevoked($access)) {
+                $this->closeOngoingAttempt($attemptId, $studentId);
+            }
+
+            abort($access->getStatusCode(), $access->getMessage());
+        }
+
+        if ($this->attemptAuthorizationService->isTimedOut($attempt)) {
+            $this->completeAttempt($attemptId, $studentId);
+
+            abort(403, 'Exam time has expired.');
+        }
+
+        $question = $attempt->questions->firstWhere('id', $questionId);
+        if (! $question) {
+            abort(403, 'This question does not belong to this attempt.');
+        }
+
+        $seconds = max(0, min(7200, $seconds));
+
+        if ($seconds === 0) {
+            return;
+        }
+
+        DB::table('attempt_questions')
+            ->where('exam_attempt_id', $attemptId)
+            ->where('question_id', $questionId)
+            ->update([
+                'time_spent_seconds' => DB::raw('COALESCE(time_spent_seconds, 0) + '.$seconds),
+                'updated_at' => now(),
+            ]);
+    }
+
     public function completeAttempt($attemptId, ?int $studentId = null, bool $skipAvailabilityCheck = false): array
     {
         $result = DB::transaction(function () use ($attemptId, $studentId, $skipAvailabilityCheck) {
@@ -513,6 +561,8 @@ class ExamService
         if ($attempt->status !== ExamAttempt::STATUS_ONGOING) {
             $payload['results'] = $this->getAttemptResultsPayload($attempt);
         }
+
+        ExamTimerDiagnostic::logTimeStatus($attempt, $payload);
 
         return $payload;
     }

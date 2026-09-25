@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Student\RecordQuestionTimeRequest;
 use App\Http\Requests\Api\Student\SaveAnswerRequest;
 use App\Http\Requests\Api\Student\StartExamRequest;
 use App\Http\Requests\Api\Student\StoreIntegrityEventsRequest;
@@ -14,6 +15,7 @@ use App\Http\Resources\User\Exam\ExamAttemptReviewResource;
 use App\Http\Resources\User\Exam\ExamListResource;
 use App\Http\Resources\User\Exam\ExamResultResource;
 use App\Services\User\ExamService;
+use App\Support\ExamTimerDiagnostic;
 use Illuminate\Http\Request;
 use App\Traits\ApiResponseTrait;
 
@@ -61,7 +63,10 @@ class ExamController extends Controller
         // Load the attempt's own question subset with choices and any saved answers.
         $attempt->load(['questions.choices', 'answers', 'exam']);
 
-        return new ExamAttemptResource($attempt);
+        $resource = new ExamAttemptResource($attempt);
+        ExamTimerDiagnostic::logStart($attempt, $resource->resolve($request));
+
+        return $resource;
     }
 
     public function answer(SaveAnswerRequest $request)
@@ -77,6 +82,20 @@ class ExamController extends Controller
         );
 
         return response()->json(['status' => 'saved']);
+    }
+
+    public function recordQuestionTime(RecordQuestionTimeRequest $request)
+    {
+        $student = $request->user()->student;
+
+        $this->examService->recordQuestionTime(
+            (int) $request->attempt_id,
+            (int) $request->question_id,
+            (int) $request->time_spent_seconds,
+            $student->id,
+        );
+
+        return response()->json(['status' => 'recorded']);
     }
 
     public function submit(SubmitExamRequest $request, int $id)

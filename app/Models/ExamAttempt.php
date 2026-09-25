@@ -60,7 +60,7 @@ class ExamAttempt extends Model
     public function questions()
     {
         return $this->belongsToMany(Question::class, 'attempt_questions')
-            ->withPivot('sort_order')
+            ->withPivot('sort_order', 'time_spent_seconds')
             ->withTimestamps()
             ->orderBy('attempt_questions.sort_order')
             ->orderBy('questions.id');
@@ -69,7 +69,7 @@ class ExamAttempt extends Model
     public function questionsWithTrashed()
     {
         return $this->belongsToMany(Question::class, 'attempt_questions')
-            ->withPivot('sort_order')
+            ->withPivot('sort_order', 'time_spent_seconds')
             ->withTimestamps()
             ->withTrashed()
             ->orderBy('attempt_questions.sort_order')

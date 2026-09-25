@@ -161,13 +161,14 @@ class GroupAttendanceSummaryService
         })->values()->all();
 
         $students = $group->students()->with('user:id,email')->get();
+        $completedSessionIds = $sessions->where('status', 'completed')->pluck('id');
 
         $records = AttendanceRecord::whereIn('session_id', $sessionIds)
             ->get()
             ->groupBy('student_id')
             ->map(fn ($studentRecords) => $studentRecords->keyBy('session_id'));
 
-        $studentsData = $students->map(function ($student) use ($sessions, $records) {
+        $studentsData = $students->map(function ($student) use ($sessions, $records, $completedSessionIds) {
             $studentRecords = $records->get($student->id) ?? collect();
             $statuses = [];
 
@@ -182,11 +183,27 @@ class GroupAttendanceSummaryService
                 $statuses[(string) $session->id] = $record?->status ?? 'not_marked';
             }
 
+            $attendedSessions = $studentRecords
+                ->filter(fn ($record) => in_array($record->status, ['present', 'late'], true))
+                ->count();
+
+            $absentSessions = $completedSessionIds->sum(function ($sessionId) use ($studentRecords) {
+                $record = $studentRecords->get($sessionId);
+
+                if (! $record) {
+                    return 1;
+                }
+
+                return in_array($record->status, ['absent', 'not_marked'], true) ? 1 : 0;
+            });
+
             return [
-                'student_id' => $student->id,
-                'full_name'  => $student->full_name ?? $student->user?->name ?? 'Unknown',
-                'email'      => $student->user?->email ?? null,
-                'statuses'   => $statuses,
+                'student_id'        => $student->id,
+                'full_name'         => $student->full_name ?? $student->user?->name ?? 'Unknown',
+                'email'             => $student->user?->email ?? null,
+                'statuses'          => $statuses,
+                'attended_sessions' => $attendedSessions,
+                'absent_sessions'   => $absentSessions,
             ];
         })->values()->all();
 
