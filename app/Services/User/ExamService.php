@@ -494,16 +494,6 @@ class ExamService
             'finished_at' => $attempt->finished_at ?? now(),
         ])->save();
 
-        if ($isPassed && $attempt->exam?->is_final) {
-            $enrollment = Enrollment::where('student_id', '=', $attempt->student_id, 'and')
-                ->where('course_id', '=', $attempt->exam->course_id, 'and')
-                ->first();
-
-            if ($enrollment && ! $enrollment->is_completed) {
-                $enrollment->markAsCompleted();
-            }
-        }
-
         return $this->buildAttemptResult($attempt, $totalScore, $isPassed, $status);
     }
 

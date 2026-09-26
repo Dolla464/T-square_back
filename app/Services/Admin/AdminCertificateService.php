@@ -150,13 +150,22 @@ class AdminCertificateService
             if (array_key_exists('is_completed', $data)) {
                 $isCompleted = (bool) $data['is_completed'];
 
-                Enrollment::query()
+                $enrollment = Enrollment::query()
                     ->where('student_id', $studentId)
                     ->where('course_id', $courseId)
-                    ->update([
-                        'is_completed' => $isCompleted,
-                        'completed_at' => $isCompleted ? now() : null,
-                    ]);
+                    ->orderByDesc('id')
+                    ->first();
+
+                if ($enrollment) {
+                    if ($isCompleted) {
+                        $enrollment->markAsCompleted();
+                    } else {
+                        $enrollment->update([
+                            'is_completed' => false,
+                            'completed_at' => null,
+                        ]);
+                    }
+                }
             }
 
             if (array_key_exists('status', $data)) {

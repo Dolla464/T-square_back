@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Enrollment\EnrollmentCompletionGuard;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -66,6 +67,8 @@ class Enrollment extends Model
      */
     public function markAsCompleted()
     {
+        app(EnrollmentCompletionGuard::class)->assertCanComplete($this);
+
         return $this->update([
             'is_completed' => true,
             'completed_at' => now(),

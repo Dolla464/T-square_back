@@ -39,6 +39,7 @@ php artisan migrate --force
 | `attendance:generate-weekly` | حضور | ⚙️ يومياً 00:00 | آمن |
 | `attendance:repair-stale` | حضور | يدوي | آمن |
 | `attendance:fix-group-sessions` | حضور | يدوي | متوسط |
+| `learning-groups:complete-expired` | مجموعات | ⚙️ يومياً 01:00 | آمن |
 | `exams:close-expired` | امتحانات | ⚙️ كل دقيقة | آمن |
 | `exams:backfill-group-activations` | امتحانات | يدوي | متوسط |
 | `chunks:cleanup` | رفع | ⚙️ يومياً 02:00 | آمن |
@@ -156,7 +157,44 @@ php artisan attendance:fix-group-sessions --all
 
 ---
 
-## 1.2 الامتحانات (`exams:*`)
+## 1.2 مجموعات التعلّم (`learning-groups:*`)
+
+### `learning-groups:complete-expired` ⚙️
+
+**الملف:** `app/Console/Commands/CompleteExpiredLearningGroups.php`
+
+**الفائدة:** إغلاق المجموعات النشطة التي انتهى `end_date` الخاص بها (قبل اليوم) تلقائياً، وإكمال enrollments غير المكتملة، وإرسال إشعار `CourseReviewRequired` للطلاب الجدد (مع استثناء من لديهم review مسبقاً).
+
+**قاعدة الأهلية:**
+
+```text
+status = active
+AND end_date IS NOT NULL
+AND end_date < today
+```
+
+- `end_date = today` → **لا** تُغلق في نفس اليوم.
+- المجموعات `cancelled` أو `completed` أو `end_date = NULL` → تُتجاهل.
+
+**لا يصدر شهادات تلقائياً** — يبقى مسار الشهادة عبر التقييم + `CertificateService` كما هو.
+
+| الخيار | الوصف |
+|--------|-------|
+| `--dry-run` | عرض المجموعات المؤهلة بدون أي تعديل |
+| `--date=YYYY-MM-DD` | تاريخ مرجعي للاختبار/التشغيل اليدوي (افتراضي: اليوم بتوقيت التطبيق) |
+
+```bash
+php artisan learning-groups:complete-expired
+php artisan learning-groups:complete-expired --dry-run
+php artisan learning-groups:complete-expired --date=2026-09-26
+php artisan learning-groups:complete-expired --dry-run --date=2026-09-26
+```
+
+**الجدولة:** يومياً الساعة `01:00` — `storage/logs/learning-groups-complete-expired.log`
+
+---
+
+## 1.3 الامتحانات (`exams:*`)
 
 ### `exams:close-expired` ⚙️
 
