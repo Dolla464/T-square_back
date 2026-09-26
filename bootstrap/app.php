@@ -14,6 +14,13 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Auth\Middleware\Authorize;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
+use Illuminate\Contracts\Session\Middleware\AuthenticatesSessions;
+use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Routing\Middleware\ThrottleRequestsWithRedis;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -32,14 +39,26 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->append(CheckMaintenanceMode::class);
         $middleware->append(SecurityHeaders::class);
         $middleware->api(prepend: [
             EnsureFrontendRequestsAreStateful::class,
         ]);
 
         $middleware->api(append: [
+            CheckMaintenanceMode::class,
             LogActivityMiddleware::class,
+        ]);
+
+        $middleware->priority([
+            EnsureFrontendRequestsAreStateful::class,
+            CheckMaintenanceMode::class,
+            HandlePrecognitiveRequests::class,
+            AuthenticatesRequests::class,
+            ThrottleRequests::class,
+            ThrottleRequestsWithRedis::class,
+            AuthenticatesSessions::class,
+            SubstituteBindings::class,
+            Authorize::class,
         ]);
 
         $middleware->alias([
