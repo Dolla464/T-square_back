@@ -16,9 +16,9 @@ class GroupAttendanceSummaryService
     {
         $group->load(['course:id,title', 'attendanceSessions']);
 
-        $totalSessions      = $group->attendanceSessions->count();
-        $completedSessions  = $group->attendanceSessions->where('status', 'completed')->count();
-        $sessionIds         = $group->attendanceSessions->pluck('id');
+        $totalSessions = $group->attendanceSessions->count();
+        $completedSessions = $group->attendanceSessions->where('status', 'completed')->count();
+        $sessionIds = $group->attendanceSessions->pluck('id');
         $completedSessionIds = $group->attendanceSessions
             ->where('status', 'completed')
             ->pluck('id');
@@ -62,28 +62,28 @@ class GroupAttendanceSummaryService
             });
 
             return [
-                'student_id'            => $student->id,
-                'full_name'             => $student->full_name ?? $student->user?->name ?? 'Unknown',
-                'email'                 => $student->user?->email ?? null,
-                'avatar'                => $student->avatar ?? null,
-                'attended_sessions'     => $attendedSessions,
-                'absent_sessions'       => $absentSessions,
+                'student_id' => $student->id,
+                'full_name' => $student->full_name ?? $student->user?->name ?? 'Unknown',
+                'email' => $student->user?->email ?? null,
+                'avatar' => $student->avatar ?? null,
+                'attended_sessions' => $attendedSessions,
+                'absent_sessions' => $absentSessions,
                 'attendance_percentage' => $attendancePercentage,
             ];
         });
 
         return [
-            'id'             => $group->id,
-            'group_name'     => $group->group_name,
-            'course_title'   => $group->course->title ?? null,
-            'start_date'     => $group->start_date?->format('Y-m-d'),
-            'end_date'       => $group->end_date?->format('Y-m-d'),
-            'status'         => $group->status,
+            'id' => $group->id,
+            'group_name' => $group->group_name,
+            'course_title' => $group->course->title ?? null,
+            'start_date' => $group->start_date?->format('Y-m-d'),
+            'end_date' => $group->end_date?->format('Y-m-d'),
+            'status' => $group->status,
             'students_count' => $students->count(),
-            'completion'     => [
-                'percentage'         => $completionPercentage,
+            'completion' => [
+                'percentage' => $completionPercentage,
                 'completed_sessions' => $completedSessions,
-                'total_sessions'     => $totalSessions,
+                'total_sessions' => $totalSessions,
             ],
             'students' => $studentsData->values()->all(),
         ];
@@ -96,7 +96,7 @@ class GroupAttendanceSummaryService
         $studentData = collect($summary['students'])
             ->firstWhere('student_id', $student->id);
 
-        if (!$studentData) {
+        if (! $studentData) {
             throw new \InvalidArgumentException('Student is not enrolled in this group.');
         }
 
@@ -112,29 +112,29 @@ class GroupAttendanceSummaryService
 
         $sessionRows = $sessions->map(function ($session) use ($records) {
             $record = $records->get($session->id);
-            $times  = $this->attendanceSessionService->getEffectiveTimes($session);
+            $times = $this->attendanceSessionService->getEffectiveTimes($session);
 
             return [
-                'session_id'   => $session->id,
+                'session_id' => $session->id,
                 'session_date' => $times['session_date'],
-                'start_time'   => $times['start_time'],
-                'end_time'     => $times['end_time'],
-                'session_status' => $session->status,
-                'status'       => $record?->status ?? 'not_marked',
+                'start_time' => $times['start_time'],
+                'end_time' => $times['end_time'],
+                'session_status' => $this->attendanceSessionService->resolveLifecycleStatus($session),
+                'status' => $record?->status ?? 'not_marked',
             ];
         });
 
         return [
-            'student_id'            => $student->id,
-            'full_name'             => $studentData['full_name'],
-            'email'                 => $studentData['email'],
-            'group_name'            => $group->group_name,
-            'course_title'          => $summary['course_title'],
-            'attended_sessions'     => $studentData['attended_sessions'],
-            'absent_sessions'       => $studentData['absent_sessions'],
+            'student_id' => $student->id,
+            'full_name' => $studentData['full_name'],
+            'email' => $studentData['email'],
+            'group_name' => $group->group_name,
+            'course_title' => $summary['course_title'],
+            'attended_sessions' => $studentData['attended_sessions'],
+            'absent_sessions' => $studentData['absent_sessions'],
             'attendance_percentage' => $studentData['attendance_percentage'],
-            'total_sessions'        => $summary['completion']['total_sessions'],
-            'sessions'              => $sessionRows->values()->all(),
+            'total_sessions' => $summary['completion']['total_sessions'],
+            'sessions' => $sessionRows->values()->all(),
         ];
     }
 
@@ -152,11 +152,11 @@ class GroupAttendanceSummaryService
             $times = $this->attendanceSessionService->getEffectiveTimes($session);
 
             return [
-                'id'           => $session->id,
+                'id' => $session->id,
                 'session_date' => $times['session_date'],
-                'start_time'   => $times['start_time'],
-                'end_time'     => $times['end_time'],
-                'status'       => $session->status,
+                'start_time' => $times['start_time'],
+                'end_time' => $times['end_time'],
+                'status' => $this->attendanceSessionService->resolveLifecycleStatus($session),
             ];
         })->values()->all();
 
@@ -198,21 +198,21 @@ class GroupAttendanceSummaryService
             });
 
             return [
-                'student_id'        => $student->id,
-                'full_name'         => $student->full_name ?? $student->user?->name ?? 'Unknown',
-                'email'             => $student->user?->email ?? null,
-                'statuses'          => $statuses,
+                'student_id' => $student->id,
+                'full_name' => $student->full_name ?? $student->user?->name ?? 'Unknown',
+                'email' => $student->user?->email ?? null,
+                'statuses' => $statuses,
                 'attended_sessions' => $attendedSessions,
-                'absent_sessions'   => $absentSessions,
+                'absent_sessions' => $absentSessions,
             ];
         })->values()->all();
 
         return [
-            'id'           => $group->id,
-            'group_name'   => $group->group_name,
+            'id' => $group->id,
+            'group_name' => $group->group_name,
             'course_title' => $group->course->title ?? null,
-            'sessions'     => $sessionColumns,
-            'students'     => $studentsData,
+            'sessions' => $sessionColumns,
+            'students' => $studentsData,
         ];
     }
 }

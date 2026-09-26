@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Notifications\AdminNewEnrollmentNotification;
 use App\Notifications\InstructorGradingRequiredNotification;
 use App\Notifications\StudentEnrolledNotification;
+use App\Notifications\StudentExamAttemptStatusNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -46,6 +47,33 @@ it('includes course_title and student_name in admin enrollment notification payl
         ->and($payload['type'])->toBe('admin_enrollment');
 });
 
+it('includes course_title and exam_title in student exam attempt result notification payload', function (): void {
+    $course = Course::factory()->create(['title' => 'Intro to PHP']);
+    $exam = Exam::factory()->create([
+        'course_id' => $course->id,
+        'title' => 'Final Quiz',
+    ]);
+    $student = Student::factory()->create();
+    $attempt = ExamAttempt::factory()->create([
+        'exam_id' => $exam->id,
+        'student_id' => $student->id,
+        'status' => 'passed',
+        'score' => 85,
+    ]);
+    $user = User::factory()->create();
+
+    $notification = new StudentExamAttemptStatusNotification($attempt);
+    $payload = $notification->toDatabase($user);
+
+    expect($payload)
+        ->toHaveKey('course_title', 'Intro to PHP')
+        ->toHaveKey('exam_title', 'Final Quiz')
+        ->toHaveKey('course_id', $course->id)
+        ->and($payload['type'])->toBe('exam_result')
+        ->and($payload['message'])->toContain('Final Quiz')
+        ->and($payload['message'])->toContain('Intro to PHP');
+});
+
 it('includes student_name and exam_title in instructor grading required notification payload', function (): void {
     $exam = Exam::factory()->create(['title' => 'Midterm Exam']);
     $student = Student::factory()->create(['full_name' => 'Sara Hassan']);
@@ -63,6 +91,42 @@ it('includes student_name and exam_title in instructor grading required notifica
         ->toHaveKey('student_name', 'Sara Hassan')
         ->toHaveKey('exam_title', 'Midterm Exam')
         ->and($payload['type'])->toBe('grading_required');
+});
+
+it('enriches legacy exam result notifications with course and exam titles from exam_id', function (): void {
+    $course = Course::factory()->create(['title' => 'Legacy Course']);
+    $exam = Exam::factory()->create([
+        'course_id' => $course->id,
+        'title' => 'Legacy Exam',
+    ]);
+    $user = User::factory()->create();
+    Sanctum::actingAs($user, ['*']);
+
+    $user->notifications()->create([
+        'id' => Str::uuid()->toString(),
+        'type' => 'App\Notifications\StudentExamAttemptStatusNotification',
+        'data' => [
+            'type' => 'exam_result',
+            'title' => 'Exam Attempt Result',
+            'message' => 'You failed your exam attempt.',
+            'exam_id' => $exam->id,
+            'attempt_id' => 99,
+            'status' => 'failed',
+            'score' => 4,
+            'icon' => 'x-circle',
+        ],
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $response = $this->getJson('/api/notifications?page=1&per_page=30');
+
+    $response->assertOk();
+
+    expect($response->json('data.0.course_title'))->toBe('Legacy Course')
+        ->and($response->json('data.0.exam_title'))->toBe('Legacy Exam')
+        ->and($response->json('data.0.message'))->toContain('Legacy Exam')
+        ->and($response->json('data.0.message'))->toContain('Legacy Course');
 });
 
 it('exposes student_name and exam_title in notification list api response', function (): void {

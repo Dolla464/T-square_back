@@ -3,14 +3,21 @@
 namespace App\Services\Admin;
 
 use App\Models\AttendanceSession;
+use App\Models\User;
 use App\Notifications\SessionCancelledNotification;
 use App\Notifications\SessionRescheduledNotification;
+use App\Services\Attendance\AttendanceSessionService;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
 class AdminScheduleService
 {
+    public function __construct(
+        private AttendanceSessionService $attendanceSessionService,
+    ) {}
+
     /**
      * Get all sessions across all groups with optional filters and pagination.
      *
@@ -75,22 +82,22 @@ class AdminScheduleService
         $this->applyDateFilters($query, $filters);
 
         // Filter by instructor
-        if (!empty($filters['instructor_id'])) {
+        if (! empty($filters['instructor_id'])) {
             $query->where('ci.instructor_id', $filters['instructor_id']);
         }
 
         // Filter by status
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('sess.status', $filters['status']);
         }
 
         // Filter by group
-        if (!empty($filters['group_id'])) {
+        if (! empty($filters['group_id'])) {
             $query->where('sess.learning_group_id', $filters['group_id']);
         }
 
         $query->orderByRaw('COALESCE(sess.override_date, sess.session_date) ASC')
-              ->orderByRaw('COALESCE(sess.override_start_time, sch.start_time) ASC');
+            ->orderByRaw('COALESCE(sess.override_start_time, sch.start_time) ASC');
 
         return $query->paginate($perPage);
     }
@@ -100,33 +107,45 @@ class AdminScheduleService
      */
     public function rescheduleSession(AttendanceSession $session, array $data): AttendanceSession
     {
-        $oldDate      = $session->override_date ?? $session->session_date;
+        $oldDate = $session->override_date ?? $session->session_date;
         $oldStartTime = $session->override_start_time ?? $session->schedule?->start_time;
-        $oldEndTime   = $session->override_end_time   ?? $session->schedule?->end_time;
+        $oldEndTime = $session->override_end_time ?? $session->schedule?->end_time;
+
+        $wasActive = $session->status === 'active';
 
         $session->update([
-            'override_date'       => $data['date']       ?? null,
+            'override_date' => $data['date'] ?? null,
             'override_start_time' => $data['start_time'] ?? null,
-            'override_end_time'   => $data['end_time']   ?? null,
-            // Reset cancelled status if it was cancelled
-            'status'              => in_array($session->status, ['cancelled']) ? 'upcoming' : $session->status,
+            'override_end_time' => $data['end_time'] ?? null,
+            'status' => $session->status === 'cancelled' ? 'upcoming' : $session->status,
             'cancellation_reason' => null,
         ]);
 
+        $session->refresh()->load(['learningGroup.course', 'learningGroup.courseInstructor.instructor.user', 'schedule']);
+
+        $range = $this->attendanceSessionService->getEffectiveDateTimeRange($session);
+
+        if (($wasActive || $session->status === 'active') && $range['start']->isFuture()) {
+            $session->update([
+                'status' => 'upcoming',
+                'qr_code' => null,
+            ]);
+        }
+
         $session->load(['learningGroup.course', 'learningGroup.courseInstructor.instructor.user', 'schedule']);
 
-        $newDate      = $session->override_date ?? $session->session_date;
+        $newDate = $session->override_date ?? $session->session_date;
         $newStartTime = $session->override_start_time ?? $session->schedule?->start_time;
-        $newEndTime   = $session->override_end_time   ?? $session->schedule?->end_time;
+        $newEndTime = $session->override_end_time ?? $session->schedule?->end_time;
 
         $notificationData = [
-            'session'      => $session,
-            'old_date'     => $oldDate,
-            'old_start'    => $oldStartTime,
-            'old_end'      => $oldEndTime,
-            'new_date'     => $newDate,
-            'new_start'    => $newStartTime,
-            'new_end'      => $newEndTime,
+            'session' => $session,
+            'old_date' => $oldDate,
+            'old_start' => $oldStartTime,
+            'old_end' => $oldEndTime,
+            'new_date' => $newDate,
+            'new_start' => $newStartTime,
+            'new_end' => $newEndTime,
         ];
 
         $this->notifyGroupMembers($session, 'rescheduled', $notificationData);
@@ -140,7 +159,7 @@ class AdminScheduleService
     public function cancelSession(AttendanceSession $session, ?string $reason = null): AttendanceSession
     {
         $session->update([
-            'status'              => 'cancelled',
+            'status' => 'cancelled',
             'cancellation_reason' => $reason,
         ]);
 
@@ -158,7 +177,7 @@ class AdminScheduleService
     {
         $group = $session->learningGroup;
 
-        if (!$group) {
+        if (! $group) {
             return;
         }
 
@@ -183,7 +202,7 @@ class AdminScheduleService
             return;
         }
 
-        $users = \App\Models\User::whereIn('id', $userIds)->get();
+        $users = User::whereIn('id', $userIds)->get();
 
         if ($type === 'rescheduled') {
             Notification::send($users, new SessionRescheduledNotification($session, $data));
@@ -195,7 +214,7 @@ class AdminScheduleService
     /**
      * Build a query result for export (no pagination).
      */
-    public function getSessionsForExport(array $filters = []): \Illuminate\Support\Collection
+    public function getSessionsForExport(array $filters = []): Collection
     {
         $totalPerGroup = DB::table('attendance_sessions')
             ->selectRaw('learning_group_id, COUNT(*) as total_sessions')
@@ -238,15 +257,15 @@ class AdminScheduleService
 
         $this->applyDateFilters($query, $filters);
 
-        if (!empty($filters['instructor_id'])) {
+        if (! empty($filters['instructor_id'])) {
             $query->where('ci.instructor_id', $filters['instructor_id']);
         }
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('sess.status', $filters['status']);
         }
 
-        if (!empty($filters['group_id'])) {
+        if (! empty($filters['group_id'])) {
             $query->where('sess.learning_group_id', $filters['group_id']);
         }
 
@@ -261,31 +280,31 @@ class AdminScheduleService
      */
     private function applyDateFilters($query, array $filters): void
     {
-        if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+        if (! empty($filters['date_from']) && ! empty($filters['date_to'])) {
             $from = $filters['date_from'];
-            $to   = $filters['date_to'];
+            $to = $filters['date_to'];
 
             $query->where(function ($q) use ($from, $to) {
                 $q->where(function ($inner) use ($from, $to) {
                     $inner->whereNotNull('sess.override_date')
-                          ->whereBetween('sess.override_date', [$from, $to]);
+                        ->whereBetween('sess.override_date', [$from, $to]);
                 })->orWhere(function ($inner) use ($from, $to) {
                     $inner->whereNull('sess.override_date')
-                          ->whereBetween('sess.session_date', [$from, $to]);
+                        ->whereBetween('sess.session_date', [$from, $to]);
                 });
             });
 
             return;
         }
 
-        if (!empty($filters['date'])) {
+        if (! empty($filters['date'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where(function ($inner) use ($filters) {
                     $inner->whereNotNull('sess.override_date')
-                          ->whereDate('sess.override_date', $filters['date']);
+                        ->whereDate('sess.override_date', $filters['date']);
                 })->orWhere(function ($inner) use ($filters) {
                     $inner->whereNull('sess.override_date')
-                          ->whereDate('sess.session_date', $filters['date']);
+                        ->whereDate('sess.session_date', $filters['date']);
                 });
             });
         }

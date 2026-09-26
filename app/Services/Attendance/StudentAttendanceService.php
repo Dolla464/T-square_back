@@ -30,7 +30,7 @@ class StudentAttendanceService
             ->where('group_id', $group->id)
             ->exists();
 
-        if (!$enrolled) {
+        if (! $enrolled) {
             throw new \InvalidArgumentException('You are not enrolled in this group.');
         }
     }
@@ -52,13 +52,13 @@ class StudentAttendanceService
                 $data = $this->summaryService->getStudentCourseAttendance($group, $student);
 
                 return [
-                    'group_id'              => $group->id,
-                    'group_name'            => $group->group_name,
-                    'course_id'             => $group->course_id,
-                    'course_title'          => $data['course_title'],
+                    'group_id' => $group->id,
+                    'group_name' => $group->group_name,
+                    'course_id' => $group->course_id,
+                    'course_title' => $data['course_title'],
                     'attendance_percentage' => $data['attendance_percentage'],
-                    'attended_sessions'     => $data['attended_sessions'],
-                    'total_sessions'        => $data['total_sessions'],
+                    'attended_sessions' => $data['attended_sessions'],
+                    'total_sessions' => $data['total_sessions'],
                 ];
             } catch (\InvalidArgumentException) {
                 return null;
@@ -75,7 +75,7 @@ class StudentAttendanceService
         }
 
         $today = Carbon::today()->toDateString();
-        $now   = Carbon::now();
+        $now = Carbon::now();
 
         $sessions = AttendanceSession::whereIn('learning_group_id', $groupIds)
             ->where(function ($q) use ($today) {
@@ -110,7 +110,7 @@ class StudentAttendanceService
         }
 
         $fromDate = $from ? Carbon::parse($from)->startOfDay() : Carbon::today();
-        $toDate   = $to ? Carbon::parse($to)->endOfDay() : $fromDate->copy()->addDays(30)->endOfDay();
+        $toDate = $to ? Carbon::parse($to)->endOfDay() : $fromDate->copy()->addDays(30)->endOfDay();
 
         $sessions = AttendanceSession::whereIn('learning_group_id', $groupIds)
             ->where('status', '!=', 'cancelled')
@@ -118,7 +118,7 @@ class StudentAttendanceService
             ->get()
             ->filter(function (AttendanceSession $session) use ($fromDate, $toDate) {
                 $range = $this->sessionService->getEffectiveDateTimeRange($session);
-                $date  = Carbon::parse($range['session_date']);
+                $date = Carbon::parse($range['session_date']);
 
                 return $date->between($fromDate, $toDate);
             })
@@ -130,19 +130,19 @@ class StudentAttendanceService
             ->keyBy('session_id');
 
         return $sessions->values()->map(function (AttendanceSession $session) use ($records) {
-            $times  = $this->sessionService->getEffectiveTimes($session);
+            $times = $this->sessionService->getEffectiveTimes($session);
             $record = $records->get($session->id);
 
             return [
-                'session_id'     => $session->id,
-                'group_id'       => $session->learning_group_id,
-                'group_name'     => $session->learningGroup->group_name,
-                'course_title'   => $session->learningGroup->course->title ?? null,
-                'session_date'   => $times['session_date'],
-                'start_time'     => $times['start_time'],
-                'end_time'       => $times['end_time'],
-                'room'           => $session->schedule->room ?? null,
-                'status'         => $session->status,
+                'session_id' => $session->id,
+                'group_id' => $session->learning_group_id,
+                'group_name' => $session->learningGroup->group_name,
+                'course_title' => $session->learningGroup->course->title ?? null,
+                'session_date' => $times['session_date'],
+                'start_time' => $times['start_time'],
+                'end_time' => $times['end_time'],
+                'room' => $session->schedule->room ?? null,
+                'status' => $this->sessionService->resolveLifecycleStatus($session),
                 'student_status' => $this->resolveStudentStatus($record, $session),
             ];
         })->all();
@@ -189,33 +189,35 @@ class StudentAttendanceService
         $range = $this->sessionService->getEffectiveDateTimeRange($session);
 
         $windowStart = $range['start']->copy()->subMinutes(30);
-        $windowEnd   = $range['end']->copy()->addMinutes(30);
+        $windowEnd = $range['end']->copy()->addMinutes(30);
         $qrAvailable = $session->status === 'active' && $now->between($windowStart, $windowEnd);
 
         return [
-            'session_id'     => $session->id,
-            'group_id'       => $session->learning_group_id,
-            'group_name'     => $session->learningGroup->group_name,
-            'course_title'   => $session->learningGroup->course->title ?? null,
-            'session_date'   => $times['session_date'],
-            'start_time'     => $times['start_time'],
-            'end_time'       => $times['end_time'],
-            'room'           => $session->schedule->room ?? null,
-            'status'         => $session->status,
+            'session_id' => $session->id,
+            'group_id' => $session->learning_group_id,
+            'group_name' => $session->learningGroup->group_name,
+            'course_title' => $session->learningGroup->course->title ?? null,
+            'session_date' => $times['session_date'],
+            'start_time' => $times['start_time'],
+            'end_time' => $times['end_time'],
+            'room' => $session->schedule->room ?? null,
+            'status' => $this->sessionService->resolveLifecycleStatus($session),
             'student_status' => $this->resolveStudentStatus($record, $session),
-            'marked_at'      => $record?->marked_at?->toDateTimeString(),
-            'qr_available'   => $qrAvailable,
-            'qr_window'      => [
+            'marked_at' => $record?->marked_at?->toDateTimeString(),
+            'qr_available' => $qrAvailable,
+            'qr_window' => [
                 'start' => $windowStart->format('H:i'),
-                'end'   => $windowEnd->format('H:i'),
+                'end' => $windowEnd->format('H:i'),
             ],
         ];
     }
 
     private function resolveStudentStatus(?AttendanceRecord $record, AttendanceSession $session): string
     {
-        if (!$record) {
-            return $session->status === 'completed' ? 'absent' : 'not_marked';
+        if (! $record) {
+            return $this->sessionService->resolveLifecycleStatus($session) === 'completed'
+                ? 'absent'
+                : 'not_marked';
         }
 
         if (in_array($record->status, ['present', 'late'], true)) {
