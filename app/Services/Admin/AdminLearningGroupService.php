@@ -20,10 +20,19 @@ use Illuminate\Pagination\LengthAwarePaginator;
 class AdminLearningGroupService
 {
     /**
-     * Get all groups paginated with dynamic search filter
+     * Get all groups paginated with dynamic search and list filters.
+     *
+     * @param  array{search?: ?string, status?: ?string, course_id?: ?int, instructor_id?: ?int, time?: ?string}  $filters
      */
-    public function getAllGroups($perPage = 10, ?string $search = null): LengthAwarePaginator
+    public function getAllGroups(int $perPage = 10, array $filters = []): LengthAwarePaginator
     {
+        $search = trim((string) ($filters['search'] ?? ''));
+        $search = $search !== '' ? $search : null;
+        $status = $filters['status'] ?? null;
+        $courseId = $filters['course_id'] ?? null;
+        $instructorId = $filters['instructor_id'] ?? null;
+        $time = $filters['time'] ?? null;
+
         $query = LearningGroup::with([
             'course:id,title',
             'courseInstructor:id,instructor_id',
@@ -32,13 +41,33 @@ class AdminLearningGroupService
         ])
             ->withCount('students');
 
-        if (!empty($search)) {
+        if (! empty($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('group_name', 'LIKE', "%{$search}%")
                     ->orWhereHas('course', function ($courseQuery) use ($search) {
                         $courseQuery->where('title', 'LIKE', "%{$search}%");
                     });
             });
+        }
+
+        $allowedStatuses = ['active', 'completed', 'cancelled'];
+
+        if (! empty($status) && $status !== 'all' && in_array($status, $allowedStatuses, true)) {
+            $query->where('status', $status);
+        }
+
+        if (! empty($courseId)) {
+            $query->where('course_id', (int) $courseId);
+        }
+
+        if (! empty($instructorId)) {
+            $query->forInstructor((int) $instructorId);
+        }
+
+        if ($time === 'last_week') {
+            $query->where('created_at', '>=', Carbon::now()->subDays(7));
+        } elseif ($time === 'last_month') {
+            $query->where('created_at', '>=', Carbon::now()->subMonth());
         }
 
         $groups = $query->latest()->paginate($perPage);

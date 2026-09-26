@@ -43,10 +43,16 @@ class AdminLearningGroupController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $groups = $this->adminLearningGroupService->getAllGroups(
-            $request->get('perPage', 10),
-            $request->get('search')
-        );
+        $perPage = (int) ($request->query('per_page') ?? $request->query('perPage') ?? 10);
+        $perPage = max(1, min(100, $perPage));
+
+        $groups = $this->adminLearningGroupService->getAllGroups($perPage, [
+            'search' => $request->query('search'),
+            'status' => $request->query('status'),
+            'course_id' => $request->filled('course_id') ? (int) $request->query('course_id') : null,
+            'instructor_id' => $request->filled('instructor_id') ? (int) $request->query('instructor_id') : null,
+            'time' => $request->query('time'),
+        ]);
 
         return $this->paginateResponse($groups, 'Learning groups retrieved successfully');
     }
