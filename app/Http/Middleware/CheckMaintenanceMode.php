@@ -37,15 +37,14 @@ class CheckMaintenanceMode
                 return $next($request);
             }
 
-            // ── التعديل المنقذ هنا ──
-            // نجبر لارافيل تشيك على التوكن من خلال الـ sanctum guard يدوياً
-            if ($request->bearerToken()) {
-                $user = auth('sanctum')->user(); // قراءة المستخدم من التوكن المبعوث في الـ Header
+            $user = $request->user();
 
-                // لو التوكن سليم والمستخدم أدمن، عَدّيه يفتح أي API هو عايزه!
-                if ($user && $user->hasRole('admin')) {
-                    return $next($request);
-                }
+            if ($user === null && $request->bearerToken()) {
+                $user = auth('sanctum')->user();
+            }
+
+            if ($user && $user->hasRole('admin')) {
+                return $next($request);
             }
 
             // لو مفيش توكن، أو التوكن مش بتاع أدمن (طالب أو زائر عادي)
