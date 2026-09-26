@@ -12,6 +12,7 @@ use App\Services\Admin\AdminSettingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -31,7 +32,7 @@ beforeEach(function (): void {
     Setting::set('discovery_media', [], 'json', 'general');
 });
 
-function discoveryUpload(array $files, string $action = 'append'): \Illuminate\Testing\TestResponse
+function discoveryUpload(array $files, string $action = 'append'): TestResponse
 {
     return test()->post('/api/admin/website-media/upload', [
         'key' => 'discovery_media',

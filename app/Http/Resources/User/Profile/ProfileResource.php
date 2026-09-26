@@ -4,7 +4,6 @@ namespace App\Http\Resources\User\Profile;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Http\Resources\MissingValue;
 
 class ProfileResource extends JsonResource
 {
@@ -18,31 +17,31 @@ class ProfileResource extends JsonResource
             'email' => $this->email,
             'role' => $this->role,
             'is_verified' => (bool) ($this->email_verified_at),
-            'student'     => $this->whenLoaded('student', function () {
+            'student' => $this->whenLoaded('student', function () {
                 return [
                     'full_name' => $this->student->full_name ?? $this->name,
-                    'avatar'    => $this->student->avatar
-                        ? asset('storage/' . $this->student->avatar)
+                    'avatar' => $this->student->avatar
+                        ? asset('storage/'.$this->student->avatar)
                         : asset('assets/default-student.png'),
-                    'gender'    => $this->student->gender ?? 'not_set',
-                    'phone'     => $this->student->phone ?? '',
-                    'age'               => $this->student->age,
-                    'qualification'     => $this->student->qualification ?? '',
-                    'guardian_phone'    => $this->student->guardian_phone ?? '',
-                    'national_id'       => $this->student->national_id ?? '',
-                    'address'           => $this->student->address ?? '',
-                    'notes'             => $this->student->notes ?? '',
+                    'gender' => $this->student->gender ?? 'not_set',
+                    'phone' => $this->student->phone ?? '',
+                    'age' => $this->student->age,
+                    'qualification' => $this->student->qualification ?? '',
+                    'guardian_phone' => $this->student->guardian_phone ?? '',
+                    'national_id' => $this->student->national_id ?? '',
+                    'address' => $this->student->address ?? '',
+                    'notes' => $this->student->notes ?? '',
                 ];
             }),
-            'instructor'  => $this->whenLoaded('instructor', function () {
+            'instructor' => $this->whenLoaded('instructor', function () {
                 return [
-                    'full_name'    => $this->instructor->full_name ?? $this->name,
-                    'avatar'       => $this->instructor->avatar,
-                    'gender'       => $this->instructor->gender ?? 'not_set',
-                    'phone'        => $this->instructor->phone ?? '',
-                    'field'        => $this->instructor->field ?? '',
-                    'bio'          => $this->instructor->bio ?? '',
-                    'insta_url'    => $this->instructor->insta_url ?? '',
+                    'full_name' => $this->instructor->full_name ?? $this->name,
+                    'avatar' => $this->instructor->avatar,
+                    'gender' => $this->instructor->gender ?? 'not_set',
+                    'phone' => $this->instructor->phone ?? '',
+                    'field' => $this->instructor->field ?? '',
+                    'bio' => $this->instructor->bio ?? '',
+                    'insta_url' => $this->instructor->insta_url ?? '',
                     'linkedin_url' => $this->instructor->linkedin_url ?? '',
                     'facebook_url' => $this->instructor->facebook_url ?? '',
                 ];

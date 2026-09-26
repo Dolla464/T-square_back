@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::table('attendance_records', function (Blueprint $table) {
             // 1. امسح الـ unique index القديم
             $table->dropUnique(['student_qr_code']);
-            
+
             // 2. غيّر الـ column لـ nullable
             $table->string('student_qr_code')->nullable()->change();
-            
+
             // 3. أضف الـ unique index تاني (بس على القيم المش null)
             // MySQL 8.0.13+ بيدعم: unique + nullable
             $table->unique('student_qr_code');

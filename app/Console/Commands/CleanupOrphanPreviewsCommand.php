@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Storage;
 
 class CleanupOrphanPreviewsCommand extends Command
 {
-    protected $signature   = 'previews:cleanup-orphans';
+    protected $signature = 'previews:cleanup-orphans';
+
     protected $description = 'Delete uploaded preview video files that have no matching course_previews DB row (orphans older than 24 h)';
 
     public function handle(): int
@@ -17,11 +18,12 @@ class CleanupOrphanPreviewsCommand extends Command
 
         if (! Storage::disk('public')->exists($folder)) {
             $this->info('No courses/previews directory found. Nothing to clean.');
+
             return self::SUCCESS;
         }
 
-        $files   = Storage::disk('public')->files($folder);
-        $cutoff  = now()->subDay()->timestamp;
+        $files = Storage::disk('public')->files($folder);
+        $cutoff = now()->subDay()->timestamp;
         $deleted = 0;
 
         // Fetch all stored paths that are on the local disk (not external URLs).
@@ -50,6 +52,7 @@ class CleanupOrphanPreviewsCommand extends Command
         }
 
         $this->info("Done. Removed {$deleted} orphan preview file(s).");
+
         return self::SUCCESS;
     }
 }

@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Admin;
+use App\Models\Instructor;
+use App\Models\Student;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -31,8 +33,8 @@ class AdminUserSeeder extends Seeder
         $adminUser = User::updateOrCreate(
             ['email' => 'admin@tsquare.com'],
             [
-                'name'              => 'T-Square Admin',
-                'password'          => Hash::make($adminPassword),
+                'name' => 'T-Square Admin',
+                'password' => Hash::make($adminPassword),
                 'email_verified_at' => now(),
             ]
         );
@@ -43,9 +45,9 @@ class AdminUserSeeder extends Seeder
             ['user_id' => $adminUser->id],
             [
                 'full_name' => 'T-Square Admin',
-                'phone'     => '01000000001',
-                'gender'    => 'male',
-                'status'    => 'active',
+                'phone' => '01000000001',
+                'gender' => 'male',
+                'status' => 'active',
             ]
         );
 
@@ -53,22 +55,22 @@ class AdminUserSeeder extends Seeder
         $studentUser = User::updateOrCreate(
             ['email' => 'student@tsquare.com'],
             [
-                'name'              => 'Test Student',
-                'password'          => Hash::make($studentPassword),
+                'name' => 'Test Student',
+                'password' => Hash::make($studentPassword),
                 'email_verified_at' => now(),
             ]
         );
 
         $studentUser->syncRoles(['student']);
 
-        \App\Models\Student::updateOrCreate(
+        Student::updateOrCreate(
             ['user_id' => $studentUser->id],
             [
-                'full_name'         => 'Test Student',
-                'phone'             => '01000000002',
+                'full_name' => 'Test Student',
+                'phone' => '01000000002',
                 'enrollment_number' => 'STU-00001',
-                'gender'            => 'male',
-                'status'            => 'active',
+                'gender' => 'male',
+                'status' => 'active',
             ]
         );
 
@@ -76,23 +78,23 @@ class AdminUserSeeder extends Seeder
         $instructorUser = User::updateOrCreate(
             ['email' => 'instructor@tsquare.com'],
             [
-                'name'              => 'Test Instructor',
-                'password'          => Hash::make($instructorPassword),
+                'name' => 'Test Instructor',
+                'password' => Hash::make($instructorPassword),
                 'email_verified_at' => now(),
             ]
         );
 
         $instructorUser->syncRoles(['instructor']);
 
-        \App\Models\Instructor::updateOrCreate(
+        Instructor::updateOrCreate(
             ['user_id' => $instructorUser->id],
             [
                 'full_name' => 'Test Instructor',
-                'phone'     => '01000000003',
-                'gender'    => 'male',
-                'field'     => 'Software Engineering',
-                'bio'       => 'مدرب متخصص في علوم الحاسب وتطوير البرمجيات.',
-                'status'    => 'active',
+                'phone' => '01000000003',
+                'gender' => 'male',
+                'field' => 'Software Engineering',
+                'bio' => 'مدرب متخصص في علوم الحاسب وتطوير البرمجيات.',
+                'status' => 'active',
             ]
         );
 

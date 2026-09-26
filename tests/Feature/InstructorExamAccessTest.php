@@ -5,7 +5,6 @@ use App\Models\Exam;
 use App\Models\Instructor;
 use App\Support\CourseInstructorSync;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 

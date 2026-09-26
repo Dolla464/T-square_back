@@ -20,6 +20,7 @@ use App\Models\Order;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -34,7 +35,7 @@ beforeEach(function (): void {
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 
     // Build the Spatie 'admin' role and authenticate a user with it.
-    $adminRole   = Role::create(['name' => 'admin', 'guard_name' => 'web']);
+    $adminRole = Role::create(['name' => 'admin', 'guard_name' => 'web']);
     $this->admin = User::factory()->create();
     $this->admin->assignRole($adminRole);
     Sanctum::actingAs($this->admin, ['*']);
@@ -47,8 +48,8 @@ beforeEach(function (): void {
     ]);
 
     $this->group = LearningGroup::create([
-        'group_name'        => 'Test Batch A',
-        'course_id'         => $this->course->id,
+        'group_name' => 'Test Batch A',
+        'course_id' => $this->course->id,
         'course_instructor_id' => courseInstructorIdFor($this->course, $this->instructor),
         'enrolled_students' => 0,
     ]);
@@ -64,25 +65,25 @@ beforeEach(function (): void {
 function enrollStudent(
     Course $course,
     string $orderStatus = 'completed',
-    ?int   $groupId     = null,
+    ?int $groupId = null,
 ): object {
     $student = Student::factory()->create();
 
     $order = Order::create([
-        'student_id'    => $student->id,
-        'total_amount'  => 500,
-        'status'        => $orderStatus,
-        'billing_name'  => 'Test Billing',
+        'student_id' => $student->id,
+        'total_amount' => 500,
+        'status' => $orderStatus,
+        'billing_name' => 'Test Billing',
         'billing_email' => 'billing@test.com',
         'billing_phone' => '01000000000',
     ]);
 
     $enrollment = Enrollment::create([
-        'student_id'   => $student->id,
-        'course_id'    => $course->id,
-        'order_id'     => $order->id,
-        'group_id'     => $groupId,
-        'price_paid'   => 500,
+        'student_id' => $student->id,
+        'course_id' => $course->id,
+        'order_id' => $order->id,
+        'group_id' => $groupId,
+        'price_paid' => 500,
         'is_completed' => false,
     ]);
 
@@ -129,7 +130,7 @@ it('assigns all paid students to the group and updates the enrolled_students cou
 
     $response = $this->postJson("/api/admin/learning-groups/{$this->group->id}/bulk-assign", [
         'student_ids' => [$s1->student->id, $s2->student->id, $s3->student->id],
-        'course_id'   => $this->course->id,
+        'course_id' => $this->course->id,
     ]);
 
     $response
@@ -142,14 +143,14 @@ it('assigns all paid students to the group and updates the enrolled_students cou
     foreach ([$s1, $s2, $s3] as $enrolled) {
         $this->assertDatabaseHas('enrollments', [
             'student_id' => $enrolled->student->id,
-            'course_id'  => $this->course->id,
-            'group_id'   => $this->group->id,
+            'course_id' => $this->course->id,
+            'group_id' => $this->group->id,
         ]);
     }
 
     // Denormalised counter must reflect the real row count
     $this->assertDatabaseHas('learning_groups', [
-        'id'                => $this->group->id,
+        'id' => $this->group->id,
         'enrolled_students' => 3,
     ]);
 });
@@ -158,13 +159,13 @@ it('assigns all paid students to the group and updates the enrolled_students cou
 // 2b. POST {groupId}/bulk-assign — partial success (mixed paid / unpaid)
 // ─────────────────────────────────────────────────────────────────────────────
 it('skips unpaid students and returns their details as a warning in the response', function (): void {
-    $paid1  = enrollStudent($this->course, 'completed', null);
-    $paid2  = enrollStudent($this->course, 'completed', null);
-    $unpaid = enrollStudent($this->course, 'pending',   null);
+    $paid1 = enrollStudent($this->course, 'completed', null);
+    $paid2 = enrollStudent($this->course, 'completed', null);
+    $unpaid = enrollStudent($this->course, 'pending', null);
 
     $response = $this->postJson("/api/admin/learning-groups/{$this->group->id}/bulk-assign", [
         'student_ids' => [$paid1->student->id, $paid2->student->id, $unpaid->student->id],
-        'course_id'   => $this->course->id,
+        'course_id' => $this->course->id,
     ]);
 
     $response
@@ -172,29 +173,29 @@ it('skips unpaid students and returns their details as a warning in the response
         ->assertJsonPath('status', 'success')
         // The unpaid student must appear in the warning list
         ->assertJsonFragment([
-            'id'        => $unpaid->student->id,
+            'id' => $unpaid->student->id,
             'full_name' => $unpaid->student->full_name,
         ]);
 
     // Paid students must now be assigned
     $this->assertDatabaseHas('enrollments', [
         'student_id' => $paid1->student->id,
-        'group_id'   => $this->group->id,
+        'group_id' => $this->group->id,
     ]);
     $this->assertDatabaseHas('enrollments', [
         'student_id' => $paid2->student->id,
-        'group_id'   => $this->group->id,
+        'group_id' => $this->group->id,
     ]);
 
     // Unpaid student must remain unassigned
     $this->assertDatabaseHas('enrollments', [
         'student_id' => $unpaid->student->id,
-        'group_id'   => null,
+        'group_id' => null,
     ]);
 
     // Counter must count only the 2 paid students actually assigned
     $this->assertDatabaseHas('learning_groups', [
-        'id'                => $this->group->id,
+        'id' => $this->group->id,
         'enrolled_students' => 2,
     ]);
 });
@@ -236,17 +237,17 @@ it('marks targeted enrollments as completed and leaves the others untouched', fu
 
     // Targeted enrollments must be completed
     $this->assertDatabaseHas('enrollments', [
-        'student_id'   => $target1->student->id,
+        'student_id' => $target1->student->id,
         'is_completed' => true,
     ]);
     $this->assertDatabaseHas('enrollments', [
-        'student_id'   => $target2->student->id,
+        'student_id' => $target2->student->id,
         'is_completed' => true,
     ]);
 
     // Excluded enrollment must remain incomplete
     $this->assertDatabaseHas('enrollments', [
-        'student_id'   => $excluded->student->id,
+        'student_id' => $excluded->student->id,
         'is_completed' => false,
     ]);
 });
@@ -274,7 +275,7 @@ it('returns 404 when the group does not exist for bulk-complete', function (): v
     $this->postJson('/api/admin/learning-groups/99999/bulk-complete', [
         'student_ids' => [$student->id],
     ])->assertJsonPath('status', 'error')
-      ->assertStatus(404);
+        ->assertStatus(404);
 });
 
 it('returns 422 when student_ids is missing in bulk-complete', function (): void {
@@ -292,7 +293,7 @@ it('returns 422 when bulk-completing students in an active group', function (): 
         ->assertJsonValidationErrors(['is_completed']);
 
     $this->assertDatabaseHas('enrollments', [
-        'student_id'   => $student->student->id,
+        'student_id' => $student->student->id,
         'is_completed' => false,
     ]);
 });
@@ -303,8 +304,8 @@ it('returns 422 when bulk-completing students in an active group', function (): 
 it('returns a lightweight id+name list of all groups for dropdowns', function (): void {
     // Create a second group so we can assert the count
     LearningGroup::create([
-        'group_name'        => 'Test Batch B',
-        'course_id'         => $this->course->id,
+        'group_name' => 'Test Batch B',
+        'course_id' => $this->course->id,
         'course_instructor_id' => courseInstructorIdFor($this->course, $this->instructor),
         'enrolled_students' => 0,
     ]);
@@ -340,7 +341,7 @@ it('returns an empty list when no groups exist', function (): void {
 // ─────────────────────────────────────────────────────────────────────────────
 it('rejects unauthenticated requests with 401', function (): void {
     // Flush the Sanctum user set in beforeEach by acting as a guest
-    $this->withoutMiddleware(\Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class);
+    $this->withoutMiddleware(EnsureFrontendRequestsAreStateful::class);
 
     $this->getJson('/api/admin/learning-groups/selection', ['Authorization' => ''])
         ->assertStatus(401);

@@ -35,15 +35,16 @@ class BackfillGroupExamActivations extends Command
 
                 if ($exists) {
                     $skipped++;
+
                     continue;
                 }
 
                 if (! $dryRun) {
                     GroupExamActivation::create([
-                        'exam_id'           => $exam->id,
+                        'exam_id' => $exam->id,
                         'learning_group_id' => $group->id,
-                        'activated_by'      => null,
-                        'activated_at'      => now(),
+                        'activated_by' => null,
+                        'activated_at' => now(),
                     ]);
                 }
 

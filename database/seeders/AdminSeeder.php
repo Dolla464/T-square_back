@@ -26,8 +26,8 @@ class AdminSeeder extends Seeder
             $user = User::updateOrCreate(
                 ['email' => $data['email']],
                 [
-                    'name'              => $data['name'],
-                    'password'          => Hash::make('password'),
+                    'name' => $data['name'],
+                    'password' => Hash::make('password'),
                     'email_verified_at' => now(),
                 ]
             );
@@ -38,13 +38,13 @@ class AdminSeeder extends Seeder
                 ['user_id' => $user->id],
                 [
                     'full_name' => $data['name'],
-                    'phone'     => '012' . rand(10000000, 99999999),
-                    'gender'    => 'male',
-                    'status'    => 'active',
+                    'phone' => '012'.rand(10000000, 99999999),
+                    'gender' => 'male',
+                    'status' => 'active',
                 ]
             );
         }
 
-        $this->command->info('✓ AdminSeeder: تم إنشاء ' . count($subAdmins) . ' مساعدي مدير.');
+        $this->command->info('✓ AdminSeeder: تم إنشاء '.count($subAdmins).' مساعدي مدير.');
     }
 }

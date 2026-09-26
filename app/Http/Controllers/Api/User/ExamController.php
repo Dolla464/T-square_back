@@ -8,16 +8,16 @@ use App\Http\Requests\Api\Student\SaveAnswerRequest;
 use App\Http\Requests\Api\Student\StartExamRequest;
 use App\Http\Requests\Api\Student\StoreIntegrityEventsRequest;
 use App\Http\Requests\Api\Student\SubmitExamRequest;
-use App\Models\ExamAttempt;
-use App\Services\Exam\ExamIntegrityService;
 use App\Http\Resources\User\Exam\ExamAttemptResource;
 use App\Http\Resources\User\Exam\ExamAttemptReviewResource;
 use App\Http\Resources\User\Exam\ExamListResource;
 use App\Http\Resources\User\Exam\ExamResultResource;
+use App\Models\ExamAttempt;
+use App\Services\Exam\ExamIntegrityService;
 use App\Services\User\ExamService;
 use App\Support\ExamTimerDiagnostic;
-use Illuminate\Http\Request;
 use App\Traits\ApiResponseTrait;
+use Illuminate\Http\Request;
 
 /**
  * @tags Exams
@@ -149,7 +149,7 @@ class ExamController extends Controller
         }
 
         // Read the course ID if it is passed as a Query Parameter
-        $examId = $request->query('exam_id') ? (int)$request->query('exam_id') : null;
+        $examId = $request->query('exam_id') ? (int) $request->query('exam_id') : null;
 
         $results = $this->examService->getStudentResults($student->id, $examId);
 

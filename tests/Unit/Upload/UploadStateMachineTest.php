@@ -13,7 +13,7 @@ class UploadStateMachineTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->machine = new UploadStateMachine();
+        $this->machine = new UploadStateMachine;
     }
 
     public function test_complete_is_terminal(): void

@@ -43,9 +43,9 @@ final class Finalizer
             return $meta;
         });
 
-        $tempDir  = $this->metaStore->sessionFullPath($courseId, $uploadId);
+        $tempDir = $this->metaStore->sessionFullPath($courseId, $uploadId);
         $lockPath = "{$tempDir}/.finalize.lock";
-        $lockFp   = fopen($lockPath, 'c');
+        $lockFp = fopen($lockPath, 'c');
 
         if ($lockFp === false) {
             $this->markFailed($courseId, $uploadId, 'Could not acquire finalize lock.');
@@ -68,17 +68,17 @@ final class Finalizer
             $this->verifyAssembledFile($assembledTemp, $prepared);
 
             $finalRelative = $this->moveToFinalStorage($assembledTemp, $prepared['extension']);
-            $size          = (int) filesize(Storage::disk(config('upload.final_disk'))->path($finalRelative));
-            $duration      = $this->resolveDuration($assembledTemp, $durationSeconds, $size);
+            $size = (int) filesize(Storage::disk(config('upload.final_disk'))->path($finalRelative));
+            $duration = $this->resolveDuration($assembledTemp, $durationSeconds, $size);
 
             $response = [
-                'status'           => 'complete',
-                'video_url'        => $finalRelative,
-                'final_file'       => $finalRelative,
+                'status' => 'complete',
+                'video_url' => $finalRelative,
+                'final_file' => $finalRelative,
                 'duration_seconds' => $duration,
-                'video_provider'   => 'upload',
-                'size'             => $size,
-                'sha256'           => strtolower($prepared['sha256']),
+                'video_provider' => 'upload',
+                'size' => $size,
+                'sha256' => strtolower($prepared['sha256']),
             ];
 
             flock($lockFp, LOCK_UN);
@@ -108,7 +108,7 @@ final class Finalizer
     private function assembleChunks(array $meta, string $tempDir): string
     {
         $assembledTemp = "{$tempDir}/assembled.tmp";
-        $output        = fopen($assembledTemp, 'wb');
+        $output = fopen($assembledTemp, 'wb');
 
         if ($output === false) {
             throw new \RuntimeException('Could not create assembled temp file.');
@@ -165,10 +165,10 @@ final class Finalizer
 
     private function moveToFinalStorage(string $assembledTemp, string $ext): string
     {
-        $finalName     = time() . '_' . Str::random(6) . '.' . $ext;
-        $finalRelative = rtrim(config('upload.previews_path'), '/') . '/' . $finalName;
-        $finalFull     = Storage::disk(config('upload.final_disk'))->path($finalRelative);
-        $finalDir      = dirname($finalFull);
+        $finalName = time().'_'.Str::random(6).'.'.$ext;
+        $finalRelative = rtrim(config('upload.previews_path'), '/').'/'.$finalName;
+        $finalFull = Storage::disk(config('upload.final_disk'))->path($finalRelative);
+        $finalDir = dirname($finalFull);
 
         if (! is_dir($finalDir)) {
             mkdir($finalDir, 0755, true);
@@ -194,7 +194,7 @@ final class Finalizer
         }
 
         try {
-            $id3      = new \getID3;
+            $id3 = new \getID3;
             $fileInfo = $id3->analyze($assembledTemp);
 
             if (! empty($fileInfo['playtime_seconds'])) {

@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\UnsupportedVideoFormatException;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\GoogleStorageAccount;
@@ -74,7 +75,7 @@ it('authorizes enrolled student and hides google drive urls', function () {
         $mock->shouldReceive('getFileMetadata')
             ->once()
             ->with(
-                \Mockery::on(fn ($account) => $account->id === $fixture['account']->id),
+                Mockery::on(fn ($account) => $account->id === $fixture['account']->id),
                 $fixture['lesson']->google_drive_file_id
             )
             ->andReturn(['id' => $fixture['lesson']->google_drive_file_id, 'mimeType' => 'video/mp4', 'size' => 1024]);
@@ -140,7 +141,7 @@ it('rejects unsupported hls mime type on playback authorization', function () {
         $mock->shouldReceive('assertPlayableMimeType')
             ->once()
             ->with('application/vnd.apple.mpegurl')
-            ->andThrow(new \App\Exceptions\UnsupportedVideoFormatException());
+            ->andThrow(new UnsupportedVideoFormatException);
     });
 
     $this->postJson("/api/student/lessons/{$fixture['lesson']->id}/playback")
@@ -160,7 +161,7 @@ it('rejects audio mime type on playback authorization', function () {
         $mock->shouldReceive('assertPlayableMimeType')
             ->once()
             ->with('audio/mpeg')
-            ->andThrow(new \App\Exceptions\UnsupportedVideoFormatException());
+            ->andThrow(new UnsupportedVideoFormatException);
     });
 
     $this->postJson("/api/student/lessons/{$fixture['lesson']->id}/playback")
@@ -180,7 +181,7 @@ it('rejects unknown or empty mime type on playback authorization', function () {
         $mock->shouldReceive('assertPlayableMimeType')
             ->once()
             ->with('')
-            ->andThrow(new \App\Exceptions\UnsupportedVideoFormatException());
+            ->andThrow(new UnsupportedVideoFormatException);
     });
 
     $this->postJson("/api/student/lessons/{$fixture['lesson']->id}/playback")

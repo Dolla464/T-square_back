@@ -22,10 +22,10 @@ class Certificate extends Model
     ];
 
     protected $casts = [
-        'issued_at'  => 'datetime',
+        'issued_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'status'     => CertificateStatus::class,
+        'status' => CertificateStatus::class,
     ];
 
     // ─── Relationships ────────────────────────────────────────────────────────

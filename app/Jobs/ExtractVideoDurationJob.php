@@ -14,7 +14,8 @@ class ExtractVideoDurationJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries   = 2;
+    public int $tries = 2;
+
     public int $timeout = 120;
 
     public function __construct(public readonly int $previewId) {}
@@ -48,7 +49,7 @@ class ExtractVideoDurationJob implements ShouldQueue
         }
 
         try {
-            $id3      = new \getID3;
+            $id3 = new \getID3;
             $fileInfo = $id3->analyze($absolutePath);
 
             if (! empty($fileInfo['playtime_seconds'])) {

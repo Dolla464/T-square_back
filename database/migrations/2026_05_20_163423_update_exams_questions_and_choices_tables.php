@@ -21,7 +21,7 @@ return new class extends Migration
         Schema::table('choices', function (Blueprint $table) {
             // Convert data type from TEXT to VARCHAR(255) for faster performance
             $table->string('choice_text', 255)->change();
-            
+
             // Add Soft Deletes feature
             $table->softDeletes();
 
@@ -44,7 +44,7 @@ return new class extends Migration
         Schema::table('choices', function (Blueprint $table) {
             $table->dropIndex(['question_id', 'is_correct']);
             $table->dropSoftDeletes();
-            $table->text('choice_text')->change(); 
+            $table->text('choice_text')->change();
         });
     }
 };

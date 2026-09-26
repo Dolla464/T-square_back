@@ -18,7 +18,7 @@ class AdminExamService
             ->withCount('questions');
 
         // 1. Filter the search (exam name, description, course name)
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
@@ -35,12 +35,12 @@ class AdminExamService
         }
 
         // 3. Filter the time (last week, month, year)
-        if (!empty($filters['date_range'])) {
+        if (! empty($filters['date_range'])) {
             $now = Carbon::now();
             $query->where('created_at', '>=', match ($filters['date_range']) {
-                'last_week'  => $now->subWeek(),
+                'last_week' => $now->subWeek(),
                 'last_month' => $now->subMonth(),
-                'last_year'  => $now->subYear(),
+                'last_year' => $now->subYear(),
             });
         }
 
@@ -116,6 +116,7 @@ class AdminExamService
     public function forceDeleteExam(int $id): bool
     {
         $exam = Exam::withTrashed()->findOrFail($id);
+
         return $exam->forceDelete(); // Real final deletion
     }
 

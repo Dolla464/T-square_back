@@ -99,6 +99,7 @@ class AdminCourseController extends Controller
     public function restore($id)
     {
         $this->courseService->restoreCourse($id);
+
         return $this->successResponse(null, 'Course restored successfully');
     }
 
@@ -108,6 +109,7 @@ class AdminCourseController extends Controller
     public function forceDelete($id)
     {
         $this->courseService->forceDeleteCourse($id);
+
         return $this->successResponse(null, 'Course deleted permanently');
     }
 }

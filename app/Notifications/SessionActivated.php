@@ -22,7 +22,7 @@ class SessionActivated extends Notification implements ShouldQueue
 
     public function toDatabase(object $notifiable): array
     {
-        $group  = $this->session->learningGroup;
+        $group = $this->session->learningGroup;
         $course = $group?->course;
 
         $isStudent = $notifiable->hasRole('student');
@@ -32,16 +32,16 @@ class SessionActivated extends Notification implements ShouldQueue
             : "Your session '{$course?->title}' ({$group?->group_name}) is now active.";
 
         $payload = [
-            'type'         => 'session_activated',
-            'title'        => 'Session Activated',
-            'message'      => $message,
-            'session_id'   => $this->session->id,
-            'course_id'    => $course?->id,
-            'group_name'   => $group?->group_name,
+            'type' => 'session_activated',
+            'title' => 'Session Activated',
+            'message' => $message,
+            'session_id' => $this->session->id,
+            'course_id' => $course?->id,
+            'group_name' => $group?->group_name,
             'course_title' => $course?->title,
-            'start_time'   => $this->session->schedule?->start_time?->format('H:i'),
-            'room'         => $this->session->schedule?->room,
-            'icon'         => 'calendar-check',
+            'start_time' => $this->session->schedule?->start_time?->format('H:i'),
+            'room' => $this->session->schedule?->room,
+            'icon' => 'calendar-check',
         ];
 
         if (! $isStudent) {

@@ -14,8 +14,7 @@ use Illuminate\Http\Request;
  */
 class InstructorDashboardController extends Controller
 {
-    public function __construct(private InstructorDashboardService $dashboardService)
-    {}
+    public function __construct(private InstructorDashboardService $dashboardService) {}
 
     /**
      * GET /api/instructor/dashboard/stats
@@ -25,7 +24,7 @@ class InstructorDashboardController extends Controller
     {
         $instructor = $request->user()->instructor;
 
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->errorResponse('Instructor profile not found.', 404);
         }
 
@@ -42,7 +41,7 @@ class InstructorDashboardController extends Controller
     {
         $instructor = $request->user()->instructor;
 
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->errorResponse('Instructor profile not found.', 404);
         }
 
@@ -60,11 +59,11 @@ class InstructorDashboardController extends Controller
     {
         $instructor = $request->user()->instructor;
 
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->errorResponse('Instructor profile not found.', 404);
         }
 
-        $page    = max(1, (int) $request->input('page', 1));
+        $page = max(1, (int) $request->input('page', 1));
         $perPage = min(50, max(1, (int) $request->input('per_page', 10)));
 
         $result = $this->dashboardService->getCompletedGroups($instructor->id, $page, $perPage);
@@ -80,7 +79,7 @@ class InstructorDashboardController extends Controller
     {
         $instructor = $request->user()->instructor;
 
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->errorResponse('Instructor profile not found.', 404);
         }
 
@@ -107,7 +106,7 @@ class InstructorDashboardController extends Controller
     {
         $instructor = $request->user()->instructor;
 
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->errorResponse('Instructor profile not found.', 404);
         }
 

@@ -43,26 +43,26 @@ class ReceptionistAttendanceController extends Controller
             ->orderBy('session_date')
             ->get()
             ->map(function ($session) {
-                $records      = $session->attendanceRecords;
+                $records = $session->attendanceRecords;
                 $totalInGroup = $session->learningGroup->students()->count();
                 $presentCount = $records->whereIn('status', ['present', 'late'])->count();
-                $absentCount  = $records->where('status', 'absent')->count();
+                $absentCount = $records->where('status', 'absent')->count();
 
                 return [
-                    'session_id'      => $session->id,
-                    'group_name'      => $session->learningGroup->group_name,
-                    'course_title'    => $session->learningGroup->course->title ?? null,
+                    'session_id' => $session->id,
+                    'group_name' => $session->learningGroup->group_name,
+                    'course_title' => $session->learningGroup->course->title ?? null,
                     'instructor_name' => $session->learningGroup->instructor?->full_name,
-                    'session_date'    => $session->session_date->format('Y-m-d'),
-                    'start_time'      => $session->schedule->start_time->format('H:i'),
-                    'end_time'        => $session->schedule->end_time->format('H:i'),
-                    'room'            => $session->schedule->room,
-                    'status'          => $session->status,
-                    'qr_code'         => $session->qr_code,
-                    'attendance'      => [
-                        'total'   => $totalInGroup,
+                    'session_date' => $session->session_date->format('Y-m-d'),
+                    'start_time' => $session->schedule->start_time->format('H:i'),
+                    'end_time' => $session->schedule->end_time->format('H:i'),
+                    'room' => $session->schedule->room,
+                    'status' => $session->status,
+                    'qr_code' => $session->qr_code,
+                    'attendance' => [
+                        'total' => $totalInGroup,
                         'present' => $presentCount,
-                        'absent'  => $absentCount,
+                        'absent' => $absentCount,
                     ],
                 ];
             });
@@ -97,11 +97,11 @@ class ReceptionistAttendanceController extends Controller
         }
 
         $session->load('schedule');
-        $endTime   = Carbon::parse($session->session_date->format('Y-m-d') . ' ' . $session->schedule->end_time->format('H:i'));
+        $endTime = Carbon::parse($session->session_date->format('Y-m-d').' '.$session->schedule->end_time->format('H:i'));
         $expiresAt = $endTime->copy()->addMinutes(30);
 
         return $this->successResponse([
-            'qr_code'    => $session->qr_code,
+            'qr_code' => $session->qr_code,
             'session_id' => $session->id,
             'expires_at' => $expiresAt->toDateTimeString(),
         ], 'QR code retrieved successfully');
@@ -128,13 +128,13 @@ class ReceptionistAttendanceController extends Controller
             $student = $record->student;
 
             return [
-                'record_id'    => $record->id,
-                'student_id'   => $record->student_id,
+                'record_id' => $record->id,
+                'student_id' => $record->student_id,
                 'student_name' => $student?->full_name ?? $student?->user?->name ?? 'Unknown',
-                'session_id'   => $record->session_id,
-                'status'       => $record->status,
-                'marked_at'    => $record->marked_at?->toDateTimeString(),
-                'marked_by'    => $record->marked_by,
+                'session_id' => $record->session_id,
+                'status' => $record->status,
+                'marked_at' => $record->marked_at?->toDateTimeString(),
+                'marked_by' => $record->marked_by,
             ];
         });
 
@@ -151,8 +151,8 @@ class ReceptionistAttendanceController extends Controller
         $request->validate([
             'session_id' => 'required|integer|exists:attendance_sessions,id',
             'student_id' => 'required|integer|exists:students,id',
-            'status'     => 'required|in:present,absent,late',
-            'notes'      => ['nullable', 'string', 'max:255'],
+            'status' => 'required|in:present,absent,late',
+            'notes' => ['nullable', 'string', 'max:255'],
         ]);
 
         $session = AttendanceSession::findOrFail($request->session_id);
@@ -171,10 +171,10 @@ class ReceptionistAttendanceController extends Controller
                 'student_id' => $request->student_id,
             ],
             [
-                'status'    => $request->status,
+                'status' => $request->status,
                 'marked_by' => 'receptionist_manual',
                 'marked_at' => Carbon::now(),
-                'notes'     => $request->notes,
+                'notes' => $request->notes,
             ]
         );
 
@@ -182,12 +182,12 @@ class ReceptionistAttendanceController extends Controller
         broadcast(new StudentScanned($record))->toOthers();
 
         return $this->successResponse([
-            'record_id'  => $record->id,
+            'record_id' => $record->id,
             'session_id' => $record->session_id,
             'student_id' => $record->student_id,
-            'status'     => $record->status,
-            'marked_at'  => $record->marked_at->toDateTimeString(),
-            'marked_by'  => $record->marked_by,
+            'status' => $record->status,
+            'marked_at' => $record->marked_at->toDateTimeString(),
+            'marked_by' => $record->marked_by,
         ], 'Attendance marked successfully');
     }
 }

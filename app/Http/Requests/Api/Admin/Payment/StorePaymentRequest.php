@@ -16,12 +16,12 @@ class StorePaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'student_id'    => ['required', 'integer', 'exists:students,id'],
-            'course_id'     => ['required', 'integer', 'exists:courses,id'],
-            'billing_name'  => ['nullable', 'string', 'max:255'],
+            'student_id' => ['required', 'integer', 'exists:students,id'],
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
+            'billing_name' => ['nullable', 'string', 'max:255'],
             'billing_email' => ['nullable', 'string', 'email', 'max:255'],
             'billing_phone' => ['nullable', 'string', 'max:20'],
-            'notes'         => ['nullable', 'string'],
+            'notes' => ['nullable', 'string'],
         ];
     }
 
@@ -33,7 +33,7 @@ class StorePaymentRequest extends FormRequest
             }
 
             $studentId = (int) $this->input('student_id');
-            $courseId  = (int) $this->input('course_id');
+            $courseId = (int) $this->input('course_id');
 
             $alreadyEnrolled = Enrollment::query()
                 ->where('student_id', $studentId)

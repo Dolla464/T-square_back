@@ -63,7 +63,7 @@ it('rejects privilege escalation via role on public registration', function (): 
     Log::shouldHaveReceived('warning')
         ->atLeast()
         ->once()
-        ->with('suspicious.mass_assignment', \Mockery::on(function (array $context) {
+        ->with('suspicious.mass_assignment', Mockery::on(function (array $context) {
             return ($context['event'] ?? null) === 'forbidden_fields_on_register'
                 && in_array('role', $context['forbidden'] ?? [], true);
         }));

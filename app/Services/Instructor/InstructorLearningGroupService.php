@@ -16,7 +16,7 @@ class InstructorLearningGroupService
             ->orderBy('group_name')
             ->get()
             ->map(fn ($group) => [
-                'id'   => $group->id,
+                'id' => $group->id,
                 'name' => $group->group_name,
             ]);
     }

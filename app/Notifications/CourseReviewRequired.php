@@ -32,14 +32,14 @@ class CourseReviewRequired extends Notification implements ShouldQueue
             : 'Congratulations! You passed the final exam for "'.$courseTitle.'". Leave a review to get your certificate.';
 
         return [
-            'type'          => 'course_review_required',
-            'title'         => 'Course Completed',
-            'message'       => $message,
-            'course_id'     => $this->enrollment->course_id,
-            'course_title'  => $courseTitle,
+            'type' => 'course_review_required',
+            'title' => 'Course Completed',
+            'message' => $message,
+            'course_id' => $this->enrollment->course_id,
+            'course_title' => $courseTitle,
             'enrollment_id' => $this->enrollment->id,
-            'group_id'      => $this->group?->id,
-            'icon'          => 'star',
+            'group_id' => $this->group?->id,
+            'icon' => 'star',
         ];
     }
 }

@@ -29,16 +29,16 @@ class AdminCategoryService
             ->whereNotNull('parent_id');
 
         // 1. Fuzzy search across name, slug, and description.
-        if (!empty($search)) {
+        if (! empty($search)) {
             $query->where(function ($q) use ($search) {
-                $q->where('name',        'LIKE', "%{$search}%")
-                  ->orWhere('slug',        'LIKE', "%{$search}%")
-                  ->orWhere('description', 'LIKE', "%{$search}%");
+                $q->where('name', 'LIKE', "%{$search}%")
+                    ->orWhere('slug', 'LIKE', "%{$search}%")
+                    ->orWhere('description', 'LIKE', "%{$search}%");
             });
         }
 
         // 2. Filter by a specific parent category.
-        if (!empty($parentId)) {
+        if (! empty($parentId)) {
             $query->where('parent_id', $parentId);
         }
 

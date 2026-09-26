@@ -34,5 +34,4 @@ class StoreIntegrityEventsRequest extends FormRequest
             'user_id' => ['prohibited'],
         ];
     }
-
 }

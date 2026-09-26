@@ -28,14 +28,14 @@ class AdminSettingService
      * queued job (ProcessWebsiteMediaJob).
      *
      * @param  array<int, UploadedFile>  $images
-     * @return array  Current images (before the job runs) – frontend polls for the new ones.
+     * @return array Current images (before the job runs) – frontend polls for the new ones.
      */
     public function handleWebsiteMediaUpload(array $images, string $action, string $settingsKey, bool $isSingle = false): array
     {
         $currentImages = Setting::get($settingsKey, []);
 
         if ($isSingle) {
-            $images        = array_slice($images, 0, 1);
+            $images = array_slice($images, 0, 1);
             $currentImages = $currentImages ? [$currentImages] : [];
         } elseif (! is_array($currentImages)) {
             $currentImages = [];
@@ -45,12 +45,12 @@ class AdminSettingService
             $this->assertDiscoveryCapacity(count($currentImages), count($images));
         }
 
-        $folder  = $this->resolveWebsiteMediaFolder($settingsKey);
+        $folder = $this->resolveWebsiteMediaFolder($settingsKey);
         $maxSize = $settingsKey === 'discovery_media'
             ? self::DISCOVERY_MEDIA_MAX_SIZE
             : self::WEBSITE_MEDIA_MAX_SIZE;
 
-        $oldImages  = ($action === 'replace' || $isSingle) ? (array) $currentImages : [];
+        $oldImages = ($action === 'replace' || $isSingle) ? (array) $currentImages : [];
         $baseImages = ($action === 'replace' || $isSingle) ? [] : (array) $currentImages;
 
         // Save raw files to the local disk so the request can return immediately.
@@ -125,7 +125,7 @@ class AdminSettingService
 
             throw ValidationException::withMessages([
                 'images' => [
-                    'Discovery gallery cannot exceed ' . self::DISCOVERY_MEDIA_MAX . " images. You can upload up to {$remaining} more image(s).",
+                    'Discovery gallery cannot exceed '.self::DISCOVERY_MEDIA_MAX." images. You can upload up to {$remaining} more image(s).",
                 ],
             ]);
         }

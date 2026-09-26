@@ -56,8 +56,8 @@ class Category extends Model
      */
     protected static function generateUniqueSlug(string $name, ?int $ignoreId = null): string
     {
-        $base  = Str::slug($name);
-        $slug  = $base;
+        $base = Str::slug($name);
+        $slug = $base;
         $count = 1;
 
         while (

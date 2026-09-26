@@ -23,7 +23,7 @@ class SessionCancelledNotification extends Notification implements ShouldQueue
 
     public function toDatabase(object $notifiable): array
     {
-        $group  = $this->session->learningGroup;
+        $group = $this->session->learningGroup;
         $course = $group?->course;
 
         $effectiveDate = $this->session->override_date ?? $this->session->session_date;
@@ -32,17 +32,17 @@ class SessionCancelledNotification extends Notification implements ShouldQueue
             : '—';
 
         return [
-            'type'         => 'session_cancelled',
-            'title'        => 'Session Cancelled',
-            'message'      => "The session for group '{$group?->group_name}' ({$course?->title}) on {$dateStr} has been cancelled."
-                . ($this->reason ? " Reason: {$this->reason}" : ''),
-            'session_id'   => $this->session->id,
-            'course_id'    => $course?->id,
-            'group_name'   => $group?->group_name,
+            'type' => 'session_cancelled',
+            'title' => 'Session Cancelled',
+            'message' => "The session for group '{$group?->group_name}' ({$course?->title}) on {$dateStr} has been cancelled."
+                .($this->reason ? " Reason: {$this->reason}" : ''),
+            'session_id' => $this->session->id,
+            'course_id' => $course?->id,
+            'group_name' => $group?->group_name,
             'course_title' => $course?->title,
             'session_date' => $dateStr,
-            'reason'       => $this->reason,
-            'icon'         => 'calendar-x',
+            'reason' => $this->reason,
+            'icon' => 'calendar-x',
         ];
     }
 

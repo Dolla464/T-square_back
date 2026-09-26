@@ -8,7 +8,6 @@ use App\Models\Enrollment;
 use App\Services\User\CertificateService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Response;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -28,12 +27,13 @@ class AdminCertificateService
      * search   – fuzzy-matches student full_name OR course title
      * group_id – narrows to certificates whose enrollment has this group_id
      * status   – exact match against the CertificateStatus enum value
+     *
      * * @return array{paginator: \Illuminate\Contracts\Pagination\LengthAwarePaginator, stats: array}
      */
     public function index(array $filters = [], int $perPage = 10): array
     {
         // 1. Calculate the total counts for certificates based on the three statuses using a single quick query
-        $statsData = \Illuminate\Support\Facades\DB::table('certificates')
+        $statsData = DB::table('certificates')
             ->selectRaw("
                 COUNT(CASE WHEN status = 'issued' THEN 1 END) as issued_count,
                 COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count,
@@ -60,10 +60,10 @@ class AdminCertificateService
         return [
             'paginator' => $paginator,
             'stats' => [
-                'issued'  => (int) ($statsData->issued_count ?? 0),
+                'issued' => (int) ($statsData->issued_count ?? 0),
                 'pending' => (int) ($statsData->pending_count ?? 0),
                 'revoked' => (int) ($statsData->revoked_count ?? 0),
-            ]
+            ],
         ];
     }
 
@@ -94,7 +94,7 @@ class AdminCertificateService
     {
         $path = $certificate->certificate_url;
 
-        if (!Storage::disk('public')->exists($path)) {
+        if (! Storage::disk('public')->exists($path)) {
             abort(404, 'Certificate file not found on server.');
         }
 
@@ -120,17 +120,17 @@ class AdminCertificateService
     public function downloadFile(Certificate $certificate): StreamedResponse
     {
         $path = $certificate->certificate_url;
-    
-        if (!Storage::disk('public')->exists($path)) {
+
+        if (! Storage::disk('public')->exists($path)) {
             abort(404, 'Certificate file not found on server.');
         }
-    
+
         // نستخدم response بدلاً من download ونخفي معالم الملف عن الـ IDM
         return Storage::disk('public')->response($path, null, [
             'Content-Type' => 'text/plain', // إيهام برامج التحميل أنه نص عادي
             'X-Download-Options' => 'noopen',
             'Content-Disposition' => 'inline', // منعه من إطلاق نافذة التحميل الخارجية
-            'Access-Control-Allow-Origin' => config('app.frontend_url'), 
+            'Access-Control-Allow-Origin' => config('app.frontend_url'),
             'Access-Control-Allow-Methods' => 'GET, OPTIONS',
             'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
             'Access-Control-Expose-Headers' => 'Content-Disposition, Content-Length',
@@ -145,7 +145,7 @@ class AdminCertificateService
             $certificate = Certificate::query()->lockForUpdate()->findOrFail($id);
 
             $studentId = $certificate->student_id;
-            $courseId  = $certificate->course_id;
+            $courseId = $certificate->course_id;
 
             if (array_key_exists('is_completed', $data)) {
                 $isCompleted = (bool) $data['is_completed'];
@@ -224,8 +224,8 @@ class AdminCertificateService
         }
 
         $query->where(function (Builder $q) use ($search): void {
-            $q->whereHas('student', fn(Builder $s) => $s->where('full_name', 'like', "%{$search}%"))
-                ->orWhereHas('course',   fn(Builder $c) => $c->where('title',     'like', "%{$search}%"));
+            $q->whereHas('student', fn (Builder $s) => $s->where('full_name', 'like', "%{$search}%"))
+                ->orWhereHas('course', fn (Builder $c) => $c->where('title', 'like', "%{$search}%"));
         });
     }
 
@@ -244,7 +244,7 @@ class AdminCertificateService
         $query->whereExists(function (\Illuminate\Database\Query\Builder $sub) use ($groupId): void {
             $sub->from('enrollments')
                 ->whereColumn('enrollments.student_id', 'certificates.student_id')
-                ->whereColumn('enrollments.course_id',  'certificates.course_id')
+                ->whereColumn('enrollments.course_id', 'certificates.course_id')
                 ->where('enrollments.group_id', (int) $groupId);
         });
     }
@@ -286,13 +286,13 @@ class AdminCertificateService
 
         foreach ($fields as $field) {
             if (str_starts_with($field, 'student.user.')) {
-                $with['student.user'] = fn($q) => $q->select(['id', 'email']);
+                $with['student.user'] = fn ($q) => $q->select(['id', 'email']);
             } elseif (str_starts_with($field, 'student.')) {
-                $with['student'] ??= fn($q) => $q->select(['id', 'user_id', 'full_name']);
+                $with['student'] ??= fn ($q) => $q->select(['id', 'user_id', 'full_name']);
             }
 
             if (str_starts_with($field, 'course.')) {
-                $with['course'] ??= fn($q) => $q->select(['id', 'title']);
+                $with['course'] ??= fn ($q) => $q->select(['id', 'title']);
             }
         }
 
@@ -304,7 +304,7 @@ class AdminCertificateService
      * using a single query — avoids N+1 and the SQLite whereColumn edge-case.
      *
      * @param  Collection<int, Certificate>  $certificates
-     * @param  array<int, string>             $fields
+     * @param  array<int, string>  $fields
      */
     private function hydrateEnrollments(Collection $certificates, array $fields): void
     {
@@ -313,18 +313,18 @@ class AdminCertificateService
         }
 
         $needsEnrollments = collect($fields)
-            ->contains(fn(string $f) => str_starts_with($f, 'enrollments.'));
+            ->contains(fn (string $f) => str_starts_with($f, 'enrollments.'));
 
         if (! $needsEnrollments) {
             return;
         }
 
         $needsGroup = collect($fields)
-            ->contains(fn(string $f) => str_starts_with($f, 'enrollments.learningGroup'));
+            ->contains(fn (string $f) => str_starts_with($f, 'enrollments.learningGroup'));
 
         $pairs = $certificates
-            ->map(fn(Certificate $c) => ['student_id' => $c->student_id, 'course_id' => $c->course_id])
-            ->unique(fn(array $p) => $p['student_id'] . ':' . $p['course_id'])
+            ->map(fn (Certificate $c) => ['student_id' => $c->student_id, 'course_id' => $c->course_id])
+            ->unique(fn (array $p) => $p['student_id'].':'.$p['course_id'])
             ->values();
 
         $enrollmentQuery = Enrollment::query()
@@ -333,7 +333,7 @@ class AdminCertificateService
                 foreach ($pairs as $pair) {
                     $q->orWhere(function ($qq) use ($pair): void {
                         $qq->where('student_id', $pair['student_id'])
-                            ->where('course_id',  $pair['course_id']);
+                            ->where('course_id', $pair['course_id']);
                     });
                 }
             });
@@ -343,10 +343,10 @@ class AdminCertificateService
         }
 
         $enrollments = $enrollmentQuery->get()
-            ->groupBy(fn(Enrollment $e) => $e->student_id . ':' . $e->course_id);
+            ->groupBy(fn (Enrollment $e) => $e->student_id.':'.$e->course_id);
 
         foreach ($certificates as $certificate) {
-            $key = $certificate->student_id . ':' . $certificate->course_id;
+            $key = $certificate->student_id.':'.$certificate->course_id;
             $certificate->setRelation('enrollments', $enrollments->get($key, collect([])));
         }
     }

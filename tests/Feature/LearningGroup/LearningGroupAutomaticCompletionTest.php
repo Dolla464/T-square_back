@@ -8,6 +8,7 @@ use App\Models\LearningGroup;
 use App\Models\Order;
 use App\Models\Student;
 use App\Notifications\CourseReviewRequired;
+use App\Services\Admin\AdminLearningGroupService;
 use App\Services\Admin\LearningGroupCompletionService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -32,13 +33,13 @@ function autoCompletionGroup(
     string $name = 'Auto Batch',
 ): LearningGroup {
     return LearningGroup::create([
-        'group_name'           => $name,
-        'course_id'            => $course->id,
+        'group_name' => $name,
+        'course_id' => $course->id,
         'course_instructor_id' => courseInstructorIdFor($course, $instructor),
-        'start_date'           => now()->subWeeks(8)->toDateString(),
-        'end_date'             => $endDate,
-        'status'               => $status,
-        'enrolled_students'    => 0,
+        'start_date' => now()->subWeeks(8)->toDateString(),
+        'end_date' => $endDate,
+        'status' => $status,
+        'enrolled_students' => 0,
     ]);
 }
 
@@ -47,20 +48,20 @@ function autoCompletionEnrollment(LearningGroup $group, bool $isCompleted = fals
     $student = Student::factory()->create();
 
     $order = Order::create([
-        'student_id'    => $student->id,
-        'total_amount'  => 500,
-        'status'        => 'completed',
-        'billing_name'  => 'Test Billing',
+        'student_id' => $student->id,
+        'total_amount' => 500,
+        'status' => 'completed',
+        'billing_name' => 'Test Billing',
         'billing_email' => 'billing@test.com',
         'billing_phone' => '01000000000',
     ]);
 
     return Enrollment::create([
-        'student_id'   => $student->id,
-        'course_id'    => $group->course_id,
-        'order_id'     => $order->id,
-        'group_id'     => $group->id,
-        'price_paid'   => 500,
+        'student_id' => $student->id,
+        'course_id' => $group->course_id,
+        'order_id' => $order->id,
+        'group_id' => $group->id,
+        'price_paid' => 500,
         'is_completed' => $isCompleted,
         'completed_at' => $isCompleted ? now() : null,
     ]);
@@ -199,7 +200,7 @@ it('continues processing other groups when one group transaction fails', functio
     autoCompletionEnrollment($groupA);
     $failingEnrollment = autoCompletionEnrollment($groupB);
 
-    $realService = app(\App\Services\Admin\AdminLearningGroupService::class);
+    $realService = app(AdminLearningGroupService::class);
     $mock = Mockery::mock($realService)->makePartial();
     $mock->shouldReceive('syncEnrollmentsWithGroupStatus')
         ->twice()
@@ -211,7 +212,7 @@ it('continues processing other groups when one group transaction fails', functio
             return $realService->syncEnrollmentsWithGroupStatus($group, $oldStatus, $newStatus, $sendNotifications);
         });
 
-    $this->app->instance(\App\Services\Admin\AdminLearningGroupService::class, $mock);
+    $this->app->instance(AdminLearningGroupService::class, $mock);
 
     $result = app(LearningGroupCompletionService::class)->completeExpiredGroups(Carbon::today());
 
@@ -263,13 +264,13 @@ it('sends CourseReviewRequired for newly completed students and skips existing r
     $alreadyReviewed = autoCompletionEnrollment($group);
 
     CourseReview::create([
-        'course_id'         => $this->course->id,
-        'student_id'        => $alreadyReviewed->student_id,
-        'instructor_id'     => $this->instructor->id,
-        'content_rating'    => 4,
+        'course_id' => $this->course->id,
+        'student_id' => $alreadyReviewed->student_id,
+        'instructor_id' => $this->instructor->id,
+        'content_rating' => 4,
         'instructor_rating' => 4,
-        'center_rating'     => 4,
-        'overall_comment'   => 'Already reviewed',
+        'center_rating' => 4,
+        'overall_comment' => 'Already reviewed',
     ]);
 
     Artisan::call('learning-groups:complete-expired');

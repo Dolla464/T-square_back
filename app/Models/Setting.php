@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\HomePageCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
-use App\Support\HomePageCache;
 
 class Setting extends Model
 {
@@ -48,7 +48,7 @@ class Setting extends Model
             [
                 'value' => $type === 'json' ? json_encode($value, JSON_UNESCAPED_UNICODE) : $value,
                 'type' => $type,
-                'group_name' => $group
+                'group_name' => $group,
             ]
         );
     }

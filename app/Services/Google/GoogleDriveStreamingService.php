@@ -2,12 +2,9 @@
 
 namespace App\Services\Google;
 
-use App\Exceptions\GoogleAccountDisconnectedException;
 use App\Exceptions\GoogleDriveFileAccessException;
 use App\Exceptions\UnsupportedVideoFormatException;
 use App\Models\GoogleStorageAccount;
-use App\Services\Google\GoogleStorageAccountService;
-use Google\Service\Drive;
 use Illuminate\Support\Facades\Cache;
 use Psr\Http\Message\StreamInterface;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -102,7 +99,7 @@ class GoogleDriveStreamingService
         $normalized = $this->normalizePlayableMimeType($mimeType);
 
         if ($normalized === '' || ! in_array($normalized, self::SUPPORTED_VIDEO_MIME_TYPES, true)) {
-            throw new UnsupportedVideoFormatException();
+            throw new UnsupportedVideoFormatException;
         }
     }
 

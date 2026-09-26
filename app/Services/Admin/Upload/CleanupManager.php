@@ -15,8 +15,8 @@ final class CleanupManager
     public function run(): int
     {
         $deleted = 0;
-        $disk    = Storage::disk(config('upload.chunks_disk'));
-        $root    = rtrim(config('upload.chunks_path'), '/');
+        $disk = Storage::disk(config('upload.chunks_disk'));
+        $root = rtrim(config('upload.chunks_path'), '/');
 
         if (! $disk->exists($root)) {
             return 0;

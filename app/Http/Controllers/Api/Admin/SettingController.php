@@ -21,15 +21,15 @@ class SettingController extends Controller
      * together with the storage type and the logical group they belong to.
      */
     private const EDITABLE_SETTINGS = [
-        'site_name'        => ['type' => 'string',  'group' => 'general'],
-        'contact_email'    => ['type' => 'string',  'group' => 'general'],
-        'whatsapp'         => ['type' => 'string',  'group' => 'social'],
-        'facebook_url'     => ['type' => 'string',  'group' => 'social'],
+        'site_name' => ['type' => 'string',  'group' => 'general'],
+        'contact_email' => ['type' => 'string',  'group' => 'general'],
+        'whatsapp' => ['type' => 'string',  'group' => 'social'],
+        'facebook_url' => ['type' => 'string',  'group' => 'social'],
         'maintenance_mode' => ['type' => 'boolean', 'group' => 'general'],
-        'instagram_url'    => ['type' => 'string',  'group' => 'social'],
-        'linkedin_url'     => ['type' => 'string',  'group' => 'social'],
-        'hero_title_en'    => ['type' => 'string',  'group' => 'general'],
-        'hero_title_ar'    => ['type' => 'string',  'group' => 'general'],
+        'instagram_url' => ['type' => 'string',  'group' => 'social'],
+        'linkedin_url' => ['type' => 'string',  'group' => 'social'],
+        'hero_title_en' => ['type' => 'string',  'group' => 'general'],
+        'hero_title_ar' => ['type' => 'string',  'group' => 'general'],
         'hero_title_highlight_en' => ['type' => 'string',  'group' => 'general'],
         'hero_title_highlight_ar' => ['type' => 'string',  'group' => 'general'],
         'hero_subtitle_en' => ['type' => 'string',  'group' => 'general'],
@@ -55,13 +55,13 @@ class SettingController extends Controller
         }
 
         $validated = $request->validate([
-            'key'   => ['required', 'string', Rule::in(array_keys(self::EDITABLE_SETTINGS))],
+            'key' => ['required', 'string', Rule::in(array_keys(self::EDITABLE_SETTINGS))],
             'value' => $this->valueRulesFor($key),
         ]);
 
-        $key   = $validated['key'];
+        $key = $validated['key'];
         $value = $validated['value'];
-        $meta  = self::EDITABLE_SETTINGS[$key];
+        $meta = self::EDITABLE_SETTINGS[$key];
 
         // Maintenance mode is stored as a normalized boolean string ("1" / "0").
         if ($key === 'maintenance_mode') {
@@ -94,20 +94,20 @@ class SettingController extends Controller
     private function valueRulesFor(?string $key): array
     {
         return match ($key) {
-            'site_name'        => ['required', 'string', 'max:100'],
-            'contact_email'    => ['required', 'email:rfc', 'max:255'],
-            'whatsapp'         => ['nullable', 'string', 'max:30'],
-            'facebook_url'     => ['nullable', 'url', 'max:255'],
-            'instagram_url'    => ['nullable', 'url', 'max:255'],
-            'linkedin_url'     => ['nullable', 'url', 'max:255'],
-            'hero_title_en'    => ['nullable', 'string', 'max:255'],
-            'hero_title_ar'    => ['nullable', 'string', 'max:255'],
+            'site_name' => ['required', 'string', 'max:100'],
+            'contact_email' => ['required', 'email:rfc', 'max:255'],
+            'whatsapp' => ['nullable', 'string', 'max:30'],
+            'facebook_url' => ['nullable', 'url', 'max:255'],
+            'instagram_url' => ['nullable', 'url', 'max:255'],
+            'linkedin_url' => ['nullable', 'url', 'max:255'],
+            'hero_title_en' => ['nullable', 'string', 'max:255'],
+            'hero_title_ar' => ['nullable', 'string', 'max:255'],
             'hero_title_highlight_en' => ['nullable', 'string', 'max:255'],
             'hero_title_highlight_ar' => ['nullable', 'string', 'max:255'],
             'hero_subtitle_en' => ['nullable', 'string', 'max:255'],
             'hero_subtitle_ar' => ['nullable', 'string', 'max:255'],
             'maintenance_mode' => ['required'],
-            default            => ['nullable'],
+            default => ['nullable'],
         };
     }
 }

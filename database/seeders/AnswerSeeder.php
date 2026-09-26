@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Answer;
 use App\Models\ExamAttempt;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 /**
  * AnswerSeeder
@@ -25,11 +24,12 @@ class AnswerSeeder extends Seeder
 
         if ($attempts->isEmpty()) {
             $this->command->warn('لا توجد محاولات امتحانات — شغّل ExamAttemptSeeder أولاً.');
+
             return;
         }
 
         $answersCreated = 0;
-        $answerRows     = [];
+        $answerRows = [];
 
         foreach ($attempts as $attempt) {
             // إذا لم تكن هناك أسئلة في attempt_questions، انتقل للتالي
@@ -53,24 +53,24 @@ class AnswerSeeder extends Seeder
 
                 // 65% احتمال أن يختار الطالب الإجابة الصحيحة
                 $correctChoice = $question->choices->firstWhere('is_correct', true);
-                $wrongChoices  = $question->choices->where('is_correct', false);
+                $wrongChoices = $question->choices->where('is_correct', false);
 
-                $chooseCorrect  = rand(1, 100) <= 65;
+                $chooseCorrect = rand(1, 100) <= 65;
                 $selectedChoice = ($chooseCorrect && $correctChoice)
                     ? $correctChoice
                     : ($wrongChoices->isNotEmpty() ? $wrongChoices->random() : $question->choices->random());
 
-                $isCorrect   = (bool) $selectedChoice->is_correct;
+                $isCorrect = (bool) $selectedChoice->is_correct;
                 $marksEarned = $isCorrect ? ($question->marks ?? 0) : 0;
 
                 $answerRows[] = [
-                    'attempt_id'   => $attempt->id,
-                    'question_id'  => $question->id,
-                    'choice_id'    => $selectedChoice->id,
-                    'is_correct'   => $isCorrect,
+                    'attempt_id' => $attempt->id,
+                    'question_id' => $question->id,
+                    'choice_id' => $selectedChoice->id,
+                    'is_correct' => $isCorrect,
                     'marks_earned' => $marksEarned,
-                    'created_at'   => now(),
-                    'updated_at'   => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ];
 
                 $answersCreated++;
@@ -83,7 +83,7 @@ class AnswerSeeder extends Seeder
             }
         }
 
-        if (!empty($answerRows)) {
+        if (! empty($answerRows)) {
             Answer::insert($answerRows);
         }
 

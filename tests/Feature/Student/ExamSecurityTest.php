@@ -5,12 +5,12 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
-use App\Models\Instructor;
 use App\Models\LearningGroup;
 use App\Models\Order;
 use App\Models\Question;
 use App\Models\Student;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
@@ -203,7 +203,7 @@ it('enforces a single ongoing attempt at the database level', function (): void 
             'started_at' => now(),
         ]);
         $secondOngoing->forceFill(['status' => ExamAttempt::STATUS_ONGOING])->save();
-    })->toThrow(\Illuminate\Database\QueryException::class);
+    })->toThrow(QueryException::class);
 });
 
 it('rejects save-answer after group exam deactivation and closes the attempt', function (): void {

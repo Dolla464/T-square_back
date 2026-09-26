@@ -112,13 +112,13 @@ class AdminCategoryController extends Controller
             }])
             ->get()
             ->map(fn (Category $category) => [
-                'id'             => $category->id,
-                'name'           => $category->name,
-                'slug'           => $category->slug,
-                'status'         => $category->status,
-                'created_at'     => $category->created_at?->format('Y-m-d'),
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'status' => $category->status,
+                'created_at' => $category->created_at?->format('Y-m-d'),
                 'children_count' => $category->children_count,
-                'children'       => $category->children,
+                'children' => $category->children,
             ]);
 
         return $this->successResponse($categories, 'Categories tree retrieved successfully');

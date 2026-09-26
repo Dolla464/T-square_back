@@ -158,13 +158,13 @@ class ProfileService
         // 1. Verify the current password stored in the database
         if (! Hash::check($validated['current_password'], $user->password)) {
             throw ValidationException::withMessages([
-                'current_password' => ['Current password is incorrect.']
+                'current_password' => ['Current password is incorrect.'],
             ]);
         }
 
         // 2. Update the password field and automatically hash the new password using the Casts feature available in the model
         $user->update([
-            'password' => $validated['password']
+            'password' => $validated['password'],
         ]);
     }
 }

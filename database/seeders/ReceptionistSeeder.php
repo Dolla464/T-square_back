@@ -28,9 +28,9 @@ class ReceptionistSeeder extends Seeder
         $user = User::updateOrCreate(
             ['email' => 'receptionist@tsquare.com'],
             [
-                'name'              => 'T-Square Receptionist',
-                'password'          => Hash::make($password),
-                'role'              => 'receptionist',
+                'name' => 'T-Square Receptionist',
+                'password' => Hash::make($password),
+                'role' => 'receptionist',
                 'email_verified_at' => now(),
             ]
         );

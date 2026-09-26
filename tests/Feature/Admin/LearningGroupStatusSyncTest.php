@@ -27,7 +27,7 @@ uses(RefreshDatabase::class);
 beforeEach(function (): void {
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-    $adminRole   = Role::create(['name' => 'admin', 'guard_name' => 'web']);
+    $adminRole = Role::create(['name' => 'admin', 'guard_name' => 'web']);
     $this->admin = User::factory()->create();
     $this->admin->assignRole($adminRole);
     Sanctum::actingAs($this->admin, ['*']);
@@ -40,12 +40,12 @@ beforeEach(function (): void {
     ]);
 
     $this->group = LearningGroup::create([
-        'group_name'        => 'Status Sync Batch',
-        'course_id'         => $this->course->id,
+        'group_name' => 'Status Sync Batch',
+        'course_id' => $this->course->id,
         'course_instructor_id' => courseInstructorIdFor($this->course, $this->instructor),
-        'start_date'        => now()->toDateString(),
-        'end_date'          => now()->addWeeks(4)->toDateString(),
-        'status'            => 'active',
+        'start_date' => now()->toDateString(),
+        'end_date' => now()->addWeeks(4)->toDateString(),
+        'status' => 'active',
         'enrolled_students' => 0,
     ]);
 });
@@ -58,20 +58,20 @@ function enrollStudentForStatusSync(
     $student = Student::factory()->create();
 
     $order = Order::create([
-        'student_id'    => $student->id,
-        'total_amount'  => 500,
-        'status'        => 'completed',
-        'billing_name'  => 'Test Billing',
+        'student_id' => $student->id,
+        'total_amount' => 500,
+        'status' => 'completed',
+        'billing_name' => 'Test Billing',
         'billing_email' => 'billing@test.com',
         'billing_phone' => '01000000000',
     ]);
 
     $enrollment = Enrollment::create([
-        'student_id'   => $student->id,
-        'course_id'    => $course->id,
-        'order_id'     => $order->id,
-        'group_id'     => $group->id,
-        'price_paid'   => 500,
+        'student_id' => $student->id,
+        'course_id' => $course->id,
+        'order_id' => $order->id,
+        'group_id' => $group->id,
+        'price_paid' => 500,
         'is_completed' => $isCompleted,
         'completed_at' => $isCompleted ? now() : null,
     ]);
@@ -82,12 +82,12 @@ function enrollStudentForStatusSync(
 function groupUpdatePayload(LearningGroup $group, Course $course, Instructor $instructor, array $overrides = []): array
 {
     return array_merge([
-        'group_name'    => $group->group_name,
-        'course_id'     => $course->id,
+        'group_name' => $group->group_name,
+        'course_id' => $course->id,
         'course_instructor_id' => courseInstructorIdFor($course, $instructor),
-        'start_date'    => $group->start_date?->format('Y-m-d') ?? now()->toDateString(),
-        'status'        => $group->status,
-        'student_ids'   => [],
+        'start_date' => $group->start_date?->format('Y-m-d') ?? now()->toDateString(),
+        'status' => $group->status,
+        'student_ids' => [],
         'student_statuses' => [],
     ], $overrides);
 }
@@ -117,15 +117,15 @@ it('marks all group enrollments completed when status changes to completed', fun
         ->assertJsonPath('data.sync.notifications_sent', 2);
 
     $this->assertDatabaseHas('enrollments', [
-        'student_id'   => $s1->student->id,
+        'student_id' => $s1->student->id,
         'is_completed' => true,
     ]);
     $this->assertDatabaseHas('enrollments', [
-        'student_id'   => $s2->student->id,
+        'student_id' => $s2->student->id,
         'is_completed' => true,
     ]);
     $this->assertDatabaseHas('learning_groups', [
-        'id'     => $this->group->id,
+        'id' => $this->group->id,
         'status' => 'completed',
     ]);
 
@@ -164,11 +164,11 @@ it('reopens all group enrollments when status changes from completed to active',
         ->assertJsonPath('data.sync.enrollments_reopened', 2);
 
     $this->assertDatabaseHas('enrollments', [
-        'student_id'   => $s1->student->id,
+        'student_id' => $s1->student->id,
         'is_completed' => false,
     ]);
     $this->assertDatabaseHas('enrollments', [
-        'student_id'   => $s2->student->id,
+        'student_id' => $s2->student->id,
         'is_completed' => false,
     ]);
 });
@@ -200,13 +200,13 @@ it('skips review notification when the student already submitted a review', func
     $record = enrollStudentForStatusSync($this->course, $this->group);
 
     CourseReview::create([
-        'course_id'         => $this->course->id,
-        'student_id'        => $record->student->id,
-        'instructor_id'     => $this->instructor->id,
-        'content_rating'    => 4,
+        'course_id' => $this->course->id,
+        'student_id' => $record->student->id,
+        'instructor_id' => $this->instructor->id,
+        'content_rating' => 4,
         'instructor_rating' => 4,
-        'center_rating'     => 4,
-        'overall_comment'   => 'Already reviewed',
+        'center_rating' => 4,
+        'overall_comment' => 'Already reviewed',
     ]);
 
     $this->putJson(
@@ -240,7 +240,7 @@ it('does not change enrollments when status changes to cancelled', function (): 
         ->assertJsonPath('data.sync.enrollments_reopened', 0);
 
     $this->assertDatabaseHas('enrollments', [
-        'student_id'   => $record->student->id,
+        'student_id' => $record->student->id,
         'is_completed' => false,
     ]);
 });
@@ -260,7 +260,7 @@ it('does not auto-issue certificates when a group is closed', function (): void 
     )->assertOk();
 
     $this->assertDatabaseHas('enrollments', [
-        'student_id'   => $record->student->id,
+        'student_id' => $record->student->id,
         'is_completed' => true,
     ]);
 

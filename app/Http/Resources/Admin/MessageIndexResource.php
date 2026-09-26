@@ -16,9 +16,9 @@ class MessageIndexResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'      => $this->id,
-            'name'    => $this->name,
-            'title'   => $this->title,
+            'id' => $this->id,
+            'name' => $this->name,
+            'title' => $this->title,
             'content' => $this->content,
         ];
     }

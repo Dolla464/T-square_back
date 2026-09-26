@@ -22,13 +22,13 @@ class AdminDashboardService
             $paymentStats = $this->paymentAnalytics->getRecentStats();
 
             return [
-                'total_revenue'   => $paymentStats['total_revenue'],
-                'total_students'  => Student::count(),
-                'total_courses'   => Course::count(),
-                'active_courses'  => Course::where('status', 'published')->count(),
-                'total_orders'    => $paymentStats['total_orders'],
-                'pending_count'   => $paymentStats['pending_count'],
-                'refunded_count'  => $paymentStats['refunded_count'],
+                'total_revenue' => $paymentStats['total_revenue'],
+                'total_students' => Student::count(),
+                'total_courses' => Course::count(),
+                'active_courses' => Course::where('status', 'published')->count(),
+                'total_orders' => $paymentStats['total_orders'],
+                'pending_count' => $paymentStats['pending_count'],
+                'refunded_count' => $paymentStats['refunded_count'],
             ];
         });
     }
@@ -38,9 +38,9 @@ class AdminDashboardService
         $period = in_array($period, ['week', 'month', 'year'], true) ? $period : 'month';
 
         return match ($period) {
-            'week'  => $this->buildDailyRevenueChart(7),
+            'week' => $this->buildDailyRevenueChart(7),
             'month' => $this->buildMonthlyRevenueChart(7),
-            'year'  => $this->buildYearlyRevenueChart(6),
+            'year' => $this->buildYearlyRevenueChart(6),
         };
     }
 
@@ -64,7 +64,7 @@ class AdminDashboardService
 
         return [
             'labels' => $courses->pluck('title')->all(),
-            'data'   => $courses->pluck('sales_count')->map(fn ($count) => (int) $count)->all(),
+            'data' => $courses->pluck('sales_count')->map(fn ($count) => (int) $count)->all(),
         ];
     }
 
@@ -79,10 +79,10 @@ class AdminDashboardService
             ->limit($limit)
             ->get()
             ->map(fn (Enrollment $enrollment) => [
-                'id'           => $enrollment->id,
+                'id' => $enrollment->id,
                 'student_name' => $enrollment->student?->full_name,
                 'course_title' => $enrollment->course?->title,
-                'created_at'   => $enrollment->created_at?->toISOString(),
+                'created_at' => $enrollment->created_at?->toISOString(),
             ])
             ->values()
             ->all();
@@ -102,12 +102,12 @@ class AdminDashboardService
                 $courseTitle = $order->enrollments->first()?->course?->title;
 
                 return [
-                    'id'            => $order->id,
-                    'student_name'  => $order->student?->full_name ?? $order->billing_name,
-                    'course_title'  => $courseTitle,
-                    'status'        => $order->status,
-                    'total_amount'  => (float) $order->total_amount,
-                    'created_at'    => $order->created_at?->toISOString(),
+                    'id' => $order->id,
+                    'student_name' => $order->student?->full_name ?? $order->billing_name,
+                    'course_title' => $courseTitle,
+                    'status' => $order->status,
+                    'total_amount' => (float) $order->total_amount,
+                    'created_at' => $order->created_at?->toISOString(),
                 ];
             })
             ->values()
@@ -129,11 +129,11 @@ class AdminDashboardService
             ->limit($limit)
             ->get()
             ->map(fn (Course $course) => [
-                'id'             => $course->id,
-                'title'          => $course->title,
+                'id' => $course->id,
+                'title' => $course->title,
                 'students_count' => (int) ($course->total_students ?? 0),
-                'rating'         => round((float) ($course->avg_rating ?? 0), 1),
-                'revenue'        => (float) ($course->total_revenue ?? 0),
+                'rating' => round((float) ($course->avg_rating ?? 0), 1),
+                'revenue' => (float) ($course->total_revenue ?? 0),
             ])
             ->values()
             ->all();
@@ -142,12 +142,12 @@ class AdminDashboardService
     private function buildDailyRevenueChart(int $days): array
     {
         $labels = [];
-        $data   = [];
+        $data = [];
 
         for ($i = $days - 1; $i >= 0; $i--) {
-            $date     = Carbon::now()->subDays($i);
+            $date = Carbon::now()->subDays($i);
             $labels[] = $date->format('Y-m-d');
-            $data[]   = $this->sumCompletedRevenue(
+            $data[] = $this->sumCompletedRevenue(
                 $date->copy()->startOfDay(),
                 $date->copy()->endOfDay()
             );
@@ -159,12 +159,12 @@ class AdminDashboardService
     private function buildMonthlyRevenueChart(int $months): array
     {
         $labels = [];
-        $data   = [];
+        $data = [];
 
         for ($i = $months - 1; $i >= 0; $i--) {
-            $date     = Carbon::now()->subMonths($i);
+            $date = Carbon::now()->subMonths($i);
             $labels[] = $date->format('Y-m');
-            $data[]   = $this->sumCompletedRevenue(
+            $data[] = $this->sumCompletedRevenue(
                 $date->copy()->startOfMonth(),
                 $date->copy()->endOfMonth()
             );
@@ -176,12 +176,12 @@ class AdminDashboardService
     private function buildYearlyRevenueChart(int $years): array
     {
         $labels = [];
-        $data   = [];
+        $data = [];
 
         for ($i = $years - 1; $i >= 0; $i--) {
-            $date     = Carbon::now()->subYears($i);
+            $date = Carbon::now()->subYears($i);
             $labels[] = (string) $date->year;
-            $data[]   = $this->sumCompletedRevenue(
+            $data[] = $this->sumCompletedRevenue(
                 $date->copy()->startOfYear(),
                 $date->copy()->endOfYear()
             );
@@ -207,9 +207,9 @@ class AdminDashboardService
         $to = Carbon::now()->endOfDay();
 
         $from = match ($period) {
-            'week'  => Carbon::now()->subDays(6)->startOfDay(),
+            'week' => Carbon::now()->subDays(6)->startOfDay(),
             'month' => Carbon::now()->subMonths(6)->startOfMonth(),
-            'year'  => Carbon::now()->subYears(5)->startOfYear(),
+            'year' => Carbon::now()->subYears(5)->startOfYear(),
         };
 
         return [$from, $to];

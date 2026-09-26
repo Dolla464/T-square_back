@@ -29,8 +29,8 @@ class CourseService
                     });
                 });
             })
-            ->when(isset($filters['level']), fn($q) => $q->where('level', $filters['level']))
-            ->when(isset($filters['search']), fn($q) => $q->where('title', 'like', '%' . $filters['search'] . '%'))
+            ->when(isset($filters['level']), fn ($q) => $q->where('level', $filters['level']))
+            ->when(isset($filters['search']), fn ($q) => $q->where('title', 'like', '%'.$filters['search'].'%'))
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
@@ -70,7 +70,7 @@ class CourseService
                 'is_free',
                 'category_id',
                 'instructor_id',
-                'attendance_type'
+                'attendance_type',
             ])
             ->with([
                 'category:id,name,slug',

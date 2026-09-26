@@ -19,8 +19,8 @@ class LearningGroupSchedule extends Model
 
     protected $casts = [
         'day_of_week' => 'integer',
-        'start_time'  => 'datetime:H:i',
-        'end_time'    => 'datetime:H:i',
+        'start_time' => 'datetime:H:i',
+        'end_time' => 'datetime:H:i',
     ];
 
     public function learningGroup()

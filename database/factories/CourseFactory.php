@@ -17,36 +17,36 @@ class CourseFactory extends Factory
     public function definition(): array
     {
         $priceBefore = $this->faker->randomFloat(2, 50, 500);
-        $discount    = $this->faker->randomFloat(2, 0, 40);
+        $discount = $this->faker->randomFloat(2, 0, 40);
 
         return [
-            'title'             => $this->faker->sentence(4),
+            'title' => $this->faker->sentence(4),
             // slug يُولَّد تلقائياً بواسطة EloquentSluggable — لا تُضف هنا
             'short_description' => $this->faker->text(200),
-            'description'       => $this->faker->paragraphs(5, true),
-            'thumbnail'         => 'course_thumb.jpg',
-            'attendance_type'   => $this->faker->randomElement(['Online', 'Offline', 'Hybrid']),
-            'price_before'      => $priceBefore,
-            'discount_price'    => $discount,
+            'description' => $this->faker->paragraphs(5, true),
+            'thumbnail' => 'course_thumb.jpg',
+            'attendance_type' => $this->faker->randomElement(['Online', 'Offline', 'Hybrid']),
+            'price_before' => $priceBefore,
+            'discount_price' => $discount,
             // price يُحسب تلقائياً في Course::booted() — لا داعي لضبطه هنا
-            'level'             => $this->faker->randomElement(['beginner', 'intermediate', 'advanced']),
-            'language'          => $this->faker->randomElement(['Arabic', 'English']),
-            'duration_weeks'    => $this->faker->numberBetween(4, 12),
-            'duration_hours'    => $this->faker->numberBetween(20, 100),
-            'status'            => 'published',
-            'is_featured'       => $this->faker->boolean(20),
-            'is_free'           => false,
-            'category_id'       => Category::inRandomOrder()->first()?->id ?? Category::factory(),
-            'instructor_id'     => Instructor::inRandomOrder()->first()?->id ?? Instructor::factory(),
-            'published_at'      => now(),
+            'level' => $this->faker->randomElement(['beginner', 'intermediate', 'advanced']),
+            'language' => $this->faker->randomElement(['Arabic', 'English']),
+            'duration_weeks' => $this->faker->numberBetween(4, 12),
+            'duration_hours' => $this->faker->numberBetween(20, 100),
+            'status' => 'published',
+            'is_featured' => $this->faker->boolean(20),
+            'is_free' => false,
+            'category_id' => Category::inRandomOrder()->first()?->id ?? Category::factory(),
+            'instructor_id' => Instructor::inRandomOrder()->first()?->id ?? Instructor::factory(),
+            'published_at' => now(),
         ];
     }
 
     public function free(): static
     {
         return $this->state(fn () => [
-            'is_free'        => true,
-            'price_before'   => 0,
+            'is_free' => true,
+            'price_before' => 0,
             'discount_price' => 0,
         ]);
     }

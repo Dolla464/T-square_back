@@ -21,6 +21,7 @@ class CertificateSeeder extends Seeder
 
         if ($completedEnrollments->isEmpty()) {
             $this->command->warn('لا توجد اشتراكات مكتملة — تأكد أن EnrollmentSeeder يضع is_completed = true لبعضها.');
+
             return;
         }
 
@@ -30,13 +31,13 @@ class CertificateSeeder extends Seeder
             Certificate::updateOrCreate(
                 [
                     'student_id' => $enrollment->student_id,
-                    'course_id'  => $enrollment->course_id,
+                    'course_id' => $enrollment->course_id,
                 ],
                 [
-                    'certificate_url' => 'certificates/CERT_' . Str::upper(Str::random(10)) . '.pdf',
-                    'certificate_num' => 'TSQ-' . date('Y') . '-' . strtoupper(Str::random(8)),
-                    'issued_at'       => $enrollment->completed_at ?? now(),
-                    'status'          => 'issued',
+                    'certificate_url' => 'certificates/CERT_'.Str::upper(Str::random(10)).'.pdf',
+                    'certificate_num' => 'TSQ-'.date('Y').'-'.strtoupper(Str::random(8)),
+                    'issued_at' => $enrollment->completed_at ?? now(),
+                    'status' => 'issued',
                 ]
             );
 

@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Question;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\Exam\ExamAttemptAuthorizationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
@@ -343,7 +344,7 @@ it('freezes duration_minutes on the attempt at start time', function (): void {
     ]);
 
     expect(ExamAttempt::find($attemptId)->duration_minutes)->toBe(30);
-    expect(app(\App\Services\Exam\ExamAttemptAuthorizationService::class)->isTimedOut(ExamAttempt::find($attemptId)))->toBeTrue();
+    expect(app(ExamAttemptAuthorizationService::class)->isTimedOut(ExamAttempt::find($attemptId)))->toBeTrue();
 });
 
 it('returns the same ongoing attempt when start is called twice', function (): void {

@@ -19,8 +19,8 @@ class AdminMarkAttendanceRequest extends FormRequest
     {
         return [
             'student_id' => ['required', 'integer', 'exists:students,id'],
-            'status'     => ['required', 'in:present,absent,late'],
-            'notes'      => ['nullable', 'string', 'max:255'],
+            'status' => ['required', 'in:present,absent,late'],
+            'notes' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

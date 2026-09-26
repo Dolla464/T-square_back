@@ -75,8 +75,13 @@ class Course extends Model
     protected function price(): Attribute
     {
         return Attribute::get(function ($value) {
-            if ($value !== null) return $value;
-            if ($this->is_free) return 0;
+            if ($value !== null) {
+                return $value;
+            }
+            if ($this->is_free) {
+                return 0;
+            }
+
             return max(0, ($this->price_before ?? 0) - ($this->discount_price ?? 0));
         });
     }
@@ -142,7 +147,7 @@ class Course extends Model
             }
 
             // Add the full Storage URL for the stored path
-            return asset('storage/' . $value);
+            return asset('storage/'.$value);
         });
     }
 
@@ -157,7 +162,7 @@ class Course extends Model
                 return $value;
             }
 
-            return asset('storage/' . $value);
+            return asset('storage/'.$value);
         });
     }
 

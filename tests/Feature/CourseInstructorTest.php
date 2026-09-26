@@ -3,7 +3,10 @@
 use App\Models\Course;
 use App\Models\CourseInstructor;
 use App\Models\Instructor;
+use App\Models\LearningGroup;
+use App\Support\CourseInstructorSync;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
 
@@ -28,7 +31,7 @@ it('syncs ordered instructor ids on the pivot', function (): void {
     $course = Course::factory()->create();
     $instructors = Instructor::factory()->count(3)->create();
 
-    app(\App\Support\CourseInstructorSync::class)->sync($course, [
+    app(CourseInstructorSync::class)->sync($course, [
         $instructors[2]->id,
         $instructors[0]->id,
         $instructors[1]->id,
@@ -50,7 +53,7 @@ it('blocks removing an instructor assigned to a learning group', function (): vo
     $primary = Instructor::factory()->create();
     $secondary = Instructor::factory()->create();
 
-    app(\App\Support\CourseInstructorSync::class)->sync($course, [
+    app(CourseInstructorSync::class)->sync($course, [
         $primary->id,
         $secondary->id,
     ]);
@@ -60,12 +63,12 @@ it('blocks removing an instructor assigned to a learning group', function (): vo
         ->where('instructor_id', $secondary->id)
         ->value('id');
 
-    \App\Models\LearningGroup::factory()->create([
+    LearningGroup::factory()->create([
         'course_id' => $course->id,
         'course_instructor_id' => $secondaryPivotId,
     ]);
 
-    app(\App\Support\CourseInstructorSync::class)->sync($course, [
+    app(CourseInstructorSync::class)->sync($course, [
         $primary->id,
     ]);
-})->throws(\Illuminate\Validation\ValidationException::class);
+})->throws(ValidationException::class);

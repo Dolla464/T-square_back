@@ -37,7 +37,7 @@ class ExamListResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'description' => $this->description,
-            'duration' => $this->duration . ' mins',
+            'duration' => $this->duration.' mins',
             'total_marks' => $this->total_marks,
             'passing_mark' => $this->passing_mark,
             'is_final' => (bool) $this->is_final,

@@ -17,12 +17,12 @@ final class ChunkRecorder
 
     public function record(Course $course, array $payload, UploadedFile $chunk): array
     {
-        $courseId     = $course->id;
-        $uploadId     = $payload['upload_id'];
-        $chunkIndex   = (int) $payload['chunk_index'];
-        $totalChunks  = (int) $payload['total_chunks'];
-        $filename     = basename($payload['original_filename']);
-        $ext          = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        $courseId = $course->id;
+        $uploadId = $payload['upload_id'];
+        $chunkIndex = (int) $payload['chunk_index'];
+        $totalChunks = (int) $payload['total_chunks'];
+        $filename = basename($payload['original_filename']);
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
         if (! in_array($ext, config('upload.allowed_extensions'), true)) {
             throw ValidationException::withMessages([
@@ -37,7 +37,7 @@ final class ChunkRecorder
         }
 
         $relativeDir = $this->metaStore->sessionPath($courseId, $uploadId);
-        $chunkName     = "chunk_{$chunkIndex}";
+        $chunkName = "chunk_{$chunkIndex}";
 
         Storage::disk(config('upload.chunks_disk'))->putFileAs(
             $relativeDir,
@@ -46,14 +46,13 @@ final class ChunkRecorder
         );
 
         $chunkFullPath = Storage::disk(config('upload.chunks_disk'))->path("{$relativeDir}/{$chunkName}");
-        $checksum      = hash_file('sha256', $chunkFullPath) ?: '';
-        $chunkSize     = (int) filesize($chunkFullPath);
+        $checksum = hash_file('sha256', $chunkFullPath) ?: '';
+        $chunkSize = (int) filesize($chunkFullPath);
 
         return $this->metaStore->withMetaLock($courseId, $uploadId, function (?array $meta, $fp, string $tempDir) use (
             $courseId,
             $uploadId,
             $chunkIndex,
-            $totalChunks,
             $filename,
             $ext,
             $payload,
@@ -80,8 +79,8 @@ final class ChunkRecorder
             }
 
             $meta['completed_chunks'][(string) $chunkIndex] = [
-                'size'        => $chunkSize,
-                'checksum'    => $checksum,
+                'size' => $chunkSize,
+                'checksum' => $checksum,
                 'received_at' => $now,
             ];
 
@@ -113,23 +112,23 @@ final class ChunkRecorder
         $created = Carbon::parse($now);
 
         return [
-            'meta_version'      => config('upload.meta_version'),
-            'upload_id'         => $uploadId,
-            'course_id'         => $courseId,
-            'status'            => 'created',
+            'meta_version' => config('upload.meta_version'),
+            'upload_id' => $uploadId,
+            'course_id' => $courseId,
+            'status' => 'created',
             'original_filename' => $filename,
-            'extension'         => $ext,
+            'extension' => $ext,
             'expected_filesize' => (int) $payload['expected_filesize'],
-            'sha256'            => strtolower($payload['sha256']),
-            'total_chunks'      => (int) $payload['total_chunks'],
-            'chunk_size'        => (int) ($payload['chunk_size'] ?? config('upload.chunk_size_bytes')),
-            'completed_chunks'  => [],
-            'preview_index'     => isset($payload['preview_index']) ? (int) $payload['preview_index'] : null,
-            'final_file'        => null,
-            'last_error'        => null,
-            'created_at'        => $now,
-            'updated_at'        => $now,
-            'expires_at'        => $created->copy()->addHours((int) config('upload.session_ttl_hours'))->toIso8601String(),
+            'sha256' => strtolower($payload['sha256']),
+            'total_chunks' => (int) $payload['total_chunks'],
+            'chunk_size' => (int) ($payload['chunk_size'] ?? config('upload.chunk_size_bytes')),
+            'completed_chunks' => [],
+            'preview_index' => isset($payload['preview_index']) ? (int) $payload['preview_index'] : null,
+            'final_file' => null,
+            'last_error' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+            'expires_at' => $created->copy()->addHours((int) config('upload.session_ttl_hours'))->toIso8601String(),
         ];
     }
 
@@ -155,7 +154,7 @@ final class ChunkRecorder
 
         if ($mismatches !== []) {
             throw ValidationException::withMessages([
-                'upload_id' => ['Session metadata mismatch: ' . implode(', ', $mismatches)],
+                'upload_id' => ['Session metadata mismatch: '.implode(', ', $mismatches)],
             ]);
         }
     }
@@ -173,17 +172,17 @@ final class ChunkRecorder
 
     private function buildChunkResponse(array $meta, int $chunkIndex): array
     {
-        $totalChunks    = (int) $meta['total_chunks'];
+        $totalChunks = (int) $meta['total_chunks'];
         $completedCount = count($meta['completed_chunks']);
 
         return [
-            'status'          => 'chunk_received',
-            'upload_id'       => $meta['upload_id'],
-            'chunk_index'     => $chunkIndex,
+            'status' => 'chunk_received',
+            'upload_id' => $meta['upload_id'],
+            'chunk_index' => $chunkIndex,
             'completed_count' => $completedCount,
-            'total_chunks'    => $totalChunks,
-            'session_status'  => $meta['status'],
-            'progress'        => $totalChunks > 0 ? (int) round($completedCount / $totalChunks * 100) : 0,
+            'total_chunks' => $totalChunks,
+            'session_status' => $meta['status'],
+            'progress' => $totalChunks > 0 ? (int) round($completedCount / $totalChunks * 100) : 0,
         ];
     }
 }

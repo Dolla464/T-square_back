@@ -2,15 +2,11 @@
 
 namespace App\Services\Admin;
 
-use App\Http\Resources\Admin\AdminStudentResource;
 use App\Models\Enrollment;
-use App\Models\LearningGroup;
 use App\Models\Student;
 use App\Traits\HandleImageUploadTrait;
-use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class AdminStudentService
@@ -61,7 +57,7 @@ class AdminStudentService
             ->when(isset($filters['gender']) && $filters['gender'] !== '', function ($query) use ($filters) {
                 $query->where('gender', $filters['gender']);
             })
-            ->when(!empty($filters['group_id']), function ($query) use ($filters) {
+            ->when(! empty($filters['group_id']), function ($query) use ($filters) {
                 // filter the students who have this group
                 $query->whereHas('enrollments', function ($q) use ($filters) {
                     $q->where('group_id', $filters['group_id']);
@@ -150,6 +146,7 @@ class AdminStudentService
     public function updateStatus(Student $student, string $status)
     {
         $student->forceFill(['status' => $status])->save();
+
         return $student;
     }
 
@@ -172,7 +169,7 @@ class AdminStudentService
     {
         $enrollment = $student->enrollments()->where('course_id', $courseId)->first();
 
-        if (!$enrollment || $enrollment->is_completed) {
+        if (! $enrollment || $enrollment->is_completed) {
             return false;
         }
 

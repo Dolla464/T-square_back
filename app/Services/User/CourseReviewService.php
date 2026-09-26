@@ -4,7 +4,6 @@ namespace App\Services\User;
 
 use App\Http\Requests\Api\Student\StoreCourseReviewRequest;
 use App\Models\Course;
-use App\Models\CourseInstructor;
 use App\Models\CourseReview;
 use App\Models\CourseReviewInstructorRating;
 use App\Models\Enrollment;

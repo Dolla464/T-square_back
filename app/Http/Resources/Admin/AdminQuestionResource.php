@@ -15,22 +15,22 @@ class AdminQuestionResource extends JsonResource
     public function toArray(Request $request): array
     {
         $data = [
-            'id'            => $this->id,
-            'exam_id'       => (int) $this->exam_id,
-            'type'          => $this->type ?? 'mcq',
+            'id' => $this->id,
+            'exam_id' => (int) $this->exam_id,
+            'type' => $this->type ?? 'mcq',
             'question_text' => $this->question_text,
             'question_image' => $this->question_image,
             'question_image_url' => $this->question_image_url,
             'question_code' => $this->question_code,
             'question_code_language' => $this->question_code_language,
-            'marks'         => (float) $this->marks,
+            'marks' => (float) $this->marks,
 
-            'choices'       => ($this->type ?? 'mcq') === 'mcq'
+            'choices' => ($this->type ?? 'mcq') === 'mcq'
                 ? $this->choices->map(function ($choice) {
                     return [
-                        'id'          => $choice->id,
+                        'id' => $choice->id,
                         'choice_text' => $choice->choice_text,
-                        'is_correct'  => (bool) $choice->is_correct,
+                        'is_correct' => (bool) $choice->is_correct,
                     ];
                 })
                 : [],

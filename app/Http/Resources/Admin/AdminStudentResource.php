@@ -15,44 +15,44 @@ class AdminStudentResource extends JsonResource
             : null;
 
         return [
-            'id'                => $this->id,
-            'user_id'           => $this->user_id,
-            'email'             => $this->whenLoaded('user', fn () => $this->user?->email),
-            'is_verified'       => $this->whenLoaded('user', fn () => (bool) $this->user?->email_verified_at),
-            'full_name'         => $this->full_name,
-            'phone'             => $this->phone,
+            'id' => $this->id,
+            'user_id' => $this->user_id,
+            'email' => $this->whenLoaded('user', fn () => $this->user?->email),
+            'is_verified' => $this->whenLoaded('user', fn () => (bool) $this->user?->email_verified_at),
+            'full_name' => $this->full_name,
+            'phone' => $this->phone,
             'enrollment_number' => $this->enrollment_number,
-            'avatar'            => $this->avatar
-                ? asset('storage/' . $this->avatar)
+            'avatar' => $this->avatar
+                ? asset('storage/'.$this->avatar)
                 : null,
-            'gender'            => $this->gender,
-            'age'               => $this->age,
-            'qualification'     => $this->qualification,
-            'guardian_phone'    => $this->guardian_phone,
-            'national_id'       => $this->national_id,
-            'address'           => $this->address,
-            'notes'             => $this->notes,
-            'status'            => $this->status,
-            'created_by'        => $this->created_by,
+            'gender' => $this->gender,
+            'age' => $this->age,
+            'qualification' => $this->qualification,
+            'guardian_phone' => $this->guardian_phone,
+            'national_id' => $this->national_id,
+            'address' => $this->address,
+            'notes' => $this->notes,
+            'status' => $this->status,
+            'created_by' => $this->created_by,
 
-            'group_id'          => $firstEnrollment?->group_id,
-            'learning_group'    => $firstEnrollment?->learningGroup?->group_name ?? '---------',
+            'group_id' => $firstEnrollment?->group_id,
+            'learning_group' => $firstEnrollment?->learningGroup?->group_name ?? '---------',
 
-            'enrolled_courses'  => $this->whenLoaded('enrollments', function () {
+            'enrolled_courses' => $this->whenLoaded('enrollments', function () {
                 return $this->enrollments->map(function ($enrollment) {
                     return [
-                        'id'              => $enrollment->course_id,
-                        'title'           => $enrollment->course?->title,
+                        'id' => $enrollment->course_id,
+                        'title' => $enrollment->course?->title,
                         'instructor_name' => CourseInstructorSync::instructorNameForEnrollment($enrollment),
 
                         // get the group id and group name from the enrollment
-                        'group_id'        => $enrollment->group_id,
-                        'group_name'      => optional($enrollment->learningGroup)->group_name,
+                        'group_id' => $enrollment->group_id,
+                        'group_name' => optional($enrollment->learningGroup)->group_name,
 
-                        'is_completed'    => (bool) $enrollment->is_completed,
-                        'joined_at'       => $enrollment->created_at?->format('Y-m-d'),
-                        'available_groups' => $enrollment->course?->learningGroups?->map(fn($group) => [
-                            'id'   => $group->id,
+                        'is_completed' => (bool) $enrollment->is_completed,
+                        'joined_at' => $enrollment->created_at?->format('Y-m-d'),
+                        'available_groups' => $enrollment->course?->learningGroups?->map(fn ($group) => [
+                            'id' => $group->id,
                             'name' => $group->group_name,
                         ]) ?? [],
                     ];

@@ -7,8 +7,7 @@ use App\Services\Admin\AdminQuestionService;
 
 class InstructorQuestionService
 {
-    public function __construct(private AdminQuestionService $adminQuestionService)
-    {}
+    public function __construct(private AdminQuestionService $adminQuestionService) {}
 
     public function getQuestionsByExam(int $examId)
     {

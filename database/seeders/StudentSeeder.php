@@ -27,13 +27,13 @@ class StudentSeeder extends Seeder
             $user->syncRoles(['student']);
 
             Student::create([
-                'user_id'           => $user->id,
-                'full_name'         => $user->name,
-                'phone'             => '011' . str_pad($i * 7, 8, '0', STR_PAD_LEFT),
-                'enrollment_number' => 'STU-' . str_pad($i + 1, 5, '0', STR_PAD_LEFT),
-                'gender'            => $i % 3 === 0 ? 'female' : 'male',
-                'status'            => 'active',
-                'created_by'        => 'admin',
+                'user_id' => $user->id,
+                'full_name' => $user->name,
+                'phone' => '011'.str_pad($i * 7, 8, '0', STR_PAD_LEFT),
+                'enrollment_number' => 'STU-'.str_pad($i + 1, 5, '0', STR_PAD_LEFT),
+                'gender' => $i % 3 === 0 ? 'female' : 'male',
+                'status' => 'active',
+                'created_by' => 'admin',
             ]);
         }
 

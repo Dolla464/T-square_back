@@ -53,18 +53,18 @@ class SettingController extends Controller
     public function toggleMaintenance(Request $request)
     {
         $request->validate([
-            'status' => 'required|boolean'
+            'status' => 'required|boolean',
         ]);
 
         DB::table('settings')
             ->where('key', 'maintenance_mode')
             ->update([
                 'value' => $request->status ? '1' : '0',
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
 
-        return $this->successResponse([ 
-            'message' => $request->status ? 'Maintenance mode enabled successfully' : 'Maintenance mode disabled and the website is now working'
+        return $this->successResponse([
+            'message' => $request->status ? 'Maintenance mode enabled successfully' : 'Maintenance mode disabled and the website is now working',
         ], 'Maintenance mode toggled successfully');
     }
 }

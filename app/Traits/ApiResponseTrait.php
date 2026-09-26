@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use App\DTO\AuthorizationResult;
 use Illuminate\Http\JsonResponse;
 
 trait ApiResponseTrait
@@ -46,7 +47,7 @@ trait ApiResponseTrait
         ], $httpCode);
     }
 
-    public function authorizationResultResponse(\App\DTO\AuthorizationResult $result): JsonResponse
+    public function authorizationResultResponse(AuthorizationResult $result): JsonResponse
     {
         return $this->structuredErrorResponse(
             error: $result->getMessage() ?? 'Forbidden',

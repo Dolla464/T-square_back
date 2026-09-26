@@ -20,6 +20,7 @@ class LearningGroupSeeder extends Seeder
 
         if ($courses->isEmpty()) {
             $this->command->warn('لا توجد كورسات — شغّل CourseSeeder أولاً.');
+
             return;
         }
 
@@ -30,8 +31,8 @@ class LearningGroupSeeder extends Seeder
 
             for ($i = 1; $i <= $groupsPerCourse; $i++) {
                 LearningGroup::create([
-                    'group_name'  => "Batch #{$i} - " . substr($course->title, 0, 20),
-                    'course_id'   => $course->id,
+                    'group_name' => "Batch #{$i} - ".substr($course->title, 0, 20),
+                    'course_id' => $course->id,
                     'instructor_id' => $course->instructor_id,
                     'enrolled_students' => 0,
                 ]);

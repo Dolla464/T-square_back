@@ -31,7 +31,7 @@ class UpdatePasswordRequest extends FormRequest
                 Password::min(8)
                     ->mixedCase()
                     ->numbers(),
-                'confirmed'
+                'confirmed',
             ],
         ];
     }

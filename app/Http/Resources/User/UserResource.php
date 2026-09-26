@@ -13,8 +13,8 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
-            'role' => $this->whenLoaded('roles', fn() => $this->roles->first()?->name),
-            'phone' => $this->whenLoaded('student', fn() => $this->student?->phone),
+            'role' => $this->whenLoaded('roles', fn () => $this->roles->first()?->name),
+            'phone' => $this->whenLoaded('student', fn () => $this->student?->phone),
             'is_verified' => ! is_null($this->email_verified_at),
         ];
     }

@@ -4,7 +4,6 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\Auth\CurrentUserController;
 use App\Http\Controllers\Api\Notification\NotificationController;
 use App\Http\Controllers\Api\User\ProfileController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,7 +12,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -21,7 +20,7 @@ require __DIR__ . '/auth.php';
 |--------------------------------------------------------------------------
 */
 
-require __DIR__ . '/public.php';
+require __DIR__.'/public.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -29,7 +28,7 @@ require __DIR__ . '/public.php';
 |--------------------------------------------------------------------------
 */
 
-require __DIR__ . '/student.php';
+require __DIR__.'/student.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -37,7 +36,7 @@ require __DIR__ . '/student.php';
 |--------------------------------------------------------------------------
 */
 
-require __DIR__ . '/instructor.php';
+require __DIR__.'/instructor.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -45,7 +44,7 @@ require __DIR__ . '/instructor.php';
 |--------------------------------------------------------------------------
 */
 
-require __DIR__ . '/receptionist.php';
+require __DIR__.'/receptionist.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -53,7 +52,7 @@ require __DIR__ . '/receptionist.php';
 |--------------------------------------------------------------------------
 */
 
-require __DIR__ . '/admin.php';
+require __DIR__.'/admin.php';
 
 /*
 |--------------------------------------------------------------------------

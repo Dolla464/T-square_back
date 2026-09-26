@@ -7,12 +7,12 @@ use App\Exceptions\InvalidUploadStateException;
 final class UploadStateMachine
 {
     private const ALLOWED_TRANSITIONS = [
-        'created'    => ['uploading'],
-        'uploading'  => ['uploading', 'uploaded'],
-        'uploaded'   => ['finalizing'],
+        'created' => ['uploading'],
+        'uploading' => ['uploading', 'uploaded'],
+        'uploaded' => ['finalizing'],
         'finalizing' => ['complete', 'failed'],
-        'complete'   => [],
-        'failed'     => ['uploading', 'uploaded'],
+        'complete' => [],
+        'failed' => ['uploading', 'uploaded'],
     ];
 
     public function assertTransitionAllowed(string $from, string $to): void

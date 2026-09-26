@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin\Certificate;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Arr;
@@ -41,11 +42,12 @@ class AdminCertificateResource extends JsonResource
                 // Scalar attribute — cast enums to their string value automatically.
                 $raw = $this->getAttributeValue($field);
                 $out[$field] = $raw instanceof \BackedEnum ? $raw->value : $raw;
+
                 continue;
             }
 
             $segments = explode('.', $field);
-            $root     = array_shift($segments);
+            $root = array_shift($segments);
 
             if (! $root) {
                 continue;
@@ -61,7 +63,7 @@ class AdminCertificateResource extends JsonResource
                 if ($value instanceof Collection) {
                     // One level deeper from a collection: gather and stop.
                     $value = $value->map(function ($item) use ($seg, &$segments) {
-                        return $item instanceof \Illuminate\Database\Eloquent\Model
+                        return $item instanceof Model
                             ? $item->{$seg} ?? null
                             : (is_array($item) ? ($item[$seg] ?? null) : null);
                     })->all();

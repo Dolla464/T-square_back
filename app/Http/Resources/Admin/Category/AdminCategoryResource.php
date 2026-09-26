@@ -19,15 +19,15 @@ class AdminCategoryResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'          => $this->id,
-            'name'        => $this->name,
-            'slug'        => $this->slug,
+            'id' => $this->id,
+            'name' => $this->name,
+            'slug' => $this->slug,
             'description' => $this->description,
-            'status'      => $this->status,
+            'status' => $this->status,
 
             // Parent category details — only present when the relationship is loaded.
             'parent' => $this->whenLoaded('parent', fn () => [
-                'id'   => $this->parent->id,
+                'id' => $this->parent->id,
                 'name' => $this->parent->name,
                 'slug' => $this->parent->slug,
             ]),

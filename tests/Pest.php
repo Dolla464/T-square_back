@@ -1,6 +1,10 @@
 <?php
 
+use App\Models\Course;
+use App\Models\CourseInstructor;
+use App\Models\Instructor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 /*
@@ -44,9 +48,9 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function courseInstructorIdFor(\App\Models\Course $course, \App\Models\Instructor $instructor): int
+function courseInstructorIdFor(Course $course, Instructor $instructor): int
 {
-    return \App\Models\CourseInstructor::firstOrCreate(
+    return CourseInstructor::firstOrCreate(
         [
             'course_id' => $course->id,
             'instructor_id' => $instructor->id,
@@ -55,16 +59,16 @@ function courseInstructorIdFor(\App\Models\Course $course, \App\Models\Instructo
     )->id;
 }
 
-function groupPayloadWithInstructor(\App\Models\Course $course, \App\Models\Instructor $instructor, array $overrides = []): array
+function groupPayloadWithInstructor(Course $course, Instructor $instructor, array $overrides = []): array
 {
     return array_merge([
         'course_instructor_id' => courseInstructorIdFor($course, $instructor),
     ], $overrides);
 }
 
-function actingAsInstructor(\App\Models\Instructor $instructor): void
+function actingAsInstructor(Instructor $instructor): void
 {
     $user = $instructor->user;
     $user->assignRole('instructor');
-    \Laravel\Sanctum\Sanctum::actingAs($user, ['*']);
+    Sanctum::actingAs($user, ['*']);
 }

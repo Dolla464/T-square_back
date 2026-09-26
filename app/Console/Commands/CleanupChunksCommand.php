@@ -7,7 +7,8 @@ use Illuminate\Console\Command;
 
 class CleanupChunksCommand extends Command
 {
-    protected $signature   = 'chunks:cleanup';
+    protected $signature = 'chunks:cleanup';
+
     protected $description = 'Delete stale incomplete upload sessions using meta.json expires_at and status';
 
     public function handle(UploadSessionService $uploadSession): int

@@ -22,8 +22,8 @@ class AttendanceSession extends Model
     ];
 
     protected $casts = [
-        'session_date'      => 'date',
-        'override_date'     => 'date',
+        'session_date' => 'date',
+        'override_date' => 'date',
     ];
 
     public function learningGroup()

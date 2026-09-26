@@ -38,7 +38,7 @@ class EnrollmentService
         $studentName = $student->user->name;
         $whatsappNumber = Setting::query()->where('key', 'whatsapp')->value('value');
         $message = "أهلاً، أنا {$studentName}، لقد قمت بالتسجيل للتو في كورس '{$course->title}' وأرغب في استكمال التفاصيل.";
-        $whatsappLink = "https://wa.me/{$whatsappNumber}?text=" . urlencode($message);
+        $whatsappLink = "https://wa.me/{$whatsappNumber}?text=".urlencode($message);
 
         return DB::transaction(function () use ($student, $payload, $course, $isPaidCourse, $whatsappLink) {
 
@@ -50,18 +50,17 @@ class EnrollmentService
 
             if ($existingEnrollment) {
                 throw ValidationException::withMessages([
-
                     // 'course_id' => ['You are already enrolled in this course.'],
                     'course_id' => [
                         'message' => 'You are already enrolled in this course.',
                         'error_code' => 'ALREADY_ENROLLED',
                         'details' => [
                             'enrollment_id' => $existingEnrollment->id,
-                            'enrolled_at'   => $existingEnrollment->created_class ?? $existingEnrollment->created_at->toDateTimeString(),
-                            'is_completed'  => (bool) $existingEnrollment->is_completed,
-                            'course_title'  => $course->title, 
-                            'price_paid'    => (float) $existingEnrollment->price_paid,
-                        ]
+                            'enrolled_at' => $existingEnrollment->created_class ?? $existingEnrollment->created_at->toDateTimeString(),
+                            'is_completed' => (bool) $existingEnrollment->is_completed,
+                            'course_title' => $course->title,
+                            'price_paid' => (float) $existingEnrollment->price_paid,
+                        ],
                     ],
                 ]);
             }

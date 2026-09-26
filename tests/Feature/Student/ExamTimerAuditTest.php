@@ -9,7 +9,6 @@ use App\Models\LearningGroup;
 use App\Models\Order;
 use App\Models\Question;
 use App\Models\Student;
-use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;

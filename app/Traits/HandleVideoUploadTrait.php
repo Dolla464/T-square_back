@@ -70,7 +70,7 @@ trait HandleVideoUploadTrait
         try {
             // Analyse getID3 only for small files (< 20MB) to avoid Timeout
             $fileSizeMB = $size / (1024 * 1024);
-            
+
             if ($fileSizeMB < 20) {
                 $id3 = new \getID3;
                 $fileInfo = $id3->analyze($absolutePath);
@@ -86,7 +86,7 @@ trait HandleVideoUploadTrait
             // For large files (> 20MB), we rely on the duration sent from the frontend
         } catch (\Throwable $e) {
             // getID3 analysis failed — duration stays null, size keeps the PHP value
-            
+
         }
 
         return [

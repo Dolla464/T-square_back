@@ -7,8 +7,8 @@ use App\Http\Requests\Admin\UpdateAdminReviewRequest;
 use App\Http\Resources\Admin\AdminReviewCollection;
 use App\Http\Resources\Admin\AdminReviewResource;
 use App\Models\CourseReview;
-use App\Services\Admin\AdminReviewService;
 use App\Services\Admin\AdminReviewAnalyticsService;
+use App\Services\Admin\AdminReviewService;
 use App\Support\HomePageCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -43,7 +43,7 @@ class AdminReviewController extends Controller
         // 3. تمرير الـ Paginator مباشرة، واستخدام additional لإرفاق الـ Meta Data (الإحصائيات) نظيفة في الـ JSON
         return (new AdminReviewCollection($reviews))
             ->additional([
-                'analytics' => $stats
+                'analytics' => $stats,
             ]);
     }
 

@@ -22,12 +22,12 @@ class GroupExamActivationService
             ->orderBy('title')
             ->get(['id', 'title', 'total_marks', 'passing_mark', 'max_attempts', 'is_active'])
             ->map(fn (Exam $exam) => [
-                'id'                     => $exam->id,
-                'title'                  => $exam->title,
-                'total_marks'            => $exam->total_marks,
-                'passing_mark'           => $exam->passing_mark,
-                'max_attempts'           => $exam->max_attempts,
-                'is_active'              => (bool) $exam->is_active,
+                'id' => $exam->id,
+                'title' => $exam->title,
+                'total_marks' => $exam->total_marks,
+                'passing_mark' => $exam->passing_mark,
+                'max_attempts' => $exam->max_attempts,
+                'is_active' => (bool) $exam->is_active,
                 'is_activated_for_group' => $activatedExamIds->has($exam->id),
             ])
             ->values()
@@ -51,7 +51,7 @@ class GroupExamActivationService
         if ($isActivated) {
             GroupExamActivation::updateOrCreate(
                 [
-                    'exam_id'           => $exam->id,
+                    'exam_id' => $exam->id,
                     'learning_group_id' => $group->id,
                 ],
                 [
@@ -67,8 +67,8 @@ class GroupExamActivationService
         }
 
         return [
-            'exam_id'                => $exam->id,
-            'learning_group_id'      => $group->id,
+            'exam_id' => $exam->id,
+            'learning_group_id' => $group->id,
             'is_activated_for_group' => $isActivated,
         ];
     }

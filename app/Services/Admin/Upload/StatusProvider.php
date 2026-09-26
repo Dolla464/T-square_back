@@ -4,7 +4,6 @@ namespace App\Services\Admin\Upload;
 
 use App\Models\Course;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Validation\ValidationException;
 
 final class StatusProvider
 {
@@ -33,9 +32,9 @@ final class StatusProvider
 
     private function buildStatusResponse(array $meta): array
     {
-        $totalChunks    = (int) $meta['total_chunks'];
+        $totalChunks = (int) $meta['total_chunks'];
         $completedCount = count($meta['completed_chunks'] ?? []);
-        $progress       = $totalChunks > 0
+        $progress = $totalChunks > 0
             ? (int) round($completedCount / $totalChunks * 100)
             : 0;
 
@@ -44,19 +43,19 @@ final class StatusProvider
         }
 
         return [
-            'meta_version'     => (int) ($meta['meta_version'] ?? config('upload.meta_version')),
-            'upload_id'        => $meta['upload_id'],
-            'status'           => $meta['status'],
-            'total_chunks'     => $totalChunks,
-            'completed_count'  => $completedCount,
-            'progress'         => $progress,
-            'missing_chunks'   => $this->missingChunks($meta),
-            'expected_filesize'=> (int) $meta['expected_filesize'],
-            'final_file'       => $meta['final_file'] ?? null,
-            'expires_at'       => $meta['expires_at'] ?? null,
-            'created_at'       => $meta['created_at'] ?? null,
-            'updated_at'       => $meta['updated_at'] ?? null,
-            'last_error'       => $meta['last_error'] ?? null,
+            'meta_version' => (int) ($meta['meta_version'] ?? config('upload.meta_version')),
+            'upload_id' => $meta['upload_id'],
+            'status' => $meta['status'],
+            'total_chunks' => $totalChunks,
+            'completed_count' => $completedCount,
+            'progress' => $progress,
+            'missing_chunks' => $this->missingChunks($meta),
+            'expected_filesize' => (int) $meta['expected_filesize'],
+            'final_file' => $meta['final_file'] ?? null,
+            'expires_at' => $meta['expires_at'] ?? null,
+            'created_at' => $meta['created_at'] ?? null,
+            'updated_at' => $meta['updated_at'] ?? null,
+            'last_error' => $meta['last_error'] ?? null,
         ];
     }
 

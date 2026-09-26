@@ -29,6 +29,7 @@ class TruncateAllTables extends Command
 
             if (! $this->confirm('Are you sure you want to continue?')) {
                 $this->components->info('Aborted. No changes were made.');
+
                 return self::SUCCESS;
             }
         }
@@ -41,6 +42,7 @@ class TruncateAllTables extends Command
 
         if (empty($tables)) {
             $this->components->warn('No tables found in the database.');
+
             return self::SUCCESS;
         }
 
@@ -58,7 +60,7 @@ class TruncateAllTables extends Command
 
         $this->call('db:seed', ['--class' => RoleSeeder::class,        '--force' => true]);
         $this->call('db:seed', ['--class' => AdminUserSeeder::class,   '--force' => true]);
-        $this->call('db:seed', ['--class' => ReceptionistSeeder::class,'--force' => true]);
+        $this->call('db:seed', ['--class' => ReceptionistSeeder::class, '--force' => true]);
         $this->call('db:seed', ['--class' => SettingSeeder::class,     '--force' => true]);
 
         // ── 4. Summary ───────────────────────────────────────────────────────
@@ -92,9 +94,9 @@ class TruncateAllTables extends Command
 
         $tables = match ($driver) {
             'mysql', 'mariadb' => $this->getMysqlTables(),
-            'pgsql'            => $this->getPgsqlTables(),
-            'sqlite'           => $this->getSqliteTables(),
-            default            => $this->getMysqlTables(),
+            'pgsql' => $this->getPgsqlTables(),
+            'sqlite' => $this->getSqliteTables(),
+            default => $this->getMysqlTables(),
         };
 
         return array_values(
@@ -135,7 +137,7 @@ class TruncateAllTables extends Command
      */
     private function truncateTables(array $tables): int
     {
-        $driver    = DB::getDriverName();
+        $driver = DB::getDriverName();
         $truncated = 0;
 
         try {
@@ -157,9 +159,9 @@ class TruncateAllTables extends Command
     {
         match ($driver) {
             'mysql', 'mariadb' => DB::statement('SET FOREIGN_KEY_CHECKS=0'),
-            'pgsql'            => DB::statement('SET session_replication_role = replica'),
-            'sqlite'           => DB::statement('PRAGMA foreign_keys = OFF'),
-            default            => null,
+            'pgsql' => DB::statement('SET session_replication_role = replica'),
+            'sqlite' => DB::statement('PRAGMA foreign_keys = OFF'),
+            default => null,
         };
     }
 
@@ -167,9 +169,9 @@ class TruncateAllTables extends Command
     {
         match ($driver) {
             'mysql', 'mariadb' => DB::statement('SET FOREIGN_KEY_CHECKS=1'),
-            'pgsql'            => DB::statement('SET session_replication_role = DEFAULT'),
-            'sqlite'           => DB::statement('PRAGMA foreign_keys = ON'),
-            default            => null,
+            'pgsql' => DB::statement('SET session_replication_role = DEFAULT'),
+            'sqlite' => DB::statement('PRAGMA foreign_keys = ON'),
+            default => null,
         };
     }
 }

@@ -18,7 +18,7 @@ class InstructorCourseController extends Controller
     public function index(Request $request): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 

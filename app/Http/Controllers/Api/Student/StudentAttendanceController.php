@@ -67,7 +67,7 @@ class StudentAttendanceController extends Controller
     {
         $request->validate([
             'from' => 'nullable|date',
-            'to'   => 'nullable|date|after_or_equal:from',
+            'to' => 'nullable|date|after_or_equal:from',
         ]);
 
         $student = $this->resolveStudent($request);
@@ -123,19 +123,19 @@ class StudentAttendanceController extends Controller
         }
 
         $sessionId = $request->query('session_id') ? (int) $request->query('session_id') : null;
-        $session   = $this->studentAttendanceService->findActiveSessionForStudent($student, $sessionId);
+        $session = $this->studentAttendanceService->findActiveSessionForStudent($student, $sessionId);
 
-        if (!$session) {
+        if (! $session) {
             return $this->errorResponse('No active session found for your enrolled groups.', 404);
         }
 
         $session->loadMissing(['learningGroup.course:id,title']);
 
-        $now   = Carbon::now();
+        $now = Carbon::now();
         $range = $this->attendanceSessionService->getEffectiveDateTimeRange($session);
 
         $windowStart = $range['start']->copy()->subMinutes(30);
-        $windowEnd   = $range['end']->copy()->addMinutes(30);
+        $windowEnd = $range['end']->copy()->addMinutes(30);
 
         if ($now->lt($windowStart) || $now->gt($windowEnd)) {
             return $this->errorResponse(
@@ -145,23 +145,23 @@ class StudentAttendanceController extends Controller
         }
 
         $expiresAt = $range['end']->copy()->addMinutes(30);
-        $qrCode    = 'att_' . Str::random(16);
+        $qrCode = 'att_'.Str::random(16);
 
         $record = AttendanceRecord::updateOrCreate(
             ['session_id' => $session->id, 'student_id' => $student->id],
             [
                 'student_qr_code' => $qrCode,
-                'status'          => 'absent',
-                'marked_by'       => 'student_qr',
-                'qr_expires_at'   => $expiresAt,
+                'status' => 'absent',
+                'marked_by' => 'student_qr',
+                'qr_expires_at' => $expiresAt,
             ]
         );
 
         return $this->successResponse([
-            'qr_code'      => $record->student_qr_code,
-            'session_id'   => $session->id,
-            'expires_at'   => $expiresAt->toDateTimeString(),
-            'group_name'   => $session->learningGroup->group_name ?? null,
+            'qr_code' => $record->student_qr_code,
+            'session_id' => $session->id,
+            'expires_at' => $expiresAt->toDateTimeString(),
+            'group_name' => $session->learningGroup->group_name ?? null,
             'course_title' => $session->learningGroup->course->title ?? null,
         ], 'QR code generated successfully');
     }
@@ -207,11 +207,11 @@ class StudentAttendanceController extends Controller
             return $this->errorResponse('You are not enrolled in this session\'s group.', 403);
         }
 
-        $now   = Carbon::now();
+        $now = Carbon::now();
         $range = $this->attendanceSessionService->getEffectiveDateTimeRange($session);
 
         $windowStart = $range['start']->copy()->subMinutes(30);
-        $windowEnd   = $range['end']->copy()->addMinutes(30);
+        $windowEnd = $range['end']->copy()->addMinutes(30);
 
         if ($now->lt($windowStart) || $now->gt($windowEnd)) {
             return $this->errorResponse(
@@ -223,7 +223,7 @@ class StudentAttendanceController extends Controller
         $record = AttendanceRecord::updateOrCreate(
             ['session_id' => $session->id, 'student_id' => $student->id],
             [
-                'status'    => 'present',
+                'status' => 'present',
                 'marked_by' => 'student_app',
                 'marked_at' => $now,
             ]
@@ -233,11 +233,11 @@ class StudentAttendanceController extends Controller
         broadcast(new StudentScanned($record))->toOthers();
 
         return $this->successResponse([
-            'session_id'   => $session->id,
-            'student_id'   => $student->id,
-            'status'       => $record->status,
-            'marked_at'    => $record->marked_at->toDateTimeString(),
-            'group_name'   => $session->learningGroup->group_name ?? null,
+            'session_id' => $session->id,
+            'student_id' => $student->id,
+            'status' => $record->status,
+            'marked_at' => $record->marked_at->toDateTimeString(),
+            'group_name' => $session->learningGroup->group_name ?? null,
             'course_title' => $session->learningGroup->course->title ?? null,
         ], 'Attendance recorded successfully');
     }
@@ -246,7 +246,7 @@ class StudentAttendanceController extends Controller
     {
         $student = $request->user()?->student;
 
-        if (!$student) {
+        if (! $student) {
             return $this->errorResponse('Student profile not found.', 404);
         }
 

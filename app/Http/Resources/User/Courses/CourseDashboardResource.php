@@ -37,7 +37,7 @@ class CourseDashboardResource extends JsonResource
             'price_before' => $this->whenNotNull($this->price_before),
             'discount_price' => $this->whenNotNull($this->discount_price),
             'price' => $this->whenNotNull($this->price),
-            'is_free' => $this->when(isset($this->is_free), fn() => (bool) $this->is_free),
+            'is_free' => $this->when(isset($this->is_free), fn () => (bool) $this->is_free),
             'level' => $this->whenNotNull($this->level),
             'language' => $this->whenNotNull($this->language),
             'duration_weeks' => $this->whenNotNull($this->duration_weeks),
@@ -59,21 +59,21 @@ class CourseDashboardResource extends JsonResource
             ]),
 
             // ── التصنيف ─────────────────────────────────────────────────────
-            'category' => $this->whenLoaded('category', fn() => [
+            'category' => $this->whenLoaded('category', fn () => [
                 'id' => $this->category->id,
                 'name' => $this->category->name,
                 'slug' => $this->category->slug,
             ]),
 
-            'tags' => $this->whenLoaded('tags', fn() => $this->tags->map(fn($tag) => [
+            'tags' => $this->whenLoaded('tags', fn () => $this->tags->map(fn ($tag) => [
                 'id' => $tag->id,
                 'name' => $tag->name,
                 'slug' => $tag->slug,
             ])->values(), []),
 
-            'learnings' => $this->whenLoaded('learnings', fn() => $this->learnings->pluck('title'), []),
+            'learnings' => $this->whenLoaded('learnings', fn () => $this->learnings->pluck('title'), []),
 
-            'previews' => $this->whenLoaded('previews', fn() => $this->previews->map(fn($preview) => [
+            'previews' => $this->whenLoaded('previews', fn () => $this->previews->map(fn ($preview) => [
                 'id' => $preview->id,
                 'title' => $preview->title,
                 'video_url' => $preview->video_url,
@@ -85,7 +85,7 @@ class CourseDashboardResource extends JsonResource
 
             'lessons' => $this->whenLoaded('lessons', fn () => StudentLessonResource::collection($this->lessons)->resolve(), []),
 
-        // ── حالة الـ Enrollment ─────────────────────────────────────────
+            // ── حالة الـ Enrollment ─────────────────────────────────────────
             'enrollment' => $enrollment ? (function () use ($enrollment) {
                 $review = CourseReview::query()
                     ->where('course_id', $this->id)

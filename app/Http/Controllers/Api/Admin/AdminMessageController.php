@@ -29,8 +29,8 @@ class AdminMessageController extends Controller
      */
     public function index(IndexMessageRequest $request): MessageCollection
     {
-        $filters  = $request->only(['search', 'date_filter']);
-        $perPage  = (int) $request->query('per_page', 10);
+        $filters = $request->only(['search', 'date_filter']);
+        $perPage = (int) $request->query('per_page', 10);
 
         $messages = $this->messageService->index($perPage, $filters);
 

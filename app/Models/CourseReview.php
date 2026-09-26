@@ -18,10 +18,13 @@ class CourseReview extends Model
     ];
 
     public const REVIEW_STATUS_ACCEPTED = 'accepted';
+
     public const REVIEW_STATUS_PENDING = 'pending';
+
     public const REVIEW_STATUS_REJECTED = 'rejected';
 
     public const STATUS_ACTIVE = 'active';
+
     public const STATUS_INACTIVE = 'inactive';
 
     protected static function boot()

@@ -115,44 +115,44 @@ class AdminReviewService
     private function formatReviewRow(CourseReview $review): array
     {
         return [
-            'id'                => $review->id,
-            'course_id'         => $review->course_id,
-            'student_id'        => $review->student_id,
-            'review_status'     => $review->review_status,
-            'instructor_id'     => $review->instructor_id,
-            'content_rating'    => $review->content_rating,
+            'id' => $review->id,
+            'course_id' => $review->course_id,
+            'student_id' => $review->student_id,
+            'review_status' => $review->review_status,
+            'instructor_id' => $review->instructor_id,
+            'content_rating' => $review->content_rating,
             'instructor_rating' => $review->instructor_rating,
-            'center_rating'     => $review->center_rating,
-            'rating'            => $review->rating,
-            'overall_comment'   => $review->overall_comment,
-            'course_title'      => $review->course?->title,
-            'student_name'      => $review->student?->full_name,
-            'instructor_name'   => $review->instructor?->full_name,
-            'created_at'        => $review->created_at?->format('Y-m-d H:i:s'),
-            'updated_at'        => $review->updated_at?->format('Y-m-d H:i:s'),
-            'has_review'        => true,
+            'center_rating' => $review->center_rating,
+            'rating' => $review->rating,
+            'overall_comment' => $review->overall_comment,
+            'course_title' => $review->course?->title,
+            'student_name' => $review->student?->full_name,
+            'instructor_name' => $review->instructor?->full_name,
+            'created_at' => $review->created_at?->format('Y-m-d H:i:s'),
+            'updated_at' => $review->updated_at?->format('Y-m-d H:i:s'),
+            'has_review' => true,
         ];
     }
 
     private function formatNotReviewedRow($student, ?string $courseTitle): array
     {
         return [
-            'id'                => null,
-            'course_id'         => null,
-            'student_id'        => $student->id,
-            'review_status'     => 'not_reviewed',
-            'instructor_id'     => null,
-            'content_rating'    => null,
+            'id' => null,
+            'course_id' => null,
+            'student_id' => $student->id,
+            'review_status' => 'not_reviewed',
+            'instructor_id' => null,
+            'content_rating' => null,
             'instructor_rating' => null,
-            'center_rating'     => null,
-            'rating'            => null,
-            'overall_comment'   => null,
-            'course_title'      => $courseTitle,
-            'student_name'      => $student->full_name,
-            'instructor_name'   => null,
-            'created_at'        => null,
-            'updated_at'        => null,
-            'has_review'        => false,
+            'center_rating' => null,
+            'rating' => null,
+            'overall_comment' => null,
+            'course_title' => $courseTitle,
+            'student_name' => $student->full_name,
+            'instructor_name' => null,
+            'created_at' => null,
+            'updated_at' => null,
+            'has_review' => false,
         ];
     }
 
@@ -199,7 +199,7 @@ class AdminReviewService
             $perPage,
             $page,
             [
-                'path'  => request()->url(),
+                'path' => request()->url(),
                 'query' => request()->query(),
             ]
         );

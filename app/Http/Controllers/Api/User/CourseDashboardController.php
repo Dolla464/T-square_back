@@ -9,9 +9,9 @@ use App\Models\Student;
 use App\Models\User;
 use App\Services\User\CourseDashboardService;
 use App\Traits\ApiResponseTrait;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
  * @tags Courses

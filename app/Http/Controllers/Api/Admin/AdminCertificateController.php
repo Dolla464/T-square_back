@@ -57,8 +57,8 @@ class AdminCertificateController extends Controller
         $originalData = $responseData['data'] ?? [];
 
         $responseData['data'] = [
-            'statistics'   => $result['stats'],
-            'certificates' => $originalData
+            'statistics' => $result['stats'],
+            'certificates' => $originalData,
         ];
 
         // 6. Reset the new data for the Response and return it

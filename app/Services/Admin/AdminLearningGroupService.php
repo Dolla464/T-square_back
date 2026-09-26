@@ -2,20 +2,19 @@
 
 namespace App\Services\Admin;
 
-use App\Models\AttendanceRecord;
+use App\Http\Resources\Admin\LearningGroup\AdminLearningGroupResource;
 use App\Models\AttendanceSession;
 use App\Models\Course;
 use App\Models\CourseReview;
 use App\Models\Enrollment;
 use App\Models\LearningGroup;
-use App\Http\Resources\Admin\LearningGroup\AdminLearningGroupResource;
 use App\Notifications\CourseReviewRequired;
 use App\Notifications\InstructorGroupAssignedNotification;
 use App\Services\Enrollment\EnrollmentCompletionGuard;
 use Carbon\Carbon;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 class AdminLearningGroupService
 {
@@ -92,8 +91,8 @@ class AdminLearningGroupService
             ->get()
             ->map(function ($group) {
                 return [
-                    'id'        => $group->id,
-                    'name'      => $group->group_name,
+                    'id' => $group->id,
+                    'name' => $group->group_name,
                     'course_id' => $group->course_id,
                 ];
             });
@@ -106,21 +105,21 @@ class AdminLearningGroupService
     {
         return DB::transaction(function () use ($data) {
             $isHistorical = filter_var($data['is_historical'] ?? false, FILTER_VALIDATE_BOOLEAN);
-            $course       = Course::findOrFail($data['course_id']);
-            $startDate    = Carbon::parse($data['start_date']);
-            $endDate      = $this->calculateGroupEndDate($startDate, $course->duration_weeks);
-            $status       = $this->resolveInitialGroupStatus($data, $startDate, $endDate, $isHistorical);
+            $course = Course::findOrFail($data['course_id']);
+            $startDate = Carbon::parse($data['start_date']);
+            $endDate = $this->calculateGroupEndDate($startDate, $course->duration_weeks);
+            $status = $this->resolveInitialGroupStatus($data, $startDate, $endDate, $isHistorical);
 
             $group = LearningGroup::create([
                 'group_name' => $data['group_name'],
                 'course_id' => $data['course_id'],
                 'course_instructor_id' => $data['course_instructor_id'],
                 'start_date' => $startDate,
-                'end_date'      => $endDate,
-                'status'        => $status,
+                'end_date' => $endDate,
+                'status' => $status,
             ]);
 
-            if (!empty($data['schedules'])) {
+            if (! empty($data['schedules'])) {
                 foreach ($data['schedules'] as $schedule) {
                     $group->schedules()->create($schedule);
                 }
@@ -214,10 +213,10 @@ class AdminLearningGroupService
             ];
 
             if (isset($data['start_date'])) {
-                $course                  = Course::findOrFail($data['course_id']);
-                $startDate               = Carbon::parse($data['start_date']);
+                $course = Course::findOrFail($data['course_id']);
+                $startDate = Carbon::parse($data['start_date']);
                 $updateData['start_date'] = $startDate;
-                $updateData['end_date']   = $this->calculateGroupEndDate($startDate, $course->duration_weeks);
+                $updateData['end_date'] = $this->calculateGroupEndDate($startDate, $course->duration_weeks);
             }
 
             if (isset($data['status'])) {
@@ -272,8 +271,8 @@ class AdminLearningGroupService
     ): array {
         $result = [
             'enrollments_completed' => 0,
-            'enrollments_reopened'  => 0,
-            'notifications_sent'    => 0,
+            'enrollments_reopened' => 0,
+            'notifications_sent' => 0,
             'newly_completed_enrollments' => new Collection,
         ];
 
@@ -413,6 +412,7 @@ class AdminLearningGroupService
 
             if ($enrollment === null) {
                 $skippedStudentIds[] = $studentId;
+
                 continue;
             }
 
@@ -422,7 +422,7 @@ class AdminLearningGroupService
                 $enrollment->markAsCompleted();
             } else {
                 $enrollment->update([
-                    'group_id'     => $group->id,
+                    'group_id' => $group->id,
                     'is_completed' => false,
                     'completed_at' => null,
                 ]);
@@ -476,7 +476,7 @@ class AdminLearningGroupService
         $schedules,
         bool $skipExisting = false
     ): void {
-        $dayMap      = self::dayOfWeekMap();
+        $dayMap = self::dayOfWeekMap();
         $currentDate = $fromDate->copy();
 
         while ($currentDate->lte($toDate)) {
@@ -500,9 +500,9 @@ class AdminLearningGroupService
 
                 AttendanceSession::create([
                     'learning_group_id' => $group->id,
-                    'schedule_id'       => $schedule->id,
-                    'session_date'      => $currentDate->copy(),
-                    'status'            => 'upcoming',
+                    'schedule_id' => $schedule->id,
+                    'session_date' => $currentDate->copy(),
+                    'status' => 'upcoming',
                 ]);
             }
 
@@ -513,9 +513,9 @@ class AdminLearningGroupService
     /**
      * Sync weekly schedule rows in-place (no mass delete) to preserve historical sessions.
      *
-     * @return \Illuminate\Support\Collection Active schedule rows used for future generation
+     * @return Collection Active schedule rows used for future generation
      */
-    private function syncGroupSchedules(LearningGroup $group, array $newSchedules): \Illuminate\Support\Collection
+    private function syncGroupSchedules(LearningGroup $group, array $newSchedules): Collection
     {
         $group->load('schedules');
 
@@ -530,8 +530,8 @@ class AdminLearningGroupService
                 $schedule = $existing->get($day);
                 $schedule->update([
                     'start_time' => $scheduleData['start_time'],
-                    'end_time'   => $scheduleData['end_time'],
-                    'room'       => $scheduleData['room'] ?? null,
+                    'end_time' => $scheduleData['end_time'],
+                    'room' => $scheduleData['room'] ?? null,
                 ]);
                 $activeIds[] = $schedule->id;
             } else {
@@ -562,10 +562,10 @@ class AdminLearningGroupService
     {
         $group->refresh();
 
-        $cutoff  = Carbon::today();
+        $cutoff = Carbon::today();
         $endDate = $group->end_date->copy();
         $cutoffStr = $cutoff->toDateString();
-        $endStr    = $endDate->toDateString();
+        $endStr = $endDate->toDateString();
 
         AttendanceSession::where('learning_group_id', $group->id)
             ->where('status', 'upcoming')
@@ -630,14 +630,14 @@ class AdminLearningGroupService
         $group->loadMissing('course:id,duration_weeks');
 
         $base = [
-            'group_id'         => $group->id,
-            'group_name'       => $group->group_name,
-            'updated'          => false,
+            'group_id' => $group->id,
+            'group_name' => $group->group_name,
+            'updated' => false,
             'end_date_changed' => false,
-            'old_end_date'     => $group->end_date?->format('Y-m-d'),
-            'new_end_date'     => null,
+            'old_end_date' => $group->end_date?->format('Y-m-d'),
+            'new_end_date' => null,
             'sessions_removed' => 0,
-            'skipped_reason'   => null,
+            'skipped_reason' => null,
         ];
 
         if (! $group->start_date) {
@@ -671,13 +671,13 @@ class AdminLearningGroupService
 
         if ($dryRun) {
             $projectedEndDate = $this->resolveProjectedGroupEndDate($group, $upperBound);
-            $projectedEndStr  = $projectedEndDate->format('Y-m-d');
-            $endDateChanged   = $base['old_end_date'] !== $projectedEndStr;
+            $projectedEndStr = $projectedEndDate->format('Y-m-d');
+            $endDateChanged = $base['old_end_date'] !== $projectedEndStr;
 
-            $base['new_end_date']     = $projectedEndStr;
+            $base['new_end_date'] = $projectedEndStr;
             $base['end_date_changed'] = $endDateChanged;
             $base['sessions_removed'] = $sessionsRemoved;
-            $base['updated']          = $endDateChanged || $sessionsRemoved > 0;
+            $base['updated'] = $endDateChanged || $sessionsRemoved > 0;
 
             return $base;
         }
@@ -693,11 +693,11 @@ class AdminLearningGroupService
 
         $group->refresh();
 
-        $newEndStr      = $group->end_date?->format('Y-m-d');
+        $newEndStr = $group->end_date?->format('Y-m-d');
         $endDateChanged = $base['old_end_date'] !== $newEndStr;
 
-        $base['updated']          = true;
-        $base['new_end_date']     = $newEndStr;
+        $base['updated'] = true;
+        $base['new_end_date'] = $newEndStr;
         $base['end_date_changed'] = $endDateChanged;
         $base['sessions_removed'] = $sessionsRemoved;
 
@@ -717,7 +717,7 @@ class AdminLearningGroupService
             return null;
         }
 
-        $dayMap    = self::dayOfWeekMap();
+        $dayMap = self::dayOfWeekMap();
         $lastDates = [];
 
         foreach ($schedules as $schedule) {
@@ -852,8 +852,8 @@ class AdminLearningGroupService
         return [
             'historical_backfill' => [
                 'past_sessions_completed' => $pastCompleted,
-                'today_upcoming'          => (int) ($counts->today_count ?? 0),
-                'future_upcoming'         => (int) ($counts->future_count ?? 0),
+                'today_upcoming' => (int) ($counts->today_count ?? 0),
+                'future_upcoming' => (int) ($counts->future_count ?? 0),
             ],
         ];
     }
@@ -865,7 +865,7 @@ class AdminLearningGroupService
     {
         $group = DB::table('learning_groups')->where('id', $groupId)->first();
 
-        if (!$group) {
+        if (! $group) {
             return ['success' => false, 'status' => 404, 'message' => 'Group not found.'];
         }
 
@@ -913,7 +913,7 @@ class AdminLearningGroupService
             }
         }
 
-        if (!empty($paidStudentIds)) {
+        if (! empty($paidStudentIds)) {
             DB::table('enrollments')
                 ->where('course_id', $courseId)
                 ->whereIn('student_id', $paidStudentIds)
@@ -930,7 +930,7 @@ class AdminLearningGroupService
         }
 
         return [
-            'success'        => true,
+            'success' => true,
             'assigned_count' => count($paidStudentIds),
             'unpaid_students' => $unpaidStudents,
         ];
@@ -970,7 +970,7 @@ class AdminLearningGroupService
     private function assertGroupAllowsNewCompletions(LearningGroup $group): void
     {
         $probe = new Enrollment([
-            'group_id'     => $group->id,
+            'group_id' => $group->id,
             'is_completed' => false,
         ]);
         $probe->setRelation('learningGroup', $group);
@@ -1005,7 +1005,7 @@ class AdminLearningGroupService
             ->get();
 
         return [
-            'group'    => $group,
+            'group' => $group,
             'students' => $students,
         ];
     }

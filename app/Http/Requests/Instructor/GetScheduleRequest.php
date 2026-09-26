@@ -9,6 +9,7 @@ class GetScheduleRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
+
         return $user !== null && $user->instructor()->exists();
     }
 
@@ -22,7 +23,7 @@ class GetScheduleRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'date.date'        => 'The date must be a valid date.',
+            'date.date' => 'The date must be a valid date.',
             'date.date_format' => 'The date must be in Y-m-d format (e.g. 2026-06-28).',
         ];
     }

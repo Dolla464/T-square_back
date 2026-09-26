@@ -121,14 +121,15 @@ class AdminStudentController extends Controller
     public function updateCourseGroup(Request $request, Student $student, $courseId)
     {
         $request->validate([
-            'group_id' => 'required|exists:learning_groups,id'
+            'group_id' => 'required|exists:learning_groups,id',
         ]);
 
-        $success = $this->studentService->updateCourseGroup($student, (int)$courseId, $request->group_id);
+        $success = $this->studentService->updateCourseGroup($student, (int) $courseId, $request->group_id);
 
         if ($success) {
             // Reload the student and group data from the database immediately
             $student->refresh();
+
             return $this->successResponse(
                 null,
                 'Course group updated successfully'
@@ -148,10 +149,10 @@ class AdminStudentController extends Controller
     {
         // Check that the sent value is logical (true or false)
         $request->validate([
-            'is_completed' => 'required|boolean'
+            'is_completed' => 'required|boolean',
         ]);
 
-        $success = $this->studentService->updateCourseStatus($student, (int)$courseId, $request->is_completed);
+        $success = $this->studentService->updateCourseStatus($student, (int) $courseId, $request->is_completed);
 
         if ($success) {
             // Reload the data immediately so the Resource is updated completely

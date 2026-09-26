@@ -10,9 +10,9 @@ return new class extends Migration
     {
         Schema::table('certificates', function (Blueprint $table) {
             $table->string('status', 20)
-                  ->default('issued')
-                  ->after('issued_at')
-                  ->comment('Allowed values: issued | pending | revoked');
+                ->default('issued')
+                ->after('issued_at')
+                ->comment('Allowed values: issued | pending | revoked');
 
             $table->index('status');
         });

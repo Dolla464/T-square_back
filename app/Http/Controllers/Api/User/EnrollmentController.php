@@ -70,7 +70,7 @@ class EnrollmentController extends Controller
         $user = auth()->user();
         $student = $user->student;
 
-        if (!$student) {
+        if (! $student) {
             return $this->errorResponse(
                 message: 'Only students can check enrollment status.',
                 code: 403
@@ -96,7 +96,7 @@ class EnrollmentController extends Controller
 
         return $this->successResponse(
             data: [
-                'is_enrolled' => $isEnrolled
+                'is_enrolled' => $isEnrolled,
             ],
             message: 'Enrollment status checked successfully.'
         );

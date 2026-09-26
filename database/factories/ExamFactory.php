@@ -16,17 +16,17 @@ class ExamFactory extends Factory
         $totalMarks = $this->faker->randomElement([50, 100, 200]);
 
         return [
-            'course_id'            => Course::inRandomOrder()->first()?->id ?? Course::factory(),
-            'title'                => $this->faker->words(3, true) . ' Exam',
-            'description'          => $this->faker->paragraph(),
-            'duration'             => $this->faker->randomElement([30, 60, 90, 120]),
-            'total_marks'          => $totalMarks,
-            'passing_mark'         => round($totalMarks * 0.6, 2),
-            'is_active'            => true,
-            'is_final'             => false,
-            'max_attempts'         => $this->faker->randomElement([1, 2, 3]),
-            'questions_per_attempt'=> $this->faker->numberBetween(5, 15),
-            'shuffle_questions'    => $this->faker->boolean(50),
+            'course_id' => Course::inRandomOrder()->first()?->id ?? Course::factory(),
+            'title' => $this->faker->words(3, true).' Exam',
+            'description' => $this->faker->paragraph(),
+            'duration' => $this->faker->randomElement([30, 60, 90, 120]),
+            'total_marks' => $totalMarks,
+            'passing_mark' => round($totalMarks * 0.6, 2),
+            'is_active' => true,
+            'is_final' => false,
+            'max_attempts' => $this->faker->randomElement([1, 2, 3]),
+            'questions_per_attempt' => $this->faker->numberBetween(5, 15),
+            'shuffle_questions' => $this->faker->boolean(50),
         ];
     }
 

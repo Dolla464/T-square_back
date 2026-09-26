@@ -23,26 +23,26 @@ class InstructorExamResultNotification extends Notification implements ShouldQue
 
     public function toDatabase(object $notifiable): array
     {
-        $isPassed    = $this->attempt->status === 'passed';
+        $isPassed = $this->attempt->status === 'passed';
         $studentName = $this->attempt->student?->full_name ?? 'A student';
-        $examTitle   = $this->attempt->exam?->title ?? 'Exam';
-        $score       = $this->attempt->score;
-        $result      = $isPassed ? 'passed' : 'failed';
-        $groupPart   = $this->groupName ? " in group \"{$this->groupName}\"" : '';
+        $examTitle = $this->attempt->exam?->title ?? 'Exam';
+        $score = $this->attempt->score;
+        $result = $isPassed ? 'passed' : 'failed';
+        $groupPart = $this->groupName ? " in group \"{$this->groupName}\"" : '';
 
         return [
-            'type'         => 'instructor_exam_result',
-            'title'        => 'Student Exam Result',
-            'message'      => "{$studentName} {$result} the exam \"{$examTitle}\"{$groupPart}. Score: {$score}.",
-            'student_id'   => $this->attempt->student_id,
+            'type' => 'instructor_exam_result',
+            'title' => 'Student Exam Result',
+            'message' => "{$studentName} {$result} the exam \"{$examTitle}\"{$groupPart}. Score: {$score}.",
+            'student_id' => $this->attempt->student_id,
             'student_name' => $studentName,
-            'exam_id'      => $this->attempt->exam_id,
-            'exam_title'   => $examTitle,
-            'attempt_id'   => $this->attempt->id,
-            'group_name'   => $this->groupName,
-            'status'       => $this->attempt->status,
-            'score'        => $score,
-            'icon'         => $isPassed ? 'patch-check' : 'x-circle',
+            'exam_id' => $this->attempt->exam_id,
+            'exam_title' => $examTitle,
+            'attempt_id' => $this->attempt->id,
+            'group_name' => $this->groupName,
+            'status' => $this->attempt->status,
+            'score' => $score,
+            'icon' => $isPassed ? 'patch-check' : 'x-circle',
         ];
     }
 

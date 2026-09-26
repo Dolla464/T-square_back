@@ -20,9 +20,9 @@ class IndexCertificateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'search'   => ['sometimes', 'nullable', 'string', 'max:255'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
             'group_id' => ['sometimes', 'nullable', 'integer', 'min:1', 'exists:learning_groups,id'],
-            'status'   => ['sometimes', 'nullable', new Enum(CertificateStatus::class)],
+            'status' => ['sometimes', 'nullable', new Enum(CertificateStatus::class)],
             'per_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
         ];
     }

@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Exam\ExamFilterRequest;
 use App\Http\Requests\Admin\Exam\UpdateExamRequest;
-use App\Services\Admin\AdminExamService;
 use App\Http\Resources\Admin\AdminExamResource;
 use App\Models\Exam;
-use Illuminate\Http\Request;
+use App\Services\Admin\AdminExamService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * @tags Admin: Exams
@@ -96,6 +96,7 @@ class AdminExamController extends Controller
     public function trash(): JsonResponse
     {
         $trashedExams = $this->examService->getTrashedExams();
+
         return $this->paginateResponse(AdminExamResource::collection($trashedExams), 'Trashed exams fetched successfully');
     }
 

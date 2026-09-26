@@ -8,8 +8,8 @@ use App\Http\Requests\Admin\UploadQuestionImageRequest;
 use App\Http\Resources\Admin\AdminQuestionResource;
 use App\Models\Question;
 use App\Services\Admin\AdminQuestionService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * @tags Admin: Questions
@@ -79,6 +79,7 @@ class AdminQuestionController extends Controller
             200
         );
     }
+
     /**
      * Delete a question
      */

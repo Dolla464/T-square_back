@@ -29,24 +29,24 @@ class InstructorSeeder extends Seeder
 
         for ($i = 1; $i <= 7; $i++) {
             $user = User::factory()->instructor()->create([
-                'name'     => "Instructor {$i}",
-                'email'    => "instructor{$i}@tsquare.com",
+                'name' => "Instructor {$i}",
+                'email' => "instructor{$i}@tsquare.com",
                 'password' => Hash::make('password'),
             ]);
 
             $user->syncRoles(['instructor']);
 
             Instructor::create([
-                'user_id'      => $user->id,
-                'full_name'    => $user->name,
-                'phone'        => '010' . str_pad($i * 11, 8, '0', STR_PAD_LEFT),
-                'gender'       => $i % 2 === 0 ? 'female' : 'male',
-                'field'        => $fields[$i - 1],
-                'bio'          => "مدرب متخصص في {$fields[$i - 1]} مع خبرة تزيد عن " . rand(3, 10) . " سنوات.",
-                'insta_url'    => "https://instagram.com/instructor{$i}",
+                'user_id' => $user->id,
+                'full_name' => $user->name,
+                'phone' => '010'.str_pad($i * 11, 8, '0', STR_PAD_LEFT),
+                'gender' => $i % 2 === 0 ? 'female' : 'male',
+                'field' => $fields[$i - 1],
+                'bio' => "مدرب متخصص في {$fields[$i - 1]} مع خبرة تزيد عن ".rand(3, 10).' سنوات.',
+                'insta_url' => "https://instagram.com/instructor{$i}",
                 'linkedin_url' => "https://linkedin.com/in/instructor{$i}",
                 'facebook_url' => "https://facebook.com/instructor{$i}",
-                'status'       => 'active',
+                'status' => 'active',
             ]);
         }
 

@@ -29,20 +29,20 @@ function createEnrollmentForGuardTest(
     $student = Student::factory()->create();
 
     $order = Order::create([
-        'student_id'    => $student->id,
-        'total_amount'  => 500,
-        'status'        => 'completed',
-        'billing_name'  => 'Test Billing',
+        'student_id' => $student->id,
+        'total_amount' => 500,
+        'status' => 'completed',
+        'billing_name' => 'Test Billing',
         'billing_email' => 'billing@test.com',
         'billing_phone' => '01000000000',
     ]);
 
     return Enrollment::create([
-        'student_id'   => $student->id,
-        'course_id'    => $course->id,
-        'order_id'     => $order->id,
-        'group_id'     => $group?->id,
-        'price_paid'   => 500,
+        'student_id' => $student->id,
+        'course_id' => $course->id,
+        'order_id' => $order->id,
+        'group_id' => $group?->id,
+        'price_paid' => 500,
         'is_completed' => $isCompleted,
         'completed_at' => $isCompleted ? now() : null,
     ]);
@@ -54,13 +54,13 @@ function createGroupForGuardTest(
     string $status = 'active',
 ): LearningGroup {
     return LearningGroup::create([
-        'group_name'           => 'Guard Test Batch',
-        'course_id'            => $course->id,
+        'group_name' => 'Guard Test Batch',
+        'course_id' => $course->id,
         'course_instructor_id' => courseInstructorIdFor($course, $instructor),
-        'start_date'           => now()->toDateString(),
-        'end_date'             => now()->addWeeks(4)->toDateString(),
-        'status'               => $status,
-        'enrolled_students'    => 0,
+        'start_date' => now()->toDateString(),
+        'end_date' => now()->addWeeks(4)->toDateString(),
+        'status' => $status,
+        'enrolled_students' => 0,
     ]);
 }
 

@@ -15,15 +15,16 @@ use Illuminate\Support\Str;
 
 class ActivateAttendanceSessions extends Command
 {
-    protected $signature   = 'attendance:activate';
+    protected $signature = 'attendance:activate';
+
     protected $description = 'Activate upcoming attendance sessions within the activation window.';
 
     public function handle(AttendanceSessionService $attendanceSessionService): void
     {
-        $now         = Carbon::now();
+        $now = Carbon::now();
         $windowStart = $now->copy()->subMinutes(5);
-        $windowEnd   = $now->copy()->addMinutes(30);
-        $today       = $now->toDateString();
+        $windowEnd = $now->copy()->addMinutes(30);
+        $today = $now->toDateString();
 
         $this->line('=== attendance:activate ===');
         $this->line("Now: {$now->toDateTimeString()} | Window: {$windowStart->format('H:i:s')} → {$windowEnd->format('H:i:s')}");
@@ -45,14 +46,14 @@ class ActivateAttendanceSessions extends Command
 
         foreach ($sessions as $session) {
             DB::transaction(function () use ($session, &$activated) {
-                $qrCode = 'sess_' . Str::random(16);
+                $qrCode = 'sess_'.Str::random(16);
 
                 while (AttendanceSession::where('qr_code', $qrCode)->exists()) {
-                    $qrCode = 'sess_' . Str::random(16);
+                    $qrCode = 'sess_'.Str::random(16);
                 }
 
                 $session->update([
-                    'status'  => 'active',
+                    'status' => 'active',
                     'qr_code' => $qrCode,
                 ]);
 
@@ -84,7 +85,7 @@ class ActivateAttendanceSessions extends Command
         $this->info("Activated {$activated} session(s).");
 
         Log::info('attendance:activate', [
-            'now'       => $now->toDateTimeString(),
+            'now' => $now->toDateTimeString(),
             'activated' => $activated,
         ]);
     }

@@ -19,13 +19,14 @@ class ProcessWebsiteMediaJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     use HandleImageUploadTrait;
 
-    public int $tries   = 3;
+    public int $tries = 3;
+
     public int $timeout = 300;
 
     /**
      * @param  array<int, string>  $pendingPaths  Paths on the local disk (pending/website-media/…)
-     * @param  array<int, string>  $oldImages     URLs/paths to delete from public disk after success
-     * @param  array<int, string>  $baseImages    Existing image URLs to prepend in the merged result
+     * @param  array<int, string>  $oldImages  URLs/paths to delete from public disk after success
+     * @param  array<int, string>  $baseImages  Existing image URLs to prepend in the merged result
      */
     public function __construct(
         private readonly array $pendingPaths,
@@ -104,14 +105,14 @@ class ProcessWebsiteMediaJob implements ShouldQueue
             throw new \RuntimeException('Could not read image information.');
         }
 
-        $width  = $info[0];
+        $width = $info[0];
         $height = $info[1];
 
         $source = match ($info[2]) {
             IMAGETYPE_JPEG => imagecreatefromjpeg($absPath),
-            IMAGETYPE_PNG  => imagecreatefrompng($absPath),
+            IMAGETYPE_PNG => imagecreatefrompng($absPath),
             IMAGETYPE_WEBP => imagecreatefromwebp($absPath),
-            default        => throw new \RuntimeException('Unsupported image type.'),
+            default => throw new \RuntimeException('Unsupported image type.'),
         };
 
         if ($source === false) {
@@ -127,11 +128,11 @@ class ProcessWebsiteMediaJob implements ShouldQueue
 
         if ($width > $maxSize || $height > $maxSize) {
             if ($width > $height) {
-                $newWidth  = $maxSize;
+                $newWidth = $maxSize;
                 $newHeight = (int) ($height * ($maxSize / $width));
             } else {
                 $newHeight = $maxSize;
-                $newWidth  = (int) ($width * ($maxSize / $height));
+                $newWidth = (int) ($width * ($maxSize / $height));
             }
 
             $resized = imagecreatetruecolor($newWidth, $newHeight);
@@ -155,7 +156,7 @@ class ProcessWebsiteMediaJob implements ShouldQueue
             Storage::disk('public')->makeDirectory($folder);
         }
 
-        $filename = uniqid() . '_' . Str::random(5) . '.webp';
+        $filename = uniqid().'_'.Str::random(5).'.webp';
         $fullPath = "{$folder}/{$filename}";
 
         if (! Storage::disk('public')->put($fullPath, $webpContent)) {

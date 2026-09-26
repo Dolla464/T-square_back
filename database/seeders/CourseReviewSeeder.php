@@ -34,6 +34,7 @@ class CourseReviewSeeder extends Seeder
 
         if ($completedEnrollments->isEmpty()) {
             $this->command->warn('لا توجد اشتراكات مكتملة لإنشاء تقييمات.');
+
             return;
         }
 
@@ -42,29 +43,29 @@ class CourseReviewSeeder extends Seeder
         foreach ($completedEnrollments as $enrollment) {
             $course = $enrollment->course;
 
-            if (!$course) {
+            if (! $course) {
                 continue;
             }
 
-            $contentRating    = rand(3, 5);
+            $contentRating = rand(3, 5);
             $instructorRating = rand(4, 5);
-            $centerRating     = rand(3, 5);
+            $centerRating = rand(3, 5);
             // rating يُحسب في CourseReview::boot() saving hook تلقائياً
-            $avgRating        = round(($contentRating + $instructorRating + $centerRating) / 3, 2);
+            $avgRating = round(($contentRating + $instructorRating + $centerRating) / 3, 2);
 
             CourseReview::updateOrCreate(
                 [
-                    'course_id'  => $enrollment->course_id,
+                    'course_id' => $enrollment->course_id,
                     'student_id' => $enrollment->student_id,
                 ],
                 [
-                    'instructor_id'    => $course->instructor_id,
-                    'content_rating'   => $contentRating,
-                    'instructor_rating'=> $instructorRating,
-                    'center_rating'    => $centerRating,
-                    'rating'           => $avgRating,
-                    'overall_comment'  => $this->comments[array_rand($this->comments)] . ' (' . $course->title . ')',
-                    'review_status'    => 'accepted',
+                    'instructor_id' => $course->instructor_id,
+                    'content_rating' => $contentRating,
+                    'instructor_rating' => $instructorRating,
+                    'center_rating' => $centerRating,
+                    'rating' => $avgRating,
+                    'overall_comment' => $this->comments[array_rand($this->comments)].' ('.$course->title.')',
+                    'review_status' => 'accepted',
                 ]
             );
 

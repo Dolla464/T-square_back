@@ -129,7 +129,7 @@ class CourseDashboardService
     {
         // ── فلتر البحث بالعنوان ────────────────────────────────────────────
         if ($search !== null) {
-            $query->where('title', 'like', '%' . $search . '%');
+            $query->where('title', 'like', '%'.$search.'%');
         }
 
         // ── فلتر الحالة (all / in_progress / completed) ────────────────────
@@ -137,14 +137,14 @@ class CourseDashboardService
             // The courses the student enrolled in and completed them
             $query->whereHas(
                 'enrollments',
-                fn($q) => $q->where('student_id', $studentId)
+                fn ($q) => $q->where('student_id', $studentId)
                     ->where('is_completed', false)
             );
         } elseif ($status === self::STATUS_COMPLETED) {
             // The courses the student completed
             $query->whereHas(
                 'enrollments',
-                fn($q) => $q->where('student_id', $studentId)
+                fn ($q) => $q->where('student_id', $studentId)
                     ->where('is_completed', true)
             );
         }
@@ -185,9 +185,6 @@ class CourseDashboardService
 
     /**
      * Get the details of a specific course fully for the selected student
-     * * @param int $studentId
-     * @param int $courseId
-     * @return Course
      */
     public function getCourseDetails(int $studentId, int $courseId): Course
     {
@@ -195,10 +192,10 @@ class CourseDashboardService
             // Ensure the student has a completed payment for this course
             ->whereHas('enrollments', function ($q) use ($studentId, $courseId) {
                 $q->where('student_id', $studentId)
-                  ->where('course_id', $courseId)
-                  ->whereHas('order', function ($orderQuery) {
-                      $orderQuery->where('status', 'completed');
-                  });
+                    ->where('course_id', $courseId)
+                    ->whereHas('order', function ($orderQuery) {
+                        $orderQuery->where('status', 'completed');
+                    });
             })
             // Get the necessary relationships for displaying the course details fully
             ->with([

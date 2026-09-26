@@ -13,8 +13,7 @@ class AdminQuestionService
 {
     use HandleImageUploadTrait;
 
-    public function __construct(private AdminExamService $adminExamService)
-    {}
+    public function __construct(private AdminExamService $adminExamService) {}
 
     public function getQuestionsByExam(int $examId)
     {

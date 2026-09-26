@@ -60,24 +60,24 @@ class AdminPaymentService
     {
         return DB::transaction(function () use ($data) {
             $student = Student::with('user')->findOrFail($data['student_id']);
-            $course  = Course::findOrFail($data['course_id']);
+            $course = Course::findOrFail($data['course_id']);
 
             $order = Order::create([
-                'student_id'    => $student->id,
-                'total_amount'  => $course->price,
-                'status'        => 'completed',
-                'billing_name'  => $data['billing_name']  ?? $student->full_name,
+                'student_id' => $student->id,
+                'total_amount' => $course->price,
+                'status' => 'completed',
+                'billing_name' => $data['billing_name'] ?? $student->full_name,
                 'billing_email' => $data['billing_email'] ?? optional($student->user)->email,
                 'billing_phone' => $data['billing_phone'] ?? $student->phone,
-                'notes'         => $data['notes'] ?? null,
+                'notes' => $data['notes'] ?? null,
             ]);
 
             Enrollment::create([
-                'student_id'  => $student->id,
-                'course_id'   => $course->id,
-                'order_id'    => $order->id,
-                'price_paid'  => $course->price,
-                'is_completed'=> false,
+                'student_id' => $student->id,
+                'course_id' => $course->id,
+                'order_id' => $order->id,
+                'price_paid' => $course->price,
+                'is_completed' => false,
             ]);
 
             return $this->show($order->id);

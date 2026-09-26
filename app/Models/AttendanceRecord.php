@@ -21,7 +21,7 @@ class AttendanceRecord extends Model
     ];
 
     protected $casts = [
-        'marked_at'     => 'datetime',
+        'marked_at' => 'datetime',
         'qr_expires_at' => 'datetime',
     ];
 

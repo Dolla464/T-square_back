@@ -33,7 +33,7 @@ class CourseUpdateRequest extends FormRequest
             'is_featured' => ['sometimes', 'boolean'],
             'is_free' => ['sometimes', 'boolean'],
             'category_id' => ['sometimes', 'nullable', 'exists:categories,id'],
-            'instructor_ids'   => ['sometimes', 'nullable', 'array', 'min:1'],
+            'instructor_ids' => ['sometimes', 'nullable', 'array', 'min:1'],
             'instructor_ids.*' => ['integer', 'exists:instructors,id'],
             'instructor_id' => ['sometimes', 'nullable', 'exists:instructors,id'],
             'published_at' => ['sometimes', 'nullable', 'date'],
@@ -66,10 +66,10 @@ class CourseUpdateRequest extends FormRequest
     {
         $this->merge([
             'is_featured' => filter_var($this->is_featured, FILTER_VALIDATE_BOOLEAN),
-            'is_free'     => filter_var($this->is_free, FILTER_VALIDATE_BOOLEAN),
+            'is_free' => filter_var($this->is_free, FILTER_VALIDATE_BOOLEAN),
         ]);
 
-        if ($this->has('published_at') && ($this->published_at === 'null' || !$this->published_at)) {
+        if ($this->has('published_at') && ($this->published_at === 'null' || ! $this->published_at)) {
             $this->merge(['published_at' => null]);
         }
     }

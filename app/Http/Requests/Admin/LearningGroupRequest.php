@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\LearningGroup;
 use App\Support\SuspiciousRequestLogger;
-use App\Models\LearningGroupSchedule;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
@@ -58,9 +58,9 @@ class LearningGroupRequest extends FormRequest
             : filter_var($this->input('is_historical'), FILTER_VALIDATE_BOOLEAN);
 
         $startDateRule = match (true) {
-            $isUpdate      => 'required|date',
-            $isHistorical  => 'required|date|before_or_equal:today',
-            default        => 'required|date|after_or_equal:today',
+            $isUpdate => 'required|date',
+            $isHistorical => 'required|date|before_or_equal:today',
+            default => 'required|date|after_or_equal:today',
         };
 
         // Schedules are optional on update when only other fields change (future-only sync).
@@ -69,23 +69,23 @@ class LearningGroupRequest extends FormRequest
             : 'required|array|min:1';
 
         return array_merge($forbiddenRules, [
-            'group_name'   => 'required|string|max:255',
-            'course_id'    => 'required|exists:courses,id',
+            'group_name' => 'required|string|max:255',
+            'course_id' => 'required|exists:courses,id',
             'course_instructor_id' => 'required|exists:course_instructor,id',
             'instructor_id' => 'sometimes|nullable|exists:instructors,id',
-            'start_date'    => $startDateRule,
+            'start_date' => $startDateRule,
             'is_historical' => 'nullable|boolean',
-            'status'        => 'nullable|in:active,completed,cancelled',
+            'status' => 'nullable|in:active,completed,cancelled',
 
-            'schedules'               => $schedulesRule,
+            'schedules' => $schedulesRule,
             'schedules.*.day_of_week' => 'required|integer|between:0,6',
-            'schedules.*.start_time'  => 'required|date_format:H:i',
-            'schedules.*.end_time'    => 'required|date_format:H:i|after:schedules.*.start_time',
-            'schedules.*.room'        => 'nullable|string|max:255',
+            'schedules.*.start_time' => 'required|date_format:H:i',
+            'schedules.*.end_time' => 'required|date_format:H:i|after:schedules.*.start_time',
+            'schedules.*.room' => 'nullable|string|max:255',
 
-            'student_ids'        => 'nullable|array',
-            'student_ids.*'      => 'integer|exists:students,id',
-            'student_statuses'   => 'nullable|array',
+            'student_ids' => 'nullable|array',
+            'student_ids.*' => 'integer|exists:students,id',
+            'student_statuses' => 'nullable|array',
             'student_statuses.*' => 'boolean',
         ]);
     }
@@ -176,19 +176,19 @@ class LearningGroupRequest extends FormRequest
         }
 
         $courseInstructorId = $this->input('course_instructor_id');
-        $schedules    = $this->input('schedules', []);
+        $schedules = $this->input('schedules', []);
 
         // When updating, exclude the current group's schedules from the overlap check.
         // apiResource generates {learning_group} (snake_case), not {learningGroup}.
-        $routeModel     = $this->route('learning_group');
-        $excludeGroupId = $routeModel instanceof \App\Models\LearningGroup
+        $routeModel = $this->route('learning_group');
+        $excludeGroupId = $routeModel instanceof LearningGroup
             ? $routeModel->id
             : null;
 
         foreach ($schedules as $index => $schedule) {
             $dayOfWeek = $schedule['day_of_week'] ?? null;
             $startTime = $schedule['start_time'] ?? null;
-            $endTime   = $schedule['end_time']   ?? null;
+            $endTime = $schedule['end_time'] ?? null;
 
             if (is_null($dayOfWeek) || is_null($startTime) || is_null($endTime)) {
                 continue;
@@ -201,7 +201,7 @@ class LearningGroupRequest extends FormRequest
                 ->where(function ($q) use ($startTime, $endTime) {
                     // Overlap condition: new interval overlaps existing interval
                     $q->where('lgs.start_time', '<', $endTime)
-                      ->where('lgs.end_time', '>', $startTime);
+                        ->where('lgs.end_time', '>', $startTime);
                 });
 
             if ($excludeGroupId) {
@@ -210,7 +210,7 @@ class LearningGroupRequest extends FormRequest
 
             if ($query->exists()) {
                 $dayNames = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-                $dayName  = $dayNames[$dayOfWeek] ?? "day {$dayOfWeek}";
+                $dayName = $dayNames[$dayOfWeek] ?? "day {$dayOfWeek}";
                 $v->errors()->add(
                     "schedules.{$index}.day_of_week",
                     "The instructor already has an overlapping schedule on {$dayName} between {$startTime} and {$endTime}."
@@ -222,17 +222,17 @@ class LearningGroupRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'schedules.required'               => 'At least one schedule day is required.',
-            'schedules.min'                    => 'At least one schedule day is required.',
+            'schedules.required' => 'At least one schedule day is required.',
+            'schedules.min' => 'At least one schedule day is required.',
             'schedules.*.day_of_week.required' => 'Each schedule must specify a day of the week.',
-            'schedules.*.day_of_week.between'  => 'Day of week must be between 0 (Saturday) and 6 (Friday).',
-            'schedules.*.start_time.required'  => 'Each schedule must have a start time.',
+            'schedules.*.day_of_week.between' => 'Day of week must be between 0 (Saturday) and 6 (Friday).',
+            'schedules.*.start_time.required' => 'Each schedule must have a start time.',
             'schedules.*.start_time.date_format' => 'Start time must be in H:i format (e.g. 09:00).',
-            'schedules.*.end_time.required'    => 'Each schedule must have an end time.',
+            'schedules.*.end_time.required' => 'Each schedule must have an end time.',
             'schedules.*.end_time.date_format' => 'End time must be in H:i format (e.g. 11:00).',
-            'schedules.*.end_time.after'       => 'End time must be after start time.',
-            'start_date.after_or_equal'        => 'Start date must be today or a future date.',
-            'start_date.before_or_equal'       => 'Historical groups must have a start date on or before today.',
+            'schedules.*.end_time.after' => 'End time must be after start time.',
+            'start_date.after_or_equal' => 'Start date must be today or a future date.',
+            'start_date.before_or_equal' => 'Historical groups must have a start date on or before today.',
         ];
     }
 }

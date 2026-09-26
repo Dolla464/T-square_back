@@ -59,55 +59,55 @@ function createFinalExamContext(
     ]);
 
     $group = LearningGroup::create([
-        'group_name'           => 'Final Exam Batch',
-        'course_id'            => $course->id,
+        'group_name' => 'Final Exam Batch',
+        'course_id' => $course->id,
         'course_instructor_id' => courseInstructorIdFor($course, $instructor),
-        'start_date'           => now()->subWeeks(8)->toDateString(),
-        'end_date'             => $endDate ?? now()->subDay()->toDateString(),
-        'status'               => $groupStatus,
-        'enrolled_students'    => 1,
+        'start_date' => now()->subWeeks(8)->toDateString(),
+        'end_date' => $endDate ?? now()->subDay()->toDateString(),
+        'status' => $groupStatus,
+        'enrolled_students' => 1,
     ]);
 
     $enrollment = Enrollment::factory()->create([
-        'student_id'   => $student->id,
-        'course_id'    => $course->id,
-        'order_id'     => $order->id,
-        'group_id'     => $group->id,
+        'student_id' => $student->id,
+        'course_id' => $course->id,
+        'order_id' => $order->id,
+        'group_id' => $group->id,
         'is_completed' => $enrollmentCompleted,
         'completed_at' => $enrollmentCompleted ? now() : null,
     ]);
 
     $exam = Exam::factory()->create([
-        'course_id'             => $course->id,
+        'course_id' => $course->id,
         'questions_per_attempt' => 3,
-        'total_marks'           => 100,
-        'passing_mark'          => 60,
-        'max_attempts'          => 3,
-        'shuffle_questions'     => false,
-        'is_final'              => $isFinal,
+        'total_marks' => 100,
+        'passing_mark' => 60,
+        'max_attempts' => 3,
+        'shuffle_questions' => false,
+        'is_final' => $isFinal,
     ]);
 
     DB::table('group_exam_activations')->insert([
-        'exam_id'           => $exam->id,
+        'exam_id' => $exam->id,
         'learning_group_id' => $group->id,
-        'activated_at'      => now(),
+        'activated_at' => now(),
     ]);
 
     for ($i = 0; $i < 5; $i++) {
         $question = Question::factory()->create([
             'exam_id' => $exam->id,
-            'marks'   => 10,
+            'marks' => 10,
         ]);
 
         Choice::factory()->create([
             'question_id' => $question->id,
             'choice_text' => 'Correct '.$i,
-            'is_correct'  => true,
+            'is_correct' => true,
         ]);
 
         Choice::factory()->count(3)->create([
             'question_id' => $question->id,
-            'is_correct'  => false,
+            'is_correct' => false,
         ]);
     }
 
@@ -129,9 +129,9 @@ function submitPassingExamAttempt(Exam $exam): ExamAttempt
         );
 
         test()->postJson('/api/exams/save-answer', [
-            'attempt_id'  => $attemptId,
+            'attempt_id' => $attemptId,
             'question_id' => $question['id'],
-            'choice_id'   => $correctChoice['id'],
+            'choice_id' => $correctChoice['id'],
         ])->assertOk();
     }
 
@@ -151,28 +151,28 @@ function createFinalEssayExamContext(string $groupStatus = 'active', bool $enrol
 
     $context['exam']->update([
         'questions_per_attempt' => 2,
-        'total_marks'           => 20,
-        'passing_mark'          => 12,
+        'total_marks' => 20,
+        'passing_mark' => 12,
     ]);
 
     $mcq = Question::factory()->create([
         'exam_id' => $context['exam']->id,
-        'type'    => Question::TYPE_MCQ,
-        'marks'   => 10,
+        'type' => Question::TYPE_MCQ,
+        'marks' => 10,
     ]);
     Choice::factory()->create([
         'question_id' => $mcq->id,
         'choice_text' => 'Correct',
-        'is_correct'  => true,
+        'is_correct' => true,
     ]);
     Choice::factory()->count(3)->create([
         'question_id' => $mcq->id,
-        'is_correct'  => false,
+        'is_correct' => false,
     ]);
 
     $essay = Question::factory()->essay()->create([
         'exam_id' => $context['exam']->id,
-        'marks'   => 10,
+        'marks' => 10,
     ]);
 
     Sanctum::actingAs($context['student']->user, ['*']);
@@ -184,12 +184,12 @@ function createFinalEssayExamContext(string $groupStatus = 'active', bool $enrol
     )->firstWhere('choice_text', 'Correct');
 
     test()->postJson('/api/exams/save-answer', [
-        'attempt_id'  => $attemptId,
+        'attempt_id' => $attemptId,
         'question_id' => $mcq->id,
-        'choice_id'   => $correctChoice['id'],
+        'choice_id' => $correctChoice['id'],
     ]);
     test()->postJson('/api/exams/save-answer', [
-        'attempt_id'  => $attemptId,
+        'attempt_id' => $attemptId,
         'question_id' => $essay->id,
         'answer_text' => 'Essay answer body',
     ]);
@@ -241,9 +241,9 @@ it('keeps enrollment incomplete when a final exam is failed on an active group',
         );
 
         test()->postJson('/api/exams/save-answer', [
-            'attempt_id'  => $attemptId,
+            'attempt_id' => $attemptId,
             'question_id' => $question['id'],
-            'choice_id'   => $wrongChoice['id'],
+            'choice_id' => $wrongChoice['id'],
         ]);
     }
 
@@ -365,13 +365,13 @@ it('does not send duplicate CourseReviewRequired when the student already submit
     ['student' => $student, 'course' => $course, 'instructor' => $instructor, 'exam' => $exam] = createFinalExamContext('completed', true);
 
     CourseReview::create([
-        'course_id'         => $course->id,
-        'student_id'        => $student->id,
-        'instructor_id'     => $instructor->id,
-        'content_rating'    => 5,
+        'course_id' => $course->id,
+        'student_id' => $student->id,
+        'instructor_id' => $instructor->id,
+        'content_rating' => 5,
         'instructor_rating' => 5,
-        'center_rating'     => 5,
-        'overall_comment'   => 'Already reviewed',
+        'center_rating' => 5,
+        'overall_comment' => 'Already reviewed',
     ]);
 
     submitPassingExamAttempt($exam);
@@ -388,6 +388,6 @@ it('does not auto-issue a certificate when a final exam is passed', function ():
 
     expect(Certificate::query()->where([
         'student_id' => $student->id,
-        'course_id'  => $course->id,
+        'course_id' => $course->id,
     ])->count())->toBe(0);
 });

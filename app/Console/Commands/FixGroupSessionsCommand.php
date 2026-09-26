@@ -18,8 +18,8 @@ class FixGroupSessionsCommand extends Command
     public function handle(AdminLearningGroupService $groupService): int
     {
         $groupId = $this->argument('group');
-        $fixAll  = (bool) $this->option('all');
-        $dryRun  = (bool) $this->option('dry-run');
+        $fixAll = (bool) $this->option('all');
+        $dryRun = (bool) $this->option('dry-run');
 
         if (! $groupId && ! $fixAll) {
             $this->error('Provide a group ID or use --all.');
@@ -47,11 +47,11 @@ class FixGroupSessionsCommand extends Command
             $this->warn('Dry run — no changes will be saved.');
         }
 
-        $rows            = [];
-        $updatedCount    = 0;
-        $skippedCount    = 0;
-        $unchangedCount  = 0;
-        $endDatesFixed   = 0;
+        $rows = [];
+        $updatedCount = 0;
+        $skippedCount = 0;
+        $unchangedCount = 0;
+        $endDatesFixed = 0;
         $sessionsRemoved = 0;
 
         foreach ($groups as $group) {
@@ -88,7 +88,7 @@ class FixGroupSessionsCommand extends Command
             }
 
             $updatedCount++;
-            $endDatesFixed   += $result['end_date_changed'] ? 1 : 0;
+            $endDatesFixed += $result['end_date_changed'] ? 1 : 0;
             $sessionsRemoved += $result['sessions_removed'];
 
             $rows[] = [

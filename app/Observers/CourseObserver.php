@@ -45,9 +45,9 @@ class CourseObserver
 
         // 2. Delete all the relationships finally from the database
         $course->previews()->forceDelete();
-        
+
         // ✅ Delete the learnings finally
-        $course->learnings()->delete(); 
+        $course->learnings()->delete();
     }
 
     /**

@@ -53,9 +53,9 @@ class AdminPaymentAnalyticsService
             ->sum('total_amount');
 
         return [
-            'total_revenue'  => (float) $totalRevenue,
-            'total_orders'   => $totalOrders,
-            'pending_count'  => $pendingOrders,
+            'total_revenue' => (float) $totalRevenue,
+            'total_orders' => $totalOrders,
+            'pending_count' => $pendingOrders,
             'refunded_count' => $refundedOrders,
         ];
     }

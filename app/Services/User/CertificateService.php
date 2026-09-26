@@ -6,7 +6,6 @@ use App\Mail\EnrollmentCertificateMail;
 use App\Models\Certificate;
 use App\Models\CourseReview;
 use App\Models\Enrollment;
-use App\Models\ExamAttempt;
 use App\Notifications\CertificateReady;
 use App\Services\Pdf\DompdfExportService;
 use App\Support\CourseInstructorSync;

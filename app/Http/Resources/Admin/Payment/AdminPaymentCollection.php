@@ -7,7 +7,7 @@ use Illuminate\Http\Resources\Json\ResourceCollection;
 
 class AdminPaymentCollection extends ResourceCollection
 {
-   // بنعرف متغير عشان نستقبل فيه الـ Stats من الكنترولر
+    // بنعرف متغير عشان نستقبل فيه الـ Stats من الكنترولر
     protected $stats;
 
     public function __construct($resource, $stats = null)
@@ -23,7 +23,7 @@ class AdminPaymentCollection extends ResourceCollection
     {
         $payload = [
             'success' => true,
-            'orders'  => $this->collection,
+            'orders' => $this->collection,
         ];
 
         if ($this->stats !== null) {

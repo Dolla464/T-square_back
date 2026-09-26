@@ -76,7 +76,7 @@ class Question extends Model
     public function correctChoice()
     {
         return $this->hasOne(Choice::class)->ofMany([
-            'id' => 'max'
+            'id' => 'max',
         ], function ($query) {
             $query->where('is_correct', true);
         });

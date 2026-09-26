@@ -18,7 +18,7 @@ uses(RefreshDatabase::class);
 beforeEach(function (): void {
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-    $adminRole   = Role::create(['name' => 'admin', 'guard_name' => 'web']);
+    $adminRole = Role::create(['name' => 'admin', 'guard_name' => 'web']);
     $this->admin = User::factory()->create();
     $this->admin->assignRole($adminRole);
     Sanctum::actingAs($this->admin, ['*']);
@@ -26,7 +26,7 @@ beforeEach(function (): void {
     $this->instructor = Instructor::factory()->create();
 
     $this->course = Course::factory()->create([
-        'instructor_id'  => $this->instructor->id,
+        'instructor_id' => $this->instructor->id,
         'duration_weeks' => 4,
     ]);
 });
@@ -37,13 +37,13 @@ function createInvariantGroup(
     string $status = 'active',
 ): LearningGroup {
     return LearningGroup::create([
-        'group_name'           => 'Invariant Test Batch',
-        'course_id'            => $course->id,
+        'group_name' => 'Invariant Test Batch',
+        'course_id' => $course->id,
         'course_instructor_id' => courseInstructorIdFor($course, $instructor),
-        'start_date'           => now()->toDateString(),
-        'end_date'             => now()->addWeeks(4)->toDateString(),
-        'status'               => $status,
-        'enrolled_students'    => 0,
+        'start_date' => now()->toDateString(),
+        'end_date' => now()->addWeeks(4)->toDateString(),
+        'status' => $status,
+        'enrolled_students' => 0,
     ]);
 }
 
@@ -55,20 +55,20 @@ function createInvariantEnrollment(
     $student = Student::factory()->create();
 
     $order = Order::create([
-        'student_id'    => $student->id,
-        'total_amount'  => 500,
-        'status'        => 'completed',
-        'billing_name'  => 'Test Billing',
+        'student_id' => $student->id,
+        'total_amount' => 500,
+        'status' => 'completed',
+        'billing_name' => 'Test Billing',
         'billing_email' => 'billing@test.com',
         'billing_phone' => '01000000000',
     ]);
 
     return Enrollment::create([
-        'student_id'   => $student->id,
-        'course_id'    => $course->id,
-        'order_id'     => $order->id,
-        'group_id'     => $group?->id,
-        'price_paid'   => 500,
+        'student_id' => $student->id,
+        'course_id' => $course->id,
+        'order_id' => $order->id,
+        'group_id' => $group?->id,
+        'price_paid' => 500,
         'is_completed' => $isCompleted,
         'completed_at' => $isCompleted ? now() : null,
     ]);
@@ -81,13 +81,13 @@ function groupInvariantUpdatePayload(
     array $overrides = [],
 ): array {
     return array_merge([
-        'group_name'           => $group->group_name,
-        'course_id'            => $course->id,
+        'group_name' => $group->group_name,
+        'course_id' => $course->id,
         'course_instructor_id' => courseInstructorIdFor($course, $instructor),
-        'start_date'           => $group->start_date?->format('Y-m-d') ?? now()->toDateString(),
-        'status'               => $group->status,
-        'student_ids'          => [],
-        'student_statuses'     => [],
+        'start_date' => $group->start_date?->format('Y-m-d') ?? now()->toDateString(),
+        'status' => $group->status,
+        'student_ids' => [],
+        'student_statuses' => [],
     ], $overrides);
 }
 
@@ -164,8 +164,8 @@ it('rejects syncGroupStudents completion while the group is active', function ()
     $this->putJson(
         "/api/admin/learning-groups/{$group->id}",
         groupInvariantUpdatePayload($group, $this->course, $this->instructor, [
-            'status'           => 'active',
-            'student_ids'      => [$enrollment->student_id],
+            'status' => 'active',
+            'student_ids' => [$enrollment->student_id],
             'student_statuses' => [(string) $enrollment->student_id => true],
         ])
     )
@@ -184,8 +184,8 @@ it('allows syncGroupStudents completion when the group is completed', function (
     $this->putJson(
         "/api/admin/learning-groups/{$group->id}",
         groupInvariantUpdatePayload($group, $this->course, $this->instructor, [
-            'status'           => 'completed',
-            'student_ids'      => [$enrollment->student_id],
+            'status' => 'completed',
+            'student_ids' => [$enrollment->student_id],
             'student_statuses' => [(string) $enrollment->student_id => true],
         ])
     )->assertOk();
@@ -236,7 +236,7 @@ it('rejects AdminCertificateService completion when the learning group is active
 
     $certificate = Certificate::factory()->create([
         'student_id' => $enrollment->student_id,
-        'course_id'  => $enrollment->course_id,
+        'course_id' => $enrollment->course_id,
     ]);
 
     $this->putJson("/api/admin/certificates/{$certificate->id}", [
@@ -256,7 +256,7 @@ it('allows AdminCertificateService completion when the learning group is complet
 
     $certificate = Certificate::factory()->create([
         'student_id' => $enrollment->student_id,
-        'course_id'  => $enrollment->course_id,
+        'course_id' => $enrollment->course_id,
     ]);
 
     $this->putJson("/api/admin/certificates/{$certificate->id}", [
@@ -284,7 +284,7 @@ it('allows setting completion back to false through guarded admin paths', functi
 
     $certificate = Certificate::factory()->create([
         'student_id' => $enrollment->student_id,
-        'course_id'  => $enrollment->course_id,
+        'course_id' => $enrollment->course_id,
     ]);
 
     $this->putJson("/api/admin/certificates/{$certificate->id}", [
@@ -313,8 +313,8 @@ it('completes enrollments after the group status is updated to completed in the 
     $this->putJson(
         "/api/admin/learning-groups/{$group->id}",
         groupInvariantUpdatePayload($group, $this->course, $this->instructor, [
-            'status'           => 'completed',
-            'student_ids'      => [$enrollment->student_id],
+            'status' => 'completed',
+            'student_ids' => [$enrollment->student_id],
             'student_statuses' => [(string) $enrollment->student_id => true],
         ])
     )->assertOk();

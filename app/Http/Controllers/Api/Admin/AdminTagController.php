@@ -34,7 +34,7 @@ class AdminTagController extends Controller
         $originalSlug = $data['slug'];
         $count = 1;
         while (Tag::where('slug', $data['slug'])->exists()) {
-            $data['slug'] = $originalSlug . '-' . $count++;
+            $data['slug'] = $originalSlug.'-'.$count++;
         }
 
         $tag = Tag::create($data);
@@ -54,7 +54,7 @@ class AdminTagController extends Controller
         $originalSlug = $data['slug'];
         $count = 1;
         while (Tag::where('slug', $data['slug'])->where('id', '!=', $tag->id)->exists()) {
-            $data['slug'] = $originalSlug . '-' . $count++;
+            $data['slug'] = $originalSlug.'-'.$count++;
         }
 
         $tag->update($data);
@@ -64,12 +64,12 @@ class AdminTagController extends Controller
 
     public function destroy(Tag $tag)
     {
-        $coursesCount  = $tag->courses()->count();
+        $coursesCount = $tag->courses()->count();
         $solutionsCount = $tag->solutions()->count();
 
         if ($coursesCount > 0 || $solutionsCount > 0) {
             return $this->errorResponse(
-                'Cannot delete tag because it is used by ' . ($coursesCount + $solutionsCount) . ' item(s).',
+                'Cannot delete tag because it is used by '.($coursesCount + $solutionsCount).' item(s).',
                 422
             );
         }

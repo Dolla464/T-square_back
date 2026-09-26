@@ -22,22 +22,22 @@ class InstructorGroupAssignedNotification extends Notification implements Should
 
     public function toDatabase(object $notifiable): array
     {
-        $course    = $this->group->course;
+        $course = $this->group->course;
         $startDate = $this->group->start_date
             ? (is_string($this->group->start_date) ? $this->group->start_date : $this->group->start_date->format('Y-m-d'))
             : null;
 
         return [
-            'type'         => 'group_assigned',
-            'title'        => 'New Group Assignment',
-            'message'      => 'You have been assigned to group "'.$this->group->group_name.'" for "'.$course?->title.'".'
-                . ($startDate ? " Starting: {$startDate}." : ''),
-            'group_id'     => $this->group->id,
-            'group_name'   => $this->group->group_name,
-            'course_id'    => $course?->id,
+            'type' => 'group_assigned',
+            'title' => 'New Group Assignment',
+            'message' => 'You have been assigned to group "'.$this->group->group_name.'" for "'.$course?->title.'".'
+                .($startDate ? " Starting: {$startDate}." : ''),
+            'group_id' => $this->group->id,
+            'group_name' => $this->group->group_name,
+            'course_id' => $course?->id,
             'course_title' => $course?->title,
-            'start_date'   => $startDate,
-            'icon'         => 'people',
+            'start_date' => $startDate,
+            'icon' => 'people',
         ];
     }
 

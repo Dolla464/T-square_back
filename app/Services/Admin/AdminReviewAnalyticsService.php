@@ -21,7 +21,7 @@ class AdminReviewAnalyticsService
             // $oneMonthAgo = now()->subMonth();
 
             $stats = CourseReview::query()
-                // ->where('created_at', '>=', $oneMonthAgo) 
+                // ->where('created_at', '>=', $oneMonthAgo)
                 ->select([
                     // 1. إجمالي المراجعات
                     DB::raw('COUNT(*) as total_reviews'),
@@ -36,10 +36,10 @@ class AdminReviewAnalyticsService
                 ->first();
 
             return [
-                'total_reviews'   => (int) ($stats->total_reviews ?? 0),
-                'average_rating'  => $stats->average_rating ? round((float) $stats->average_rating, 1) : 0.0,
-                'pending_count'   => (int) ($stats->pending_count ?? 0),
-                'rejected_count'  => (int) ($stats->rejected_count ?? 0),
+                'total_reviews' => (int) ($stats->total_reviews ?? 0),
+                'average_rating' => $stats->average_rating ? round((float) $stats->average_rating, 1) : 0.0,
+                'pending_count' => (int) ($stats->pending_count ?? 0),
+                'rejected_count' => (int) ($stats->rejected_count ?? 0),
             ];
         });
     }

@@ -55,7 +55,7 @@ class UploadDiscoveryMediaRequest extends FormRequest
 
                 $validator->errors()->add(
                     'images',
-                    "Discovery gallery cannot exceed ".AdminSettingService::DISCOVERY_MEDIA_MAX." images. You can upload up to {$remaining} more image(s)."
+                    'Discovery gallery cannot exceed '.AdminSettingService::DISCOVERY_MEDIA_MAX." images. You can upload up to {$remaining} more image(s)."
                 );
             }
         });

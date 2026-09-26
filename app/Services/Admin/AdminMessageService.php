@@ -11,27 +11,26 @@ class AdminMessageService
     /**
      * Return a paginated list of messages with optional text search and date filtering.
      *
-     * @param  int                  $perPage
-     * @param  array<string, mixed> $filters  Supported keys: search, date_filter
+     * @param  array<string, mixed>  $filters  Supported keys: search, date_filter
      */
     public function index(int $perPage = 10, array $filters = []): LengthAwarePaginator
     {
         return Message::query()
             ->when(
-                !empty($filters['search']),
+                ! empty($filters['search']),
                 function ($query) use ($filters): void {
                     $term = $filters['search'];
 
                     // Group OR conditions so they don't bleed into other ->where() clauses.
                     $query->where(function ($q) use ($term): void {
-                        $q->where('name',    'like', "%{$term}%")
-                          ->orWhere('title',   'like', "%{$term}%")
-                          ->orWhere('content', 'like', "%{$term}%");
+                        $q->where('name', 'like', "%{$term}%")
+                            ->orWhere('title', 'like', "%{$term}%")
+                            ->orWhere('content', 'like', "%{$term}%");
                     });
                 }
             )
             ->when(
-                !empty($filters['date_filter']),
+                ! empty($filters['date_filter']),
                 function ($query) use ($filters): void {
                     $query->where('created_at', '>=', $this->resolveDateFilter($filters['date_filter']));
                 }
@@ -62,8 +61,8 @@ class AdminMessageService
     private function resolveDateFilter(string $filter): Carbon
     {
         return match ($filter) {
-            'last_week'     => Carbon::now()->subDays(7),
-            'last_month'    => Carbon::now()->subDays(30),
+            'last_week' => Carbon::now()->subDays(7),
+            'last_month' => Carbon::now()->subDays(30),
             'last_3_months' => Carbon::now()->subDays(90),
         };
     }

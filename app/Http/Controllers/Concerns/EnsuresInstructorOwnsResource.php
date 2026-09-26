@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Concerns;
 
-use App\Models\Course;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\Instructor;

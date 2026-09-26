@@ -41,7 +41,7 @@ class ExamAttempt extends Model
     public function getDurationAttribute()
     {
         if ($this->started_at && $this->finished_at) {
-            return $this->started_at->diffInMinutes($this->finished_at) . ' Minutes';
+            return $this->started_at->diffInMinutes($this->finished_at).' Minutes';
         }
 
         return 'Not finished';

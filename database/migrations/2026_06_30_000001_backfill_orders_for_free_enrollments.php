@@ -29,14 +29,14 @@ return new class extends Migration
 
                         Order::withoutEvents(function () use ($enrollment, $student) {
                             $order = Order::query()->create([
-                                'student_id'    => $student->id,
-                                'total_amount'  => 0,
-                                'status'        => 'completed',
-                                'billing_name'  => $student->full_name ?? $student->user?->name ?? 'N/A',
+                                'student_id' => $student->id,
+                                'total_amount' => 0,
+                                'status' => 'completed',
+                                'billing_name' => $student->full_name ?? $student->user?->name ?? 'N/A',
                                 'billing_email' => $student->user?->email ?? 'N/A',
                                 'billing_phone' => $student->phone ?? 'N/A',
-                                'created_at'    => $enrollment->created_at,
-                                'updated_at'    => $enrollment->created_at,
+                                'created_at' => $enrollment->created_at,
+                                'updated_at' => $enrollment->created_at,
                             ]);
 
                             $enrollment->update(['order_id' => $order->id]);

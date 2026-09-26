@@ -4,7 +4,7 @@ namespace App\Enums;
 
 enum CertificateStatus: string
 {
-    case Issued  = 'issued';
+    case Issued = 'issued';
     case Pending = 'pending';
     case Revoked = 'revoked';
 
@@ -12,7 +12,7 @@ enum CertificateStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Issued  => 'Issued',
+            self::Issued => 'Issued',
             self::Pending => 'Pending',
             self::Revoked => 'Revoked',
         };

@@ -15,15 +15,15 @@ class UpdateExamRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'course_id'         => 'required|exists:courses,id',
-            'title'             => 'required|string|max:100',
-            'description'       => 'nullable|string',
-            'duration'          => 'required|integer|min:1',
-            'total_marks'       => 'required|numeric|min:0',
-            'passing_mark'      => 'required|numeric|min:0|lte:total_marks',
-            'is_active'         => 'boolean',
-            'is_final'          => 'boolean',
-            'max_attempts'      => 'integer|min:1',
+            'course_id' => 'required|exists:courses,id',
+            'title' => 'required|string|max:100',
+            'description' => 'nullable|string',
+            'duration' => 'required|integer|min:1',
+            'total_marks' => 'required|numeric|min:0',
+            'passing_mark' => 'required|numeric|min:0|lte:total_marks',
+            'is_active' => 'boolean',
+            'is_final' => 'boolean',
+            'max_attempts' => 'integer|min:1',
             'questions_per_attempt' => 'required|integer|min:1',
             'shuffle_questions' => 'boolean',
         ];

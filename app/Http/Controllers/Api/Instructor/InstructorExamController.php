@@ -19,13 +19,12 @@ class InstructorExamController extends Controller
 {
     use EnsuresInstructorOwnsResource;
 
-    public function __construct(private InstructorExamService $examService)
-    {}
+    public function __construct(private InstructorExamService $examService) {}
 
     public function index(ExamFilterRequest $request): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 
@@ -40,7 +39,7 @@ class InstructorExamController extends Controller
     public function store(InstructorUpdateExamRequest $request): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 
@@ -56,7 +55,7 @@ class InstructorExamController extends Controller
     public function show(Request $request, Exam $exam): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 
@@ -75,7 +74,7 @@ class InstructorExamController extends Controller
     public function update(InstructorUpdateExamRequest $request, Exam $exam): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 
@@ -94,7 +93,7 @@ class InstructorExamController extends Controller
     public function destroy(Request $request, Exam $exam): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 
@@ -113,7 +112,7 @@ class InstructorExamController extends Controller
     public function trash(Request $request): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 
@@ -126,7 +125,7 @@ class InstructorExamController extends Controller
     public function restore(Request $request, int $id): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 
@@ -141,7 +140,7 @@ class InstructorExamController extends Controller
     public function forceDelete(Request $request, int $id): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 
@@ -153,7 +152,7 @@ class InstructorExamController extends Controller
     public function toggleStatus(Request $request, int $id): JsonResponse
     {
         $instructor = $this->resolveInstructor($request);
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->instructorNotFoundResponse();
         }
 

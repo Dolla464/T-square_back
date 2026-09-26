@@ -67,13 +67,13 @@ class AdminCourseService
             })
             ->when(
                 ! empty($filters['status']),
-                fn($q) => $q->where('status', $filters['status'])
+                fn ($q) => $q->where('status', $filters['status'])
             )
             ->when(! empty($filters['category_id']), function ($query) use ($filters) {
                 $parentId = (int) $filters['category_id'];
                 $query->whereHas(
                     'category',
-                    fn($q) => $q->where('id', $parentId)
+                    fn ($q) => $q->where('id', $parentId)
                         ->orWhere('parent_id', $parentId)
                 );
             })
@@ -102,7 +102,7 @@ class AdminCourseService
     public function create(array $data): Course
     {
         $learnings = $data['learnings'] ?? [];
-        $status    = $data['status'] ?? 'draft';
+        $status = $data['status'] ?? 'draft';
 
         // 1. معالجة الصور – thumbnail (max 800px) and cover (max 1920px)
         if (! empty($data['thumbnail']) && $data['thumbnail'] instanceof UploadedFile) {
@@ -213,7 +213,7 @@ class AdminCourseService
         $status = $data['status'] ?? $course->status;
 
         if ($status === 'published') {
-            $data['published_at'] = (!empty($data['published_at']))
+            $data['published_at'] = (! empty($data['published_at']))
                 ? Carbon::parse($data['published_at'])->toDateTimeString()
                 : now();
         } else {
@@ -278,7 +278,7 @@ class AdminCourseService
             'previews_count' => $previews !== null ? count($previews) : 0,
         ]);
 
-        if ($previews !== null && !empty($previews)) {
+        if ($previews !== null && ! empty($previews)) {
             \Log::debug('RUNNING SYNC PREVIEWS');
             $this->syncPreviews($course, $previews, $existingPreviews);
         } else {
@@ -325,8 +325,9 @@ class AdminCourseService
 
         $keptIds = [];
 
-        if (empty($previews) || !$this->hasRealPreviews($previews)) {
+        if (empty($previews) || ! $this->hasRealPreviews($previews)) {
             $this->deleteAllPreviews($course, $existingVideoUrls);
+
             return;
         }
 
@@ -347,6 +348,7 @@ class AdminCourseService
             // Skip completely empty rows that would violate the NOT NULL constraint
             if (! $hasTitle && ! $hasVideo) {
                 \Log::debug('SKIPPING EMPTY PREVIEW', ['index' => $index]);
+
                 continue;
             }
 
@@ -358,13 +360,13 @@ class AdminCourseService
             if (! empty($item['video']) && $item['video'] instanceof UploadedFile) {
                 $videoData = $this->uploadVideo($item['video'], 'courses/previews', $oldVideoUrl);
                 $videoPayload = [
-                    'video_url'        => $videoData['path'],
-                    'video_provider'   => 'upload',
+                    'video_url' => $videoData['path'],
+                    'video_provider' => 'upload',
                     'duration_seconds' => $videoData['duration'] ?? ($item['duration_seconds'] ?? null),
                 ];
             } elseif (! empty($item['video_url'])) {
                 $videoPayload = [
-                    'video_url'      => $item['video_url'],
+                    'video_url' => $item['video_url'],
                     'video_provider' => $item['video_provider'] ?? 'upload',
                     'duration_seconds' => $this->parseDuration($item['duration_seconds'] ?? null),
                 ];
@@ -376,11 +378,11 @@ class AdminCourseService
             }
 
             $attributes = array_filter([
-                'title' => $item['title'] ?? 'Preview ' . ($index + 1),
+                'title' => $item['title'] ?? 'Preview '.($index + 1),
                 'description' => $item['description'] ?? null,
                 'sort_order' => $item['sort_order'] ?? $index,
                 'duration_seconds' => $item['duration_seconds'] ?? null,
-            ], fn($v) => $v !== null);
+            ], fn ($v) => $v !== null);
 
             $attributes = array_merge($attributes, $videoPayload);
 
@@ -391,11 +393,21 @@ class AdminCourseService
                 $needsUpdate = false;
 
                 if ($existingPreview) {
-                    if (($item['title'] ?? '') !== $existingPreview->title) $needsUpdate = true;
-                    if (($item['description'] ?? '') !== $existingPreview->description) $needsUpdate = true;
-                    if (($item['video_url'] ?? '') !== $existingPreview->video_url) $needsUpdate = true;
-                    if (($item['sort_order'] ?? 0) != $existingPreview->sort_order) $needsUpdate = true;
-                    if (!empty($item['video']) && $item['video'] instanceof UploadedFile) $needsUpdate = true;
+                    if (($item['title'] ?? '') !== $existingPreview->title) {
+                        $needsUpdate = true;
+                    }
+                    if (($item['description'] ?? '') !== $existingPreview->description) {
+                        $needsUpdate = true;
+                    }
+                    if (($item['video_url'] ?? '') !== $existingPreview->video_url) {
+                        $needsUpdate = true;
+                    }
+                    if (($item['sort_order'] ?? 0) != $existingPreview->sort_order) {
+                        $needsUpdate = true;
+                    }
+                    if (! empty($item['video']) && $item['video'] instanceof UploadedFile) {
+                        $needsUpdate = true;
+                    }
                 }
 
                 if ($needsUpdate) {
@@ -435,14 +447,15 @@ class AdminCourseService
     private function hasRealPreviews(array $previews): bool
     {
         foreach ($previews as $item) {
-            $hasTitle = !empty(trim($item['title'] ?? ''));
-            $hasVideo = (!empty($item['video']) && $item['video'] instanceof UploadedFile);
-            $hasVideoUrl = !empty($item['video_url'] ?? '');
+            $hasTitle = ! empty(trim($item['title'] ?? ''));
+            $hasVideo = (! empty($item['video']) && $item['video'] instanceof UploadedFile);
+            $hasVideoUrl = ! empty($item['video_url'] ?? '');
 
             if ($hasTitle || $hasVideo || $hasVideoUrl) {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -549,7 +562,7 @@ class AdminCourseService
             $date = match ($period) {
                 'today' => now()->startOfDay(),
                 'month' => now()->subMonth(),
-                'year'  => now()->subYear(),
+                'year' => now()->subYear(),
                 default => null
             };
 
@@ -560,7 +573,7 @@ class AdminCourseService
 
         // Support search by name inside the trash
         if (request()->has('search')) {
-            $query->where('title', 'like', '%' . request('search') . '%');
+            $query->where('title', 'like', '%'.request('search').'%');
         }
 
         return $query->paginate($perPage);
@@ -573,6 +586,7 @@ class AdminCourseService
     {
         $course = Course::onlyTrashed()->findOrFail($id);
         $course->restore();
+
         return $course;
     }
 
@@ -593,7 +607,7 @@ class AdminCourseService
 
         // 2. You can also delete preview videos here
         $course->previews()->each(function ($p) {
-            if ($p->video_provider === 'upload' && $p->video_url && !filter_var($p->video_url, FILTER_VALIDATE_URL)) {
+            if ($p->video_provider === 'upload' && $p->video_url && ! filter_var($p->video_url, FILTER_VALIDATE_URL)) {
                 Storage::disk('public')->delete($p->video_url);
             }
         });
@@ -607,18 +621,18 @@ class AdminCourseService
     private function fillDraftDefaults(array $data): array
     {
         $defaults = [
-            'thumbnail'         => '',
+            'thumbnail' => '',
             'short_description' => '',
-            'description'       => '',
-            'attendance_type'   => 'online',
-            'price_before'      => 0,
-            'discount_price'    => 0,
-            'duration_weeks'    => 0,
-            'duration_hours'    => 0,
-            'level'             => 'beginner',
-            'language'          => 'Arabic',
-            'is_featured'       => false,
-            'is_free'           => false,
+            'description' => '',
+            'attendance_type' => 'online',
+            'price_before' => 0,
+            'discount_price' => 0,
+            'duration_weeks' => 0,
+            'duration_hours' => 0,
+            'level' => 'beginner',
+            'language' => 'Arabic',
+            'is_featured' => false,
+            'is_free' => false,
         ];
 
         foreach ($defaults as $key => $value) {

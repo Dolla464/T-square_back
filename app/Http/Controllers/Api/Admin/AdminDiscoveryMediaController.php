@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Settings\UploadDiscoveryMediaRequest;
 use App\Http\Resources\Admin\Settings\DiscoveryMediaResource;
-use App\Models\Setting;
 use App\Services\Admin\AdminSettingService;
 use App\Services\User\PublicWebsiteService;
 use Illuminate\Http\JsonResponse;
@@ -50,6 +49,7 @@ class AdminDiscoveryMediaController extends Controller
             $settingsKey,
             $isSingle
         );
+
         return $this->successResponse(
             new DiscoveryMediaResource($finalData),
             $request->input('action') === 'replace'
@@ -63,17 +63,17 @@ class AdminDiscoveryMediaController extends Controller
     {
         $request->validate([
             'image_url' => 'required|string',
-            'key' => 'required|string|in:discovery_media,about_media'
+            'key' => 'required|string|in:discovery_media,about_media',
         ]);
-    
+
         $updatedImages = $this->settingService->deleteSingleWebsiteImage(
             $request->input('image_url'),
             $request->input('key')
         );
-    
+
         return $this->successResponse(
             $updatedImages,
-            'Image deleted successfully from the current ' . $request->input('key') . ' media!',
+            'Image deleted successfully from the current '.$request->input('key').' media!',
             200
         );
     }

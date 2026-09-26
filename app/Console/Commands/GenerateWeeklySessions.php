@@ -9,7 +9,8 @@ use Illuminate\Console\Command;
 
 class GenerateWeeklySessions extends Command
 {
-    protected $signature   = 'attendance:generate-weekly';
+    protected $signature = 'attendance:generate-weekly';
+
     protected $description = 'Generate attendance sessions for the upcoming week for all active groups if they do not already exist.';
 
     public function handle(): void
@@ -18,7 +19,7 @@ class GenerateWeeklySessions extends Command
         $dayMap = [0 => 6, 1 => 0, 2 => 1, 3 => 2, 4 => 3, 5 => 4, 6 => 5];
 
         $weekStart = Carbon::today();
-        $weekEnd   = $weekStart->copy()->addDays(6);
+        $weekEnd = $weekStart->copy()->addDays(6);
 
         $groups = LearningGroup::where('status', 'active')
             ->where('end_date', '>=', $weekStart)
@@ -29,7 +30,7 @@ class GenerateWeeklySessions extends Command
 
         foreach ($groups as $group) {
             $rangeStart = $weekStart->copy()->max($group->start_date);
-            $rangeEnd   = $weekEnd->copy()->min($group->end_date);
+            $rangeEnd = $weekEnd->copy()->min($group->end_date);
 
             if ($rangeStart->gt($rangeEnd)) {
                 continue;
@@ -47,12 +48,12 @@ class GenerateWeeklySessions extends Command
                             ->whereDate('session_date', $current->toDateString())
                             ->exists();
 
-                        if (!$exists) {
+                        if (! $exists) {
                             AttendanceSession::create([
                                 'learning_group_id' => $group->id,
-                                'schedule_id'       => $schedule->id,
-                                'session_date'      => $current->copy(),
-                                'status'            => 'upcoming',
+                                'schedule_id' => $schedule->id,
+                                'session_date' => $current->copy(),
+                                'status' => 'upcoming',
                             ]);
                             $generated++;
                         }

@@ -26,8 +26,8 @@ final class MetaStore
 
     public function withMetaLock(int $courseId, string $uploadId, callable $callback): mixed
     {
-        $tempDir  = $this->sessionFullPath($courseId, $uploadId);
-        $metaPath = "{$tempDir}/" . self::META_FILENAME;
+        $tempDir = $this->sessionFullPath($courseId, $uploadId);
+        $metaPath = "{$tempDir}/".self::META_FILENAME;
 
         if (! is_dir($tempDir)) {
             mkdir($tempDir, 0755, true);
@@ -70,7 +70,7 @@ final class MetaStore
     public function writeMeta($fp, array $meta): void
     {
         $meta['meta_version'] = config('upload.meta_version');
-        $meta['updated_at']   = Carbon::now()->toIso8601String();
+        $meta['updated_at'] = Carbon::now()->toIso8601String();
 
         rewind($fp);
         ftruncate($fp, 0);
@@ -86,7 +86,7 @@ final class MetaStore
     public function listCourseUploadIds(int $courseId): array
     {
         $disk = Storage::disk(config('upload.chunks_disk'));
-        $path = rtrim(config('upload.chunks_path'), '/') . "/{$courseId}";
+        $path = rtrim(config('upload.chunks_path'), '/')."/{$courseId}";
 
         if (! $disk->exists($path)) {
             return [];

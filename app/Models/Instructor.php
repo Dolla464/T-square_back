@@ -78,7 +78,7 @@ class Instructor extends Model
     public function enrollmentsViaCoursesRelation()
     {
         return $this->hasManyThrough(
-            \App\Models\Enrollment::class,
+            Enrollment::class,
             Course::class,
             'instructor_id', // FK على courses يشير إلى instructors.id
             'course_id',     // FK على enrollments يشير إلى courses.id

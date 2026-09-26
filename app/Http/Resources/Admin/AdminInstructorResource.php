@@ -16,7 +16,7 @@ class AdminInstructorResource extends JsonResource
             'email' => $this->user?->email,
             'phone' => $this->phone,
             'avatar' => $this->avatar
-                ? (str_starts_with($this->avatar, 'http') ? $this->avatar : asset('storage/' . $this->avatar))
+                ? (str_starts_with($this->avatar, 'http') ? $this->avatar : asset('storage/'.$this->avatar))
                 : null,
             'field' => $this->field,
             'bio' => $this->bio,

@@ -53,6 +53,7 @@ class SendStudentExamAttemptNotification implements ShouldQueue
         $course = $attempt->exam?->course;
         if ($course instanceof Course) {
             CourseInstructorNotifier::notifyAll($course, $notification);
+
             return;
         }
 
