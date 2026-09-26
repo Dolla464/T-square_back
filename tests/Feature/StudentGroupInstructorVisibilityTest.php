@@ -10,12 +10,20 @@ use App\Models\User;
 use App\Support\CourseInstructorSync;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function (): void {
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    Role::create(['name' => 'student', 'guard_name' => 'web']);
+});
 
 function createEnrolledStudentForCourse(Course $course, ?int $groupId = null, bool $completed = false): array
 {
     $user = User::factory()->create();
+    $user->assignRole('student');
     $student = Student::factory()->create(['user_id' => $user->id]);
     $order = Order::factory()->create([
         'student_id' => $student->id,
