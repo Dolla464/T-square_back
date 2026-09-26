@@ -6,6 +6,7 @@ use App\Http\Resources\Admin\Certificate\CertificateFieldList;
 use App\Models\Certificate;
 use App\Models\Enrollment;
 use App\Services\User\CertificateService;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
@@ -28,7 +29,7 @@ class AdminCertificateService
      * group_id – narrows to certificates whose enrollment has this group_id
      * status   – exact match against the CertificateStatus enum value
      *
-     * * @return array{paginator: \Illuminate\Contracts\Pagination\LengthAwarePaginator, stats: array}
+     * * @return array{paginator: LengthAwarePaginator, stats: array}
      */
     public function index(array $filters = [], int $perPage = 10): array
     {
