@@ -4,6 +4,7 @@ namespace App\Listeners;
 
 use App\Events\StudentExamAttemptCompleted;
 use App\Models\Course;
+use App\Models\CourseReview;
 use App\Models\Enrollment;
 use App\Notifications\CourseReviewRequired;
 use App\Notifications\InstructorExamResultNotification;
@@ -82,7 +83,16 @@ class SendStudentExamAttemptNotification implements ShouldQueue
             ->where('course_id', $courseId)
             ->first();
 
-        if (! $enrollment) {
+        if (! $enrollment || ! $enrollment->is_completed) {
+            return;
+        }
+
+        $hasReview = CourseReview::query()
+            ->where('course_id', $enrollment->course_id)
+            ->where('student_id', $enrollment->student_id)
+            ->exists();
+
+        if ($hasReview) {
             return;
         }
 

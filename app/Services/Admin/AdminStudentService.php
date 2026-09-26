@@ -189,9 +189,13 @@ class AdminStudentService
         $enrollment = $student->enrollments()->where('course_id', $courseId)->first();
 
         if ($enrollment) {
+            if ($isCompleted) {
+                return $enrollment->markAsCompleted();
+            }
+
             return $enrollment->update([
-                'is_completed' => $isCompleted,
-                'completed_at' => $isCompleted ? now() : null // If it becomes completed, log the time, and if it is cancelled, reset it
+                'is_completed' => false,
+                'completed_at' => null,
             ]);
         }
 

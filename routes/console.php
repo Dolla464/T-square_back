@@ -24,5 +24,8 @@ Schedule::command('attendance:complete')->everyFifteenMinutes()->withoutOverlapp
 // Generate sessions for the upcoming week for all active groups — runs daily at midnight
 Schedule::command('attendance:generate-weekly')->dailyAt('00:00')->withoutOverlapping()->appendOutputTo(storage_path('logs/attendance-generate-weekly.log'));
 
+// Complete active learning groups whose end_date is before today — runs daily at 01:00
+Schedule::command('learning-groups:complete-expired')->dailyAt('01:00')->withoutOverlapping()->appendOutputTo(storage_path('logs/learning-groups-complete-expired.log'));
+
 // Close exam attempts that exceeded their allowed duration — runs every minute
 Schedule::command('exams:close-expired')->everyMinute()->withoutOverlapping()->appendOutputTo(storage_path('logs/exams-close-expired.log'));

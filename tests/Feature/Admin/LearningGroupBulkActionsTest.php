@@ -217,6 +217,8 @@ it('returns 422 when course_id is missing in bulk-assign', function (): void {
 // 3. POST {groupId}/bulk-complete
 // ─────────────────────────────────────────────────────────────────────────────
 it('marks targeted enrollments as completed and leaves the others untouched', function (): void {
+    $this->group->update(['status' => 'completed']);
+
     // Two students to be completed
     $target1 = enrollStudent($this->course, 'completed', $this->group->id);
     $target2 = enrollStudent($this->course, 'completed', $this->group->id);
@@ -250,6 +252,8 @@ it('marks targeted enrollments as completed and leaves the others untouched', fu
 });
 
 it('is idempotent — calling bulk-complete twice does not raise the completed_count', function (): void {
+    $this->group->update(['status' => 'completed']);
+
     $student = enrollStudent($this->course, 'completed', $this->group->id);
 
     $payload = ['student_ids' => [$student->student->id]];
@@ -276,6 +280,21 @@ it('returns 404 when the group does not exist for bulk-complete', function (): v
 it('returns 422 when student_ids is missing in bulk-complete', function (): void {
     $this->postJson("/api/admin/learning-groups/{$this->group->id}/bulk-complete", [])
         ->assertStatus(422);
+});
+
+it('returns 422 when bulk-completing students in an active group', function (): void {
+    $student = enrollStudent($this->course, 'completed', $this->group->id);
+
+    $this->postJson("/api/admin/learning-groups/{$this->group->id}/bulk-complete", [
+        'student_ids' => [$student->student->id],
+    ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['is_completed']);
+
+    $this->assertDatabaseHas('enrollments', [
+        'student_id'   => $student->student->id,
+        'is_completed' => false,
+    ]);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

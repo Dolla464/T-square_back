@@ -11,6 +11,7 @@ use App\Models\LearningGroup;
 use App\Http\Resources\Admin\LearningGroup\AdminLearningGroupResource;
 use App\Notifications\CourseReviewRequired;
 use App\Notifications\InstructorGroupAssignedNotification;
+use App\Services\Enrollment\EnrollmentCompletionGuard;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -227,17 +228,19 @@ class AdminLearningGroupService
     /**
      * Sync enrollments when group status changes or when a completed group is saved.
      *
-     * @return array{enrollments_completed: int, enrollments_reopened: int, notifications_sent: int}
+     * @return array{enrollments_completed: int, enrollments_reopened: int, notifications_sent: int, newly_completed_enrollments: Collection<int, Enrollment>}
      */
     public function syncEnrollmentsWithGroupStatus(
         LearningGroup $group,
         string $oldStatus,
-        string $newStatus
+        string $newStatus,
+        bool $sendNotifications = true,
     ): array {
         $result = [
             'enrollments_completed' => 0,
             'enrollments_reopened'  => 0,
             'notifications_sent'    => 0,
+            'newly_completed_enrollments' => new Collection,
         ];
 
         if ($newStatus === 'completed') {
@@ -255,7 +258,9 @@ class AdminLearningGroupService
                 $result['enrollments_completed']++;
             }
 
-            if ($oldStatus !== 'completed' && $newlyCompleted->isNotEmpty()) {
+            $result['newly_completed_enrollments'] = $newlyCompleted;
+
+            if ($sendNotifications && $oldStatus !== 'completed' && $newlyCompleted->isNotEmpty()) {
                 $result['notifications_sent'] = $this->notifyStudentsReviewRequired($group, $newlyCompleted);
             }
         }
@@ -277,6 +282,14 @@ class AdminLearningGroupService
         }
 
         return $result;
+    }
+
+    /**
+     * Notify students who were newly marked completed to submit a review.
+     */
+    public function sendReviewNotificationsForNewlyCompleted(LearningGroup $group, Collection $enrollments): int
+    {
+        return $this->notifyStudentsReviewRequired($group, $enrollments);
     }
 
     /**
@@ -316,9 +329,37 @@ class AdminLearningGroupService
      */
     private function syncGroupStudents(LearningGroup $group, array $data): array
     {
+        $group->refresh();
+
         $incomingStudentIds = array_map('intval', array_filter((array) ($data['student_ids'] ?? [])));
         $studentStatuses = $data['student_statuses'] ?? [];
         $skippedStudentIds = [];
+        $guard = app(EnrollmentCompletionGuard::class);
+
+        foreach ($incomingStudentIds as $studentId) {
+            $isCompleted = (bool) ($studentStatuses[$studentId]
+                ?? $studentStatuses[(string) $studentId]
+                ?? false);
+
+            if (! $isCompleted) {
+                continue;
+            }
+
+            $enrollment = Enrollment::query()
+                ->where('student_id', $studentId)
+                ->where('course_id', $group->course_id)
+                ->first();
+
+            if ($enrollment === null || $enrollment->is_completed) {
+                continue;
+            }
+
+            $check = $enrollment->replicate();
+            $check->group_id = $group->id;
+            $check->is_completed = false;
+            $check->setRelation('learningGroup', $group);
+            $guard->assertCanComplete($check);
+        }
 
         DB::table('enrollments')
             ->where('group_id', $group->id)
@@ -331,18 +372,26 @@ class AdminLearningGroupService
                 ?? $studentStatuses[(string) $studentId]
                 ?? false);
 
-            $updated = DB::table('enrollments')
+            $enrollment = Enrollment::query()
                 ->where('student_id', $studentId)
                 ->where('course_id', $group->course_id)
-                ->update([
-                    'group_id'     => $group->id,
-                    'is_completed' => $isCompleted,
-                    'completed_at' => $isCompleted ? now() : null,
-                    'updated_at'   => now(),
-                ]);
+                ->first();
 
-            if (!$updated) {
+            if ($enrollment === null) {
                 $skippedStudentIds[] = $studentId;
+                continue;
+            }
+
+            if ($isCompleted) {
+                $enrollment->update(['group_id' => $group->id]);
+                $enrollment->refresh();
+                $enrollment->markAsCompleted();
+            } else {
+                $enrollment->update([
+                    'group_id'     => $group->id,
+                    'is_completed' => false,
+                    'completed_at' => null,
+                ]);
             }
         }
 
@@ -755,24 +804,41 @@ class AdminLearningGroupService
      */
     public function bulkCompleteStudents(array $studentIds, int $groupId): array
     {
-        $group = DB::table('learning_groups')->where('id', $groupId)->first();
+        $group = LearningGroup::query()->find($groupId);
 
-        if (!$group) {
+        if (! $group) {
             return ['success' => false, 'status' => 404, 'message' => 'Group not found.'];
         }
 
-        $completedCount = DB::table('enrollments')
+        $this->assertGroupAllowsNewCompletions($group);
+
+        $completedCount = 0;
+
+        $enrollments = Enrollment::query()
             ->where('course_id', $group->course_id)
             ->where('group_id', $groupId)
             ->whereIn('student_id', $studentIds)
             ->where('is_completed', false)
-            ->update([
-                'is_completed' => true,
-                'completed_at' => now(),
-                'updated_at'   => now(),
-            ]);
+            ->get();
+
+        foreach ($enrollments as $enrollment) {
+            if ($enrollment->markAsCompleted()) {
+                $completedCount++;
+            }
+        }
 
         return ['success' => true, 'completed_count' => $completedCount];
+    }
+
+    private function assertGroupAllowsNewCompletions(LearningGroup $group): void
+    {
+        $probe = new Enrollment([
+            'group_id'     => $group->id,
+            'is_completed' => false,
+        ]);
+        $probe->setRelation('learningGroup', $group);
+
+        app(EnrollmentCompletionGuard::class)->assertCanComplete($probe);
     }
 
     /**
