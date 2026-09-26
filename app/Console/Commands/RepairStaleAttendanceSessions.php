@@ -5,17 +5,17 @@ namespace App\Console\Commands;
 use App\Services\Attendance\AttendanceSessionCompletionService;
 use Illuminate\Console\Command;
 
-class CompleteAttendanceSessions extends Command
+class RepairStaleAttendanceSessions extends Command
 {
-    protected $signature = 'attendance:complete';
+    protected $signature = 'attendance:repair-stale';
 
-    protected $description = 'Complete active/upcoming attendance sessions after effective end + 30 minutes and mark absent students.';
+    protected $description = 'Run session completion once for stale active/upcoming sessions (post-deploy repair).';
 
     public function handle(AttendanceSessionCompletionService $completionService): int
     {
         $completed = $completionService->completeEligibleSessions();
 
-        $this->info("Completed {$completed} attendance session(s) and marked absent students.");
+        $this->info("Repaired {$completed} stale attendance session(s).");
 
         return self::SUCCESS;
     }

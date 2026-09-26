@@ -22,19 +22,30 @@ class StudentExamAttemptStatusNotification extends Notification implements Shoul
 
     public function toDatabase(object $notifiable): array
     {
+        $this->attempt->loadMissing('exam.course');
+
         $isPassed = $this->attempt->status === 'passed';
+        $examTitle = $this->attempt->exam?->title ?? 'Exam';
+        $courseTitle = $this->attempt->exam?->course?->title ?? 'Course';
+        $result = $isPassed ? 'passed' : 'failed';
 
         return [
             'type' => 'exam_result',
             'title' => 'Exam Attempt Result',
-            'message' => $isPassed
-                ? 'You passed your exam attempt.'
-                : 'You failed your exam attempt.',
+            'message' => "You {$result} the exam \"{$examTitle}\" in course \"{$courseTitle}\".",
+            'course_id' => $this->attempt->exam?->course_id,
+            'course_title' => $courseTitle,
             'exam_id' => $this->attempt->exam_id,
+            'exam_title' => $examTitle,
             'attempt_id' => $this->attempt->id,
             'status' => $this->attempt->status,
             'score' => $this->attempt->score,
             'icon' => $isPassed ? 'patch-check' : 'x-circle',
         ];
+    }
+
+    public function toArray(object $notifiable): array
+    {
+        return $this->toDatabase($notifiable);
     }
 }

@@ -20,9 +20,9 @@ class AttendanceSessionService
             throw new HttpException(422, 'Cannot mark attendance for cancelled sessions.');
         }
 
-        $times       = $this->getEffectiveTimes($session);
+        $times = $this->getEffectiveTimes($session);
         $sessionDate = $times['session_date'] ?? $session->session_date->format('Y-m-d');
-        $isPast      = Carbon::parse($sessionDate)->startOfDay()->lt(Carbon::today());
+        $isPast = Carbon::parse($sessionDate)->startOfDay()->lt(Carbon::today());
         $isCompleted = $session->status === 'completed';
 
         if (! $isCompleted && ! $isPast) {
@@ -48,46 +48,46 @@ class AttendanceSessionService
 
             return [
                 'student_id' => $student->id,
-                'full_name'  => $student->full_name ?? $student->user?->name ?? 'Unknown',
-                'email'      => $student->email ?? $student->user?->email ?? null,
-                'avatar'     => $student->avatar ?? $student->user?->avatar ?? null,
-                'status'     => $record?->status ?? 'not_marked',
-                'marked_at'  => $record?->marked_at?->toDateTimeString(),
-                'marked_by'  => $record?->marked_by,
-                'notes'      => $record?->notes,
+                'full_name' => $student->full_name ?? $student->user?->name ?? 'Unknown',
+                'email' => $student->email ?? $student->user?->email ?? null,
+                'avatar' => $student->avatar ?? $student->user?->avatar ?? null,
+                'status' => $record?->status ?? 'not_marked',
+                'marked_at' => $record?->marked_at?->toDateTimeString(),
+                'marked_by' => $record?->marked_by,
+                'notes' => $record?->notes,
             ];
         });
 
         $presentCount = $studentList->whereIn('status', ['present', 'late'])->count();
-        $times        = $this->getEffectiveTimes($session);
+        $times = $this->getEffectiveTimes($session);
 
         return [
-            'session_id'   => $session->id,
-            'group_name'   => $session->learningGroup->group_name,
+            'session_id' => $session->id,
+            'group_name' => $session->learningGroup->group_name,
             'course_title' => $session->learningGroup->course->title ?? null,
             'session_date' => $session->session_date->format('Y-m-d'),
-            'start_time'   => $times['start_time'],
-            'end_time'     => $times['end_time'],
-            'room'         => $session->schedule->room ?? null,
-            'status'       => $session->status,
-            'qr_code'      => $session->qr_code,
-            'attendance'   => [
-                'total'   => $studentList->count(),
+            'start_time' => $times['start_time'],
+            'end_time' => $times['end_time'],
+            'room' => $session->schedule->room ?? null,
+            'status' => $this->resolveLifecycleStatus($session),
+            'qr_code' => $session->qr_code,
+            'attendance' => [
+                'total' => $studentList->count(),
                 'present' => $presentCount,
-                'absent'  => $studentList->count() - $presentCount,
+                'absent' => $studentList->count() - $presentCount,
             ],
-            'students'     => $studentList->values()->all(),
+            'students' => $studentList->values()->all(),
         ];
     }
 
     public function getEffectiveTimes(AttendanceSession $session): array
     {
         $startRaw = $session->override_start_time ?? $session->schedule?->start_time;
-        $endRaw   = $session->override_end_time ?? $session->schedule?->end_time;
+        $endRaw = $session->override_end_time ?? $session->schedule?->end_time;
 
         return [
-            'start_time'   => $this->formatTime($startRaw),
-            'end_time'     => $this->formatTime($endRaw),
+            'start_time' => $this->formatTime($startRaw),
+            'end_time' => $this->formatTime($endRaw),
             'session_date' => ($session->override_date ?? $session->session_date)?->format('Y-m-d'),
         ];
     }
@@ -96,13 +96,39 @@ class AttendanceSessionService
     {
         $session->loadMissing('schedule');
         $times = $this->getEffectiveTimes($session);
-        $date  = $times['session_date'] ?? $session->session_date->format('Y-m-d');
+        $date = $times['session_date'] ?? $session->session_date->format('Y-m-d');
 
         return [
             'session_date' => $date,
-            'start'        => Carbon::parse("{$date} {$times['start_time']}"),
-            'end'          => Carbon::parse("{$date} {$times['end_time']}"),
+            'start' => Carbon::parse("{$date} {$times['start_time']}"),
+            'end' => Carbon::parse("{$date} {$times['end_time']}"),
         ];
+    }
+
+    public function hasSessionEnded(AttendanceSession $session, ?Carbon $now = null): bool
+    {
+        $now = $now ?? Carbon::now();
+        $range = $this->getEffectiveDateTimeRange($session);
+        $completionThreshold = $range['end']->copy()->addMinutes(30);
+
+        return $now->greaterThanOrEqualTo($completionThreshold);
+    }
+
+    public function resolveLifecycleStatus(AttendanceSession $session, ?Carbon $now = null): string
+    {
+        if ($session->status === 'cancelled') {
+            return 'cancelled';
+        }
+
+        if ($session->status === 'completed') {
+            return 'completed';
+        }
+
+        if ($this->hasSessionEnded($session, $now)) {
+            return 'completed';
+        }
+
+        return $session->status;
     }
 
     private function formatTime($value): ?string

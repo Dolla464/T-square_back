@@ -2,17 +2,18 @@
 
 namespace App\Services\Instructor;
 
-use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\Enrollment;
 use App\Models\LearningGroup;
+use App\Services\Attendance\AttendanceSessionService;
 use App\Services\Attendance\GroupAttendanceSummaryService;
 use Carbon\Carbon;
 
 class InstructorDashboardService
 {
     public function __construct(
-        private GroupAttendanceSummaryService $groupAttendanceSummaryService
+        private GroupAttendanceSummaryService $groupAttendanceSummaryService,
+        private AttendanceSessionService $attendanceSessionService,
     ) {}
 
     // ── Overview Stats ────────────────────────────────────────────────────────
@@ -21,8 +22,8 @@ class InstructorDashboardService
     {
         $groupIds = LearningGroup::forInstructor($instructorId)->pluck('id');
 
-        $totalGroups     = $groupIds->count();
-        $activeGroups    = LearningGroup::forInstructor($instructorId)->where('status', 'active')->count();
+        $totalGroups = $groupIds->count();
+        $activeGroups = LearningGroup::forInstructor($instructorId)->where('status', 'active')->count();
         $completedGroups = LearningGroup::forInstructor($instructorId)->where('status', 'completed')->count();
 
         $totalStudents = Enrollment::whereIn('group_id', $groupIds)
@@ -31,10 +32,10 @@ class InstructorDashboardService
             ->count;
 
         return [
-            'total_groups'     => $totalGroups,
-            'active_groups'    => $activeGroups,
+            'total_groups' => $totalGroups,
+            'active_groups' => $activeGroups,
             'completed_groups' => $completedGroups,
-            'total_students'   => $totalStudents,
+            'total_students' => $totalStudents,
         ];
     }
 
@@ -54,9 +55,9 @@ class InstructorDashboardService
             ->get();
 
         return $groups->map(function (LearningGroup $group) {
-            $totalSessions     = $group->total_sessions;
+            $totalSessions = $group->total_sessions;
             $completedSessions = $group->completed_sessions;
-            $studentsCount     = Enrollment::where('group_id', $group->id)
+            $studentsCount = Enrollment::where('group_id', $group->id)
                 ->distinct('student_id')
                 ->count('student_id');
 
@@ -65,15 +66,15 @@ class InstructorDashboardService
                 : 0;
 
             return [
-                'id'                    => $group->id,
-                'group_name'            => $group->group_name,
-                'course_title'          => $group->course->title ?? null,
-                'students_count'        => $studentsCount,
+                'id' => $group->id,
+                'group_name' => $group->group_name,
+                'course_title' => $group->course->title ?? null,
+                'students_count' => $studentsCount,
                 'completion_percentage' => $completionPercentage,
-                'completed_sessions'    => $completedSessions,
-                'total_sessions'        => $totalSessions,
-                'start_date'            => $group->start_date?->format('Y-m-d'),
-                'end_date'              => $group->end_date?->format('Y-m-d'),
+                'completed_sessions' => $completedSessions,
+                'total_sessions' => $totalSessions,
+                'start_date' => $group->start_date?->format('Y-m-d'),
+                'end_date' => $group->end_date?->format('Y-m-d'),
             ];
         })->values()->all();
     }
@@ -97,7 +98,7 @@ class InstructorDashboardService
 
             // Prefer end_date; fall back to latest session_date
             $completionDate = $group->end_date?->format('Y-m-d');
-            if (!$completionDate) {
+            if (! $completionDate) {
                 $lastSession = AttendanceSession::where('group_id', $group->id)
                     ->orderByDesc('session_date')
                     ->value('session_date');
@@ -107,13 +108,13 @@ class InstructorDashboardService
             }
 
             return [
-                'id'              => $group->id,
-                'group_name'      => $group->group_name,
-                'course_title'    => $group->course->title ?? null,
-                'students_count'  => $studentsCount,
+                'id' => $group->id,
+                'group_name' => $group->group_name,
+                'course_title' => $group->course->title ?? null,
+                'students_count' => $studentsCount,
                 'completion_date' => $completionDate,
-                'total_sessions'  => $group->total_sessions,
-                'start_date'      => $group->start_date?->format('Y-m-d'),
+                'total_sessions' => $group->total_sessions,
+                'start_date' => $group->start_date?->format('Y-m-d'),
             ];
         });
 
@@ -121,9 +122,9 @@ class InstructorDashboardService
             'data' => array_values($paginator->items()),
             'meta' => [
                 'current_page' => $paginator->currentPage(),
-                'last_page'    => $paginator->lastPage(),
-                'per_page'     => $paginator->perPage(),
-                'total'        => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
             ],
         ];
     }
@@ -149,32 +150,32 @@ class InstructorDashboardService
 
         if ($date) {
             $targetDate = Carbon::parse($date)->toDateString();
-            $sessions   = $query->whereDate('session_date', $targetDate)
+            $sessions = $query->whereDate('session_date', $targetDate)
                 ->orderBy('session_date')
                 ->get()
-                ->map(fn($s) => $this->formatSession($s));
+                ->map(fn ($s) => $this->formatSession($s));
 
             return [
-                'type'     => 'day',
-                'date'     => $targetDate,
+                'type' => 'day',
+                'date' => $targetDate,
                 'sessions' => $sessions->values()->all(),
             ];
         }
 
         // Default: current week (Monday → Sunday)
         $startOfWeek = Carbon::now()->startOfWeek(Carbon::MONDAY)->toDateString();
-        $endOfWeek   = Carbon::now()->endOfWeek(Carbon::SUNDAY)->toDateString();
+        $endOfWeek = Carbon::now()->endOfWeek(Carbon::SUNDAY)->toDateString();
 
         $sessions = $query->whereBetween('session_date', [$startOfWeek, $endOfWeek])
             ->orderBy('session_date')
             ->get()
-            ->map(fn($s) => $this->formatSession($s));
+            ->map(fn ($s) => $this->formatSession($s));
 
         return [
-            'type'       => 'week',
+            'type' => 'week',
             'start_date' => $startOfWeek,
-            'end_date'   => $endOfWeek,
-            'sessions'   => $sessions->values()->all(),
+            'end_date' => $endOfWeek,
+            'sessions' => $sessions->values()->all(),
         ];
     }
 
@@ -183,14 +184,14 @@ class InstructorDashboardService
     private function formatSession(AttendanceSession $session): array
     {
         return [
-            'session_id'   => $session->id,
-            'group_name'   => $session->learningGroup->group_name,
+            'session_id' => $session->id,
+            'group_name' => $session->learningGroup->group_name,
             'course_title' => $session->learningGroup->course->title ?? null,
             'session_date' => $session->session_date->format('Y-m-d'),
-            'start_time'   => $session->schedule->start_time->format('H:i'),
-            'end_time'     => $session->schedule->end_time->format('H:i'),
-            'room'         => $session->schedule->room,
-            'status'       => $session->status,
+            'start_time' => $session->schedule->start_time->format('H:i'),
+            'end_time' => $session->schedule->end_time->format('H:i'),
+            'room' => $session->schedule->room,
+            'status' => $this->attendanceSessionService->resolveLifecycleStatus($session),
         ];
     }
 }

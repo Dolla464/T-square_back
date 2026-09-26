@@ -13,8 +13,6 @@ use App\Services\Attendance\AttendanceSessionService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * @tags Attendance
@@ -32,7 +30,7 @@ class AttendanceController extends Controller
     public function scan(Request $request): JsonResponse
     {
         $request->validate([
-            'qr_code'   => 'required|string',
+            'qr_code' => 'required|string',
             'device_id' => 'required|string',
         ]);
 
@@ -54,7 +52,7 @@ class AttendanceController extends Controller
     {
         $instructor = $request->user()->instructor;
 
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->errorResponse('Instructor profile not found.', 404);
         }
 
@@ -73,15 +71,15 @@ class AttendanceController extends Controller
             ->get()
             ->map(function ($session) {
                 return [
-                    'session_id'   => $session->id,
-                    'group_name'   => $session->learningGroup->group_name,
+                    'session_id' => $session->id,
+                    'group_name' => $session->learningGroup->group_name,
                     'course_title' => $session->learningGroup->course->title ?? null,
                     'session_date' => $session->session_date->format('Y-m-d'),
-                    'start_time'   => $session->schedule->start_time->format('H:i'),
-                    'end_time'     => $session->schedule->end_time->format('H:i'),
-                    'room'         => $session->schedule->room,
-                    'status'       => $session->status,
-                    'qr_code'      => $session->qr_code,
+                    'start_time' => $session->schedule->start_time->format('H:i'),
+                    'end_time' => $session->schedule->end_time->format('H:i'),
+                    'room' => $session->schedule->room,
+                    'status' => $this->attendanceSessionService->resolveLifecycleStatus($session),
+                    'qr_code' => $session->qr_code,
                 ];
             });
 
@@ -96,7 +94,7 @@ class AttendanceController extends Controller
     {
         $instructor = $request->user()->instructor;
 
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->errorResponse('Instructor profile not found.', 404);
         }
 
@@ -115,27 +113,27 @@ class AttendanceController extends Controller
             ->orderBy('session_date')
             ->get()
             ->map(function ($session) {
-                $records     = $session->attendanceRecords;
+                $records = $session->attendanceRecords;
                 $totalInGroup = $session->learningGroup
                     ->students()
                     ->count();
                 $presentCount = $records->whereIn('status', ['present', 'late'])->count();
-                $absentCount  = $records->where('status', 'absent')->count();
+                $absentCount = $records->where('status', 'absent')->count();
 
                 return [
-                    'session_id'    => $session->id,
-                    'group_name'    => $session->learningGroup->group_name,
-                    'course_title'  => $session->learningGroup->course->title ?? null,
-                    'session_date'  => $session->session_date->format('Y-m-d'),
-                    'start_time'    => $session->schedule->start_time->format('H:i'),
-                    'end_time'      => $session->schedule->end_time->format('H:i'),
-                    'room'          => $session->schedule->room,
-                    'status'        => $session->status,
-                    'qr_code'       => $session->qr_code,
-                    'attendance'    => [
-                        'total'   => $totalInGroup,
+                    'session_id' => $session->id,
+                    'group_name' => $session->learningGroup->group_name,
+                    'course_title' => $session->learningGroup->course->title ?? null,
+                    'session_date' => $session->session_date->format('Y-m-d'),
+                    'start_time' => $session->schedule->start_time->format('H:i'),
+                    'end_time' => $session->schedule->end_time->format('H:i'),
+                    'room' => $session->schedule->room,
+                    'status' => $this->attendanceSessionService->resolveLifecycleStatus($session),
+                    'qr_code' => $session->qr_code,
+                    'attendance' => [
+                        'total' => $totalInGroup,
                         'present' => $presentCount,
-                        'absent'  => $absentCount,
+                        'absent' => $absentCount,
                     ],
                 ];
             });
@@ -151,7 +149,7 @@ class AttendanceController extends Controller
     {
         $instructor = $request->user()->instructor;
 
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->errorResponse('Instructor profile not found.', 404);
         }
 
@@ -175,14 +173,14 @@ class AttendanceController extends Controller
         $request->validate([
             'session_id' => 'required|integer|exists:attendance_sessions,id',
             'student_id' => 'required|integer|exists:students,id',
-            'status'     => 'required|in:present,absent,late',
+            'status' => 'required|in:present,absent,late',
             'notes' => ['nullable', 'string', 'max:255'],
             'student_qr_code' => 'nullable|string',
         ]);
 
         $instructor = $request->user()->instructor;
 
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->errorResponse('Instructor profile not found.', 404);
         }
 
@@ -207,10 +205,10 @@ class AttendanceController extends Controller
                 'student_id' => $request->student_id,
             ],
             [
-                'status'    => $request->status,
+                'status' => $request->status,
                 'marked_by' => 'instructor_manual',
                 'marked_at' => Carbon::now(),
-                'notes'     => $request->notes,
+                'notes' => $request->notes,
                 'student_qr_code' => $request->student_qr_code ?? null,
             ]
         );
@@ -219,12 +217,12 @@ class AttendanceController extends Controller
         broadcast(new StudentScanned($record))->toOthers();
 
         return $this->successResponse([
-            'record_id'  => $record->id,
+            'record_id' => $record->id,
             'session_id' => $record->session_id,
             'student_id' => $record->student_id,
-            'status'     => $record->status,
-            'marked_at'  => $record->marked_at->toDateTimeString(),
-            'marked_by'  => $record->marked_by,
+            'status' => $record->status,
+            'marked_at' => $record->marked_at->toDateTimeString(),
+            'marked_by' => $record->marked_by,
         ], 'Attendance marked successfully');
     }
 
@@ -236,7 +234,7 @@ class AttendanceController extends Controller
     {
         $instructor = $request->user()->instructor;
 
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->errorResponse('Instructor profile not found.', 404);
         }
 
@@ -253,11 +251,11 @@ class AttendanceController extends Controller
         }
 
         $session->load('schedule');
-        $endTime   = Carbon::parse($session->session_date->format('Y-m-d') . ' ' . $session->schedule->end_time->format('H:i'));
+        $endTime = Carbon::parse($session->session_date->format('Y-m-d').' '.$session->schedule->end_time->format('H:i'));
         $expiresAt = $endTime->copy()->addMinutes(30);
 
         return $this->successResponse([
-            'qr_code'    => $session->qr_code,
+            'qr_code' => $session->qr_code,
             'session_id' => $session->id,
             'expires_at' => $expiresAt->toDateTimeString(),
         ], 'QR code retrieved successfully');
@@ -272,7 +270,7 @@ class AttendanceController extends Controller
     {
         $instructor = $request->user()->instructor;
 
-        if (!$instructor) {
+        if (! $instructor) {
             return $this->errorResponse('Instructor profile not found.', 404);
         }
 
@@ -295,13 +293,13 @@ class AttendanceController extends Controller
             $student = $record->student;
 
             return [
-                'record_id'    => $record->id,
-                'student_id'   => $record->student_id,
+                'record_id' => $record->id,
+                'student_id' => $record->student_id,
                 'student_name' => $student?->full_name ?? $student?->user?->name ?? 'Unknown',
-                'session_id'   => $record->session_id,
-                'status'       => $record->status,
-                'marked_at'    => $record->marked_at?->toDateTimeString(),
-                'marked_by'    => $record->marked_by,
+                'session_id' => $record->session_id,
+                'status' => $record->status,
+                'marked_at' => $record->marked_at?->toDateTimeString(),
+                'marked_by' => $record->marked_by,
             ];
         });
 
@@ -341,7 +339,7 @@ class AttendanceController extends Controller
         }
 
         $record->update([
-            'status'    => 'present',
+            'status' => 'present',
             'marked_by' => 'student_qr',
             'marked_at' => Carbon::now(),
         ]);
@@ -353,8 +351,8 @@ class AttendanceController extends Controller
         return $this->successResponse([
             'student_id' => $record->student_id,
             'session_id' => $record->session_id,
-            'status'     => $record->status,
-            'marked_at'  => $record->marked_at->toDateTimeString(),
+            'status' => $record->status,
+            'marked_at' => $record->marked_at->toDateTimeString(),
         ], 'Attendance recorded successfully');
     }
 

@@ -3,6 +3,7 @@
 namespace App\Services\Notification;
 
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class NotificationService
 {
@@ -10,12 +11,20 @@ class NotificationService
 
     public const MAX_PER_PAGE = 100;
 
+    public function __construct(
+        private NotificationDataEnricher $notificationDataEnricher,
+    ) {}
+
     /**
      * جلب إشعارات المستخدم مع التقسيم (Pagination)
      */
     public function getUserNotifications(object $user, int $perPage = self::DEFAULT_PER_PAGE): LengthAwarePaginator
     {
-        return $user->notifications()->latest('created_at')->paginate($perPage);
+        $paginator = $user->notifications()->latest('created_at')->paginate($perPage);
+
+        $this->notificationDataEnricher->enrich(Collection::make($paginator->items()));
+
+        return $paginator;
     }
 
     /**
