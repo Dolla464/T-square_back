@@ -127,6 +127,7 @@ class AdminLearningGroupService
             }
 
             $this->generateAttendanceSessions($group);
+            $this->syncGroupEndDateToLastSession($group);
 
             $backfillMeta = [];
             if ($isHistorical) {
@@ -228,6 +229,10 @@ class AdminLearningGroupService
             if (isset($data['schedules'])) {
                 $activeSchedules = $this->syncGroupSchedules($group, $data['schedules']);
                 $this->regenerateFutureSessions($group, $activeSchedules);
+            }
+
+            if (isset($data['start_date']) || isset($data['schedules'])) {
+                $this->syncGroupEndDateToLastSession($group);
             }
 
             if (isset($data['student_ids'])) {
@@ -647,44 +652,147 @@ class AdminLearningGroupService
             return $base;
         }
 
-        $correctEnd    = $this->calculateGroupEndDate($group->start_date, (int) $group->course->duration_weeks);
-        $newEndStr     = $correctEnd->format('Y-m-d');
-        $endDateChanged = $base['old_end_date'] !== $newEndStr;
+        $group->loadMissing('schedules');
+
+        $upperBound = $this->resolveEndDateFromSchedules(
+            $group->start_date,
+            (int) $group->course->duration_weeks,
+            $group->schedules
+        ) ?? $this->calculateGroupEndDate($group->start_date, (int) $group->course->duration_weeks);
+
+        $upperBoundStr = $upperBound->format('Y-m-d');
 
         $sessionsQuery = AttendanceSession::query()
             ->where('learning_group_id', $group->id)
             ->where('status', 'upcoming')
-            ->whereRaw('DATE(COALESCE(override_date, session_date)) > ?', [$newEndStr]);
+            ->whereRaw('DATE(COALESCE(override_date, session_date)) > ?', [$upperBoundStr]);
 
         $sessionsRemoved = $sessionsQuery->count();
 
+        if ($dryRun) {
+            $projectedEndDate = $this->resolveProjectedGroupEndDate($group, $upperBound);
+            $projectedEndStr  = $projectedEndDate->format('Y-m-d');
+            $endDateChanged   = $base['old_end_date'] !== $projectedEndStr;
+
+            $base['new_end_date']     = $projectedEndStr;
+            $base['end_date_changed'] = $endDateChanged;
+            $base['sessions_removed'] = $sessionsRemoved;
+            $base['updated']          = $endDateChanged || $sessionsRemoved > 0;
+
+            return $base;
+        }
+
+        if ($sessionsRemoved === 0 && $base['old_end_date'] === $this->resolveProjectedGroupEndDate($group, $upperBound)->format('Y-m-d')) {
+            return $base;
+        }
+
+        DB::transaction(function () use ($group, $sessionsQuery): void {
+            $sessionsQuery->delete();
+            $this->syncGroupEndDateToLastSession($group);
+        });
+
+        $group->refresh();
+
+        $newEndStr      = $group->end_date?->format('Y-m-d');
+        $endDateChanged = $base['old_end_date'] !== $newEndStr;
+
+        $base['updated']          = true;
         $base['new_end_date']     = $newEndStr;
         $base['end_date_changed'] = $endDateChanged;
         $base['sessions_removed'] = $sessionsRemoved;
 
-        if (! $endDateChanged && $sessionsRemoved === 0) {
-            return $base;
+        return $base;
+    }
+
+    /**
+     * Resolve the final course day from schedule days and duration.
+     * Returns null when there are no schedules.
+     */
+    private function resolveEndDateFromSchedules(
+        Carbon $startDate,
+        int $durationWeeks,
+        Collection $schedules,
+    ): ?Carbon {
+        if ($schedules->isEmpty()) {
+            return null;
         }
 
-        if ($dryRun) {
-            $base['updated'] = true;
+        $dayMap    = self::dayOfWeekMap();
+        $lastDates = [];
 
-            return $base;
-        }
+        foreach ($schedules as $schedule) {
+            $dayOfWeek = (int) (is_array($schedule) ? ($schedule['day_of_week'] ?? -1) : $schedule->day_of_week);
+            $carbonDay = $dayMap[$dayOfWeek] ?? null;
 
-        DB::transaction(function () use ($group, $correctEnd, $endDateChanged, $sessionsQuery): void {
-            if ($endDateChanged) {
-                $group->update(['end_date' => $correctEnd]);
+            if ($carbonDay === null) {
+                continue;
             }
 
-            $sessionsQuery->delete();
-        });
+            $cursor = $startDate->copy();
 
-        $base['updated']          = true;
-        $base['old_end_date']     = $endDateChanged ? $base['old_end_date'] : $newEndStr;
-        $base['end_date_changed'] = $endDateChanged;
+            while ($cursor->dayOfWeek !== $carbonDay) {
+                $cursor->addDay();
+            }
 
-        return $base;
+            $lastDates[] = $cursor->copy()->addWeeks(max(0, $durationWeeks - 1));
+        }
+
+        if ($lastDates === []) {
+            return null;
+        }
+
+        return collect($lastDates)->sort()->last();
+    }
+
+    /**
+     * Align persisted end_date with the last actual (or effective) session date.
+     */
+    private function syncGroupEndDateToLastSession(LearningGroup $group): void
+    {
+        $group->loadMissing(['schedules', 'course:id,duration_weeks']);
+
+        $resolvedEnd = $this->resolveProjectedGroupEndDate($group);
+
+        if ($resolvedEnd === null) {
+            return;
+        }
+
+        $newEndStr = $resolvedEnd->format('Y-m-d');
+
+        if ($group->end_date?->format('Y-m-d') !== $newEndStr) {
+            $group->update(['end_date' => $resolvedEnd]);
+        }
+    }
+
+    /**
+     * Priority: MAX(COALESCE(override_date, session_date)), else schedule-aware date, else calendar formula.
+     */
+    private function resolveProjectedGroupEndDate(LearningGroup $group, ?Carbon $fallbackEndDate = null): ?Carbon
+    {
+        $maxSessionDate = AttendanceSession::query()
+            ->where('learning_group_id', $group->id)
+            ->max(DB::raw('DATE(COALESCE(override_date, session_date))'));
+
+        if ($maxSessionDate !== null) {
+            return Carbon::parse($maxSessionDate)->startOfDay();
+        }
+
+        if ($fallbackEndDate !== null) {
+            return $fallbackEndDate->copy()->startOfDay();
+        }
+
+        if ($group->start_date && $group->course) {
+            return $this->resolveEndDateFromSchedules(
+                $group->start_date,
+                (int) $group->course->duration_weeks,
+                $group->schedules
+            ) ?? $this->calculateGroupEndDate(
+                $group->start_date,
+                (int) $group->course->duration_weeks
+            );
+        }
+
+        return null;
     }
 
     /** Last calendar day of the course (inclusive session generation bound). */

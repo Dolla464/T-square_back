@@ -294,7 +294,7 @@ it('generates exactly duration_weeks times schedule days sessions for historical
 
     $response
         ->assertCreated()
-        ->assertJsonPath('data.end_date', '2026-11-29');
+        ->assertJsonPath('data.end_date', '2026-11-25');
 
     $groupId = $response->json('data.id');
 
