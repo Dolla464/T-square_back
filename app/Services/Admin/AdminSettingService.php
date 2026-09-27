@@ -2,12 +2,9 @@
 
 namespace App\Services\Admin;
 
-use App\Jobs\ProcessWebsiteMediaJob;
 use App\Models\Setting;
 use App\Traits\HandleImageUploadTrait;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AdminSettingService
@@ -23,12 +20,11 @@ class AdminSettingService
     /**
      * Handle the upload and save of website media images (dynamic for hero, about, discovery).
      *
-     * Raw files are persisted to the local disk immediately so the HTTP request
-     * can return fast, then heavy resize + WebP conversion happens inside a
-     * queued job (ProcessWebsiteMediaJob).
+     * Processing is synchronous and all-or-nothing: a single invalid image rolls back
+     * the entire batch and leaves existing settings/files unchanged.
      *
      * @param  array<int, UploadedFile>  $images
-     * @return array Current images (before the job runs) – frontend polls for the new ones.
+     * @return array<int, string>
      */
     public function handleWebsiteMediaUpload(array $images, string $action, string $settingsKey, bool $isSingle = false): array
     {
@@ -53,39 +49,27 @@ class AdminSettingService
         $oldImages = ($action === 'replace' || $isSingle) ? (array) $currentImages : [];
         $baseImages = ($action === 'replace' || $isSingle) ? [] : (array) $currentImages;
 
-        // Save raw files to the local disk so the request can return immediately.
-        // PHP will delete the upload temp file after the response is sent, so we
-        // must persist the content here before dispatching the job.
-        $pendingPaths = [];
-        foreach ($images as $file) {
-            if (! $file instanceof UploadedFile) {
-                continue;
+        $uploadedUrls = $this->uploadImagesBatch($images, $folder, $maxSize, returnUrls: true);
+
+        if ($isSingle) {
+            $finalData = $uploadedUrls[0];
+            Setting::set($settingsKey, $finalData, 'string', 'general');
+
+            if (! empty($oldImages)) {
+                $this->deleteStorageImages($oldImages);
             }
 
-            $pendingName = 'pending/website-media/'.uniqid().'_'.Str::random(5).'.'.$this->extensionFromMime($file);
-            Storage::disk('local')->put($pendingName, $file->getContent());
-            $pendingPaths[] = $pendingName;
+            return [$finalData];
         }
 
-        if (! empty($pendingPaths)) {
-            ProcessWebsiteMediaJob::dispatch(
-                $pendingPaths,
-                $settingsKey,
-                $folder,
-                $maxSize,
-                $isSingle,
-                $oldImages,
-                $baseImages,
-            )->onQueue('default');
+        $finalData = array_merge($baseImages, $uploadedUrls);
+        Setting::set($settingsKey, $finalData, 'json', 'general');
+
+        if (! empty($oldImages)) {
+            $this->deleteStorageImages($oldImages);
         }
 
-        // Return current images so the response is not empty while the job runs.
-        // The frontend polls after receiving this response to pick up the new images.
-        if ($isSingle) {
-            return $currentImages ? [$currentImages[0]] : [];
-        }
-
-        return (array) $currentImages;
+        return $finalData;
     }
 
     /**
@@ -134,15 +118,5 @@ class AdminSettingService
     protected function resolveWebsiteMediaFolder(string $settingsKey): string
     {
         return explode('_', $settingsKey)[0] ?? 'media';
-    }
-
-    private function extensionFromMime(UploadedFile $file): string
-    {
-        return match ($file->getMimeType()) {
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-            'image/webp' => 'webp',
-            default => 'bin',
-        };
     }
 }
