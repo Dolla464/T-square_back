@@ -99,7 +99,7 @@ jobs:
           git checkout main
           git pull origin main
           composer install --no-dev --no-interaction --no-ansi --prefer-dist --optimize-autoloader
-          npm ci --omit=dev
+          PUPPETEER_SKIP_DOWNLOAD=true npm ci --omit=dev
           npm run build
           php artisan migrate --force
           php artisan config:cache
