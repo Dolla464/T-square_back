@@ -20,7 +20,6 @@ use App\Models\Order;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -340,9 +339,8 @@ it('returns an empty list when no groups exist', function (): void {
 // 5. Auth guard — unauthenticated requests are rejected
 // ─────────────────────────────────────────────────────────────────────────────
 it('rejects unauthenticated requests with 401', function (): void {
-    // Flush the Sanctum user set in beforeEach by acting as a guest
-    $this->withoutMiddleware(EnsureFrontendRequestsAreStateful::class);
+    auth('sanctum')->forgetUser();
 
-    $this->getJson('/api/admin/learning-groups/selection', ['Authorization' => ''])
+    $this->getJson('/api/admin/learning-groups/selection')
         ->assertStatus(401);
-})->skip('Guard test requires full token stack; covered by integration tests.');
+});
