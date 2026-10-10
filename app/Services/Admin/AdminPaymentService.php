@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class AdminPaymentService
 {
@@ -61,6 +62,9 @@ class AdminPaymentService
         return DB::transaction(function () use ($data) {
             $student = Student::with('user')->findOrFail($data['student_id']);
             $course = Course::findOrFail($data['course_id']);
+            $attendanceType = strtolower(trim((string) $data['attendance_type']));
+
+            $this->assertAttendanceTypeSupported($course, $attendanceType);
 
             $order = Order::create([
                 'student_id' => $student->id,
@@ -77,6 +81,7 @@ class AdminPaymentService
                 'course_id' => $course->id,
                 'order_id' => $order->id,
                 'price_paid' => $course->price,
+                'attendance_type' => $attendanceType,
                 'is_completed' => false,
             ]);
 
@@ -89,12 +94,35 @@ class AdminPaymentService
         return DB::transaction(function () use ($id, $data) {
             $order = Order::query()->lockForUpdate()->findOrFail($id);
 
+            $wasCompleted = $order->status === 'completed';
+            $requestedStatus = $data['status'] ?? $order->status;
+            $enteringCompleted = ! $wasCompleted && $requestedStatus === 'completed';
+
+            if ($enteringCompleted) {
+                $this->completeOrderEnrollment($order, $data);
+            } elseif (
+                $wasCompleted
+                && $requestedStatus === 'completed'
+                && array_key_exists('attendance_type', $data)
+                && $data['attendance_type'] !== null
+            ) {
+                $enrollment = $this->resolveEnrollmentForUpdate($order);
+
+                if ($enrollment !== null) {
+                    $course = Course::query()->findOrFail($enrollment->course_id);
+                    $attendanceType = strtolower(trim((string) $data['attendance_type']));
+
+                    $this->assertAttendanceTypeSupported($course, $attendanceType);
+                    $this->applyAttendanceTypeToEnrollment($enrollment, $attendanceType);
+                }
+            }
+
             $studentId = $data['student_id'] ?? $order->student_id;
 
             $order->fill([
                 'student_id' => $studentId,
                 'total_amount' => $data['total_amount'] ?? $order->total_amount,
-                'status' => $data['status'] ?? $order->status,
+                'status' => $requestedStatus,
                 'billing_name' => $data['billing_name'] ?? $order->billing_name,
                 'billing_email' => $data['billing_email'] ?? $order->billing_email,
                 'billing_phone' => $data['billing_phone'] ?? $order->billing_phone,
@@ -163,6 +191,66 @@ class AdminPaymentService
         });
     }
 
+    private function completeOrderEnrollment(Order $order, array $data): void
+    {
+        $enrollment = $this->resolveEnrollmentForUpdate($order);
+
+        if ($enrollment === null) {
+            throw ValidationException::withMessages([
+                'status' => ['Cannot complete an order without an associated enrollment.'],
+            ]);
+        }
+
+        if (! empty($data['course_id']) && (int) $data['course_id'] !== (int) $enrollment->course_id) {
+            throw ValidationException::withMessages([
+                'course_id' => ['Cannot change the course while completing an order.'],
+            ]);
+        }
+
+        $course = Course::query()->findOrFail($enrollment->course_id);
+        $attendanceType = strtolower(trim((string) $data['attendance_type']));
+
+        $this->assertAttendanceTypeSupported($course, $attendanceType);
+        $this->applyAttendanceTypeToEnrollment($enrollment, $attendanceType);
+    }
+
+    private function resolveEnrollmentForUpdate(Order $order): ?Enrollment
+    {
+        return Enrollment::query()
+            ->where('order_id', $order->id)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->first();
+    }
+
+    private function assertAttendanceTypeSupported(Course $course, string $attendanceType): void
+    {
+        if (! $course->supportsAttendanceType($attendanceType)) {
+            throw ValidationException::withMessages([
+                'attendance_type' => ['The selected attendance type is not supported by this course.'],
+            ]);
+        }
+    }
+
+    private function applyAttendanceTypeToEnrollment(Enrollment $enrollment, string $attendanceType): void
+    {
+        $currentType = $enrollment->attendance_type;
+
+        if ($currentType === null) {
+            $enrollment->update(['attendance_type' => $attendanceType]);
+
+            return;
+        }
+
+        if (strtolower((string) $currentType) === $attendanceType) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'attendance_type' => ['The enrollment attendance type cannot be changed.'],
+        ]);
+    }
+
     private function applyFilters(Builder $query, array $filters): void
     {
         if (! empty($filters['search'])) {
@@ -182,6 +270,18 @@ class AdminPaymentService
 
         if (! empty($filters['date_to'])) {
             $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+
+        if (! empty($filters['attendance_type'])) {
+            if ($filters['attendance_type'] === 'unassigned') {
+                $query->whereHas('enrollments', function (Builder $q): void {
+                    $q->whereNull('attendance_type');
+                });
+            } else {
+                $query->whereHas('enrollments', function (Builder $q) use ($filters): void {
+                    $q->where('attendance_type', $filters['attendance_type']);
+                });
+            }
         }
     }
 

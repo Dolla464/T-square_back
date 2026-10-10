@@ -4,11 +4,13 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
+use App\Models\Order;
 use App\Models\Student;
 use App\Models\User;
 use App\Notifications\AdminNewEnrollmentNotification;
 use App\Notifications\InstructorGradingRequiredNotification;
-use App\Notifications\StudentEnrolledNotification;
+use App\Notifications\StudentEnrollmentConfirmedNotification;
+use App\Notifications\StudentEnrollmentPendingNotification;
 use App\Notifications\StudentExamAttemptStatusNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -16,17 +18,34 @@ use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
-it('includes course_title in student enrollment notification payload', function (): void {
+it('includes course_title in student pending enrollment notification payload', function (): void {
     $course = Course::factory()->create(['title' => 'Intro to PHP']);
-    $enrollment = Enrollment::factory()->create(['course_id' => $course->id]);
+    $order = Order::factory()->create(['status' => 'pending']);
+    $enrollment = Enrollment::factory()->create([
+        'course_id' => $course->id,
+        'order_id' => $order->id,
+    ]);
     $user = User::factory()->create();
 
-    $notification = new StudentEnrolledNotification($course, $enrollment);
+    $notification = new StudentEnrollmentPendingNotification($course, $enrollment);
     $payload = $notification->toDatabase($user);
 
     expect($payload)
         ->toHaveKey('course_title', 'Intro to PHP')
-        ->and($payload['type'])->toBe('enrollment');
+        ->and($payload['type'])->toBe('enrollment_pending');
+});
+
+it('includes course_title in student confirmed enrollment notification payload', function (): void {
+    $course = Course::factory()->create(['title' => 'Intro to PHP']);
+    $enrollment = Enrollment::factory()->create(['course_id' => $course->id]);
+    $user = User::factory()->create();
+
+    $notification = new StudentEnrollmentConfirmedNotification($course, $enrollment);
+    $payload = $notification->toDatabase($user);
+
+    expect($payload)
+        ->toHaveKey('course_title', 'Intro to PHP')
+        ->and($payload['type'])->toBe('enrollment_confirmed');
 });
 
 it('includes course_title and student_name in admin enrollment notification payload', function (): void {

@@ -15,6 +15,27 @@ class Course extends Model
 {
     use HasFactory, Sluggable, SoftDeletes;
 
+    public const ATTENDANCE_TYPE_ONLINE = 'online';
+
+    public const ATTENDANCE_TYPE_OFFLINE = 'offline';
+
+    public const ATTENDANCE_TYPE_HYBRID = 'hybrid';
+
+    public const ATTENDANCE_TYPES = [
+        'online',
+        'offline',
+        'hybrid',
+    ];
+
+    /**
+     * Rollback priority order for multi-type attendance arrays.
+     */
+    public const ATTENDANCE_TYPE_PRIORITY = [
+        'online',
+        'offline',
+        'hybrid',
+    ];
+
     protected $fillable = [
         'title',
         'slug',
@@ -26,7 +47,7 @@ class Course extends Model
         'google_drive_link',
         'google_storage_account_id',
         'google_drive_folder_id',
-        'attendance_type',
+        'attendance_types',
         'price_before',
         'discount_price',
         'price',
@@ -46,6 +67,7 @@ class Course extends Model
         'published_at' => 'datetime',
         'is_featured' => 'boolean',
         'is_free' => 'boolean',
+        'attendance_types' => 'array',
     ];
 
     public function sluggable(): array
@@ -121,6 +143,38 @@ class Course extends Model
     public function scopeFeatured($query)
     {
         return $query->where('is_featured', true);
+    }
+
+    public function supportsAttendanceType(string $type): bool
+    {
+        $normalizedType = strtolower(trim($type));
+
+        if ($normalizedType === '') {
+            return false;
+        }
+
+        $attendanceTypes = $this->attendance_types;
+
+        if (! is_array($attendanceTypes) || $attendanceTypes === []) {
+            return false;
+        }
+
+        $normalizedStoredTypes = array_map(
+            static fn ($storedType) => strtolower(trim((string) $storedType)),
+            $attendanceTypes
+        );
+
+        return in_array($normalizedType, $normalizedStoredTypes, true);
+    }
+
+    public function requiresLearningGroup(string $type): bool
+    {
+        $normalizedType = strtolower(trim($type));
+
+        return match ($normalizedType) {
+            self::ATTENDANCE_TYPE_OFFLINE, self::ATTENDANCE_TYPE_HYBRID => true,
+            default => false,
+        };
     }
 
     /**

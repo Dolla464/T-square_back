@@ -16,6 +16,7 @@ class Enrollment extends Model
         'course_id',
         'order_id',
         'group_id',
+        'attendance_type',
         'price_paid',
         'is_completed',
         'completed_at',

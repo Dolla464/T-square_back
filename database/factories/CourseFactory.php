@@ -25,7 +25,9 @@ class CourseFactory extends Factory
             'short_description' => $this->faker->text(200),
             'description' => $this->faker->paragraphs(5, true),
             'thumbnail' => 'course_thumb.jpg',
-            'attendance_type' => $this->faker->randomElement(['Online', 'Offline', 'Hybrid']),
+            'attendance_types' => [
+                $this->faker->randomElement(Course::ATTENDANCE_TYPES),
+            ],
             'price_before' => $priceBefore,
             'discount_price' => $discount,
             // price يُحسب تلقائياً في Course::booted() — لا داعي لضبطه هنا

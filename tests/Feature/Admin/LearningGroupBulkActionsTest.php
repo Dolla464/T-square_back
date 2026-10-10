@@ -65,6 +65,7 @@ function enrollStudent(
     Course $course,
     string $orderStatus = 'completed',
     ?int $groupId = null,
+    ?string $attendanceType = null,
 ): object {
     $student = Student::factory()->create();
 
@@ -82,6 +83,7 @@ function enrollStudent(
         'course_id' => $course->id,
         'order_id' => $order->id,
         'group_id' => $groupId,
+        'attendance_type' => $attendanceType,
         'price_paid' => 500,
         'is_completed' => false,
     ]);
@@ -111,6 +113,24 @@ it('returns only paid and unassigned students for the group course', function ()
         ->assertJsonCount(2, 'data')
         ->assertJsonFragment(['id' => $eligible1->student->id])
         ->assertJsonFragment(['id' => $eligible2->student->id]);
+});
+
+it('excludes online enrollments from unassigned students', function (): void {
+    $offline = enrollStudent($this->course, 'completed', null, 'offline');
+    $hybrid = enrollStudent($this->course, 'completed', null, 'hybrid');
+    $online = enrollStudent($this->course, 'completed', null, 'online');
+    $nullType = enrollStudent($this->course, 'completed', null, null);
+
+    $response = $this->getJson("/api/admin/learning-groups/{$this->group->id}/unassigned-students");
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('status', 'success')
+        ->assertJsonCount(3, 'data')
+        ->assertJsonFragment(['id' => $offline->student->id])
+        ->assertJsonFragment(['id' => $hybrid->student->id])
+        ->assertJsonFragment(['id' => $nullType->student->id])
+        ->assertJsonMissing(['id' => $online->student->id]);
 });
 
 it('returns 404 when the group does not exist for unassigned-students', function (): void {
@@ -203,6 +223,138 @@ it('returns 422 when student_ids is missing in bulk-assign', function (): void {
     $this->postJson("/api/admin/learning-groups/{$this->group->id}/bulk-assign", [
         'course_id' => $this->course->id,
     ])->assertStatus(422);
+});
+
+it('skips online students during bulk assign and returns them in the response', function (): void {
+    $offline = enrollStudent($this->course, 'completed', null, 'offline');
+    $hybrid = enrollStudent($this->course, 'completed', null, 'hybrid');
+    $online = enrollStudent($this->course, 'completed', null, 'online');
+
+    $response = $this->postJson("/api/admin/learning-groups/{$this->group->id}/bulk-assign", [
+        'student_ids' => [$offline->student->id, $hybrid->student->id, $online->student->id],
+        'course_id' => $this->course->id,
+    ]);
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('status', 'success')
+        ->assertJsonFragment([
+            'id' => $online->student->id,
+            'full_name' => $online->student->full_name,
+        ]);
+
+    $this->assertDatabaseHas('enrollments', [
+        'student_id' => $offline->student->id,
+        'group_id' => $this->group->id,
+    ]);
+    $this->assertDatabaseHas('enrollments', [
+        'student_id' => $hybrid->student->id,
+        'group_id' => $this->group->id,
+    ]);
+    $this->assertDatabaseHas('enrollments', [
+        'student_id' => $online->student->id,
+        'group_id' => null,
+    ]);
+});
+
+it('does not assign online students when creating a group', function (): void {
+    $offline = enrollStudent($this->course, 'completed', null, 'offline');
+    $online = enrollStudent($this->course, 'completed', null, 'online');
+
+    $this->postJson('/api/admin/learning-groups', [
+        'group_name' => 'Phase 5 Create Batch',
+        'course_id' => $this->course->id,
+        'course_instructor_id' => courseInstructorIdFor($this->course, $this->instructor),
+        'start_date' => now()->toDateString(),
+        'end_date' => now()->addWeeks(4)->toDateString(),
+        'status' => 'active',
+        'student_ids' => [$offline->student->id, $online->student->id],
+        'student_statuses' => [],
+        'schedules' => [
+            [
+                'day_of_week' => 2,
+                'start_time' => '10:00',
+                'end_time' => '12:00',
+                'room' => 'A1',
+            ],
+        ],
+    ])->assertCreated();
+
+    $this->assertDatabaseHas('enrollments', [
+        'student_id' => $offline->student->id,
+        'group_id' => LearningGroup::query()->where('group_name', 'Phase 5 Create Batch')->value('id'),
+    ]);
+    $this->assertDatabaseHas('enrollments', [
+        'student_id' => $online->student->id,
+        'group_id' => null,
+    ]);
+});
+
+it('does not assign online students when updating a group', function (): void {
+    $offline = enrollStudent($this->course, 'completed', null, 'offline');
+    $online = enrollStudent($this->course, 'completed', null, 'online');
+
+    $this->putJson("/api/admin/learning-groups/{$this->group->id}", [
+        'group_name' => $this->group->group_name,
+        'course_id' => $this->course->id,
+        'course_instructor_id' => courseInstructorIdFor($this->course, $this->instructor),
+        'start_date' => now()->toDateString(),
+        'status' => 'active',
+        'student_ids' => [$offline->student->id, $online->student->id],
+        'student_statuses' => [],
+    ])->assertOk();
+
+    $this->assertDatabaseHas('enrollments', [
+        'student_id' => $offline->student->id,
+        'group_id' => $this->group->id,
+    ]);
+    $this->assertDatabaseHas('enrollments', [
+        'student_id' => $online->student->id,
+        'group_id' => null,
+    ]);
+});
+
+it('rejects single-student group assignment for online enrollments', function (): void {
+    $online = enrollStudent($this->course, 'completed', null, 'online');
+    $targetGroup = LearningGroup::create([
+        'group_name' => 'Target Batch',
+        'course_id' => $this->course->id,
+        'course_instructor_id' => courseInstructorIdFor($this->course, $this->instructor),
+        'enrolled_students' => 0,
+    ]);
+
+    $this->putJson("/api/admin/students/{$online->student->id}/courses/{$this->course->id}/group", [
+        'group_id' => $targetGroup->id,
+    ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['group_id']);
+
+    $this->assertDatabaseHas('enrollments', [
+        'student_id' => $online->student->id,
+        'group_id' => null,
+    ]);
+});
+
+it('allows single-student group assignment for offline and hybrid enrollments', function (): void {
+    $offline = enrollStudent($this->course, 'completed', null, 'offline');
+    $hybrid = enrollStudent($this->course, 'completed', null, 'hybrid');
+
+    $this->putJson("/api/admin/students/{$offline->student->id}/courses/{$this->course->id}/group", [
+        'group_id' => $this->group->id,
+    ])->assertOk();
+
+    $this->putJson("/api/admin/students/{$hybrid->student->id}/courses/{$this->course->id}/group", [
+        'group_id' => $this->group->id,
+    ])->assertOk();
+
+    $this->assertDatabaseHas('enrollments', [
+        'student_id' => $offline->student->id,
+        'group_id' => $this->group->id,
+    ]);
+    $this->assertDatabaseHas('enrollments', [
+        'student_id' => $hybrid->student->id,
+        'group_id' => $this->group->id,
+    ]);
 });
 
 it('returns 422 when course_id is missing in bulk-assign', function (): void {

@@ -27,5 +27,8 @@ Schedule::command('attendance:generate-weekly')->dailyAt('00:00')->withoutOverla
 // Complete active learning groups whose end_date is before today — runs daily at 01:00
 Schedule::command('learning-groups:complete-expired')->dailyAt('01:00')->withoutOverlapping()->appendOutputTo(storage_path('logs/learning-groups-complete-expired.log'));
 
+// Complete eligible online enrollments after course duration has elapsed — runs daily at 03:00
+Schedule::command('enrollments:complete-online')->dailyAt('03:00')->withoutOverlapping()->appendOutputTo(storage_path('logs/enrollments-complete-online.log'));
+
 // Close exam attempts that exceeded their allowed duration — runs every minute
 Schedule::command('exams:close-expired')->everyMinute()->withoutOverlapping()->appendOutputTo(storage_path('logs/exams-close-expired.log'));

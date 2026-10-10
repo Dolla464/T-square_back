@@ -1,15 +1,20 @@
 <?php
 
 use App\Exceptions\UnsupportedVideoFormatException;
+use App\Models\AttendanceSession;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\GoogleStorageAccount;
+use App\Models\Instructor;
+use App\Models\LearningGroup;
+use App\Models\LearningGroupSchedule;
 use App\Models\Lesson;
 use App\Models\Order;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\Google\GoogleDriveStreamingService;
 use App\Services\Video\PlaybackTokenService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Role;
@@ -18,6 +23,10 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Role::create(['name' => 'student', 'guard_name' => 'web']);
+});
+
+afterEach(function (): void {
+    Carbon::setTestNow();
 });
 
 function videoLessonFixture(): array
@@ -44,9 +53,76 @@ function videoLessonFixture(): array
         'student_id' => $student->id,
         'course_id' => $course->id,
         'order_id' => $order->id,
+        'attendance_type' => 'online',
     ]);
 
     return compact('account', 'course', 'lesson', 'user', 'student', 'order');
+}
+
+function sessionGatedPlaybackFixture(string $attendanceType = 'offline'): array
+{
+    $account = GoogleStorageAccount::factory()->create();
+    $instructor = Instructor::factory()->create();
+    $course = Course::factory()->create([
+        'instructor_id' => $instructor->id,
+        'google_storage_account_id' => $account->id,
+        'status' => 'published',
+        'published_at' => now(),
+    ]);
+    $lesson = Lesson::factory()->create([
+        'course_id' => $course->id,
+        'is_active' => true,
+        'sort_order' => 1,
+    ]);
+    $group = LearningGroup::factory()->create([
+        'course_id' => $course->id,
+        'course_instructor_id' => courseInstructorIdFor($course, $instructor),
+        'start_date' => now()->subWeeks(2)->toDateString(),
+        'end_date' => now()->addWeeks(4)->toDateString(),
+        'status' => 'active',
+    ]);
+    $schedule = LearningGroupSchedule::create([
+        'learning_group_id' => $group->id,
+        'day_of_week' => 2,
+        'start_time' => '10:00',
+        'end_time' => '12:00',
+        'room' => 'A1',
+    ]);
+    AttendanceSession::create([
+        'learning_group_id' => $group->id,
+        'schedule_id' => $schedule->id,
+        'session_date' => '2026-01-02',
+        'status' => 'completed',
+    ]);
+
+    $user = User::factory()->create();
+    $user->assignRole('student');
+    $student = Student::factory()->create(['user_id' => $user->id]);
+    $order = Order::factory()->create([
+        'student_id' => $student->id,
+        'status' => 'completed',
+    ]);
+    Enrollment::factory()->create([
+        'student_id' => $student->id,
+        'course_id' => $course->id,
+        'order_id' => $order->id,
+        'group_id' => $group->id,
+        'attendance_type' => $attendanceType,
+    ]);
+
+    return compact('account', 'course', 'lesson', 'user', 'student', 'order');
+}
+
+function mockSuccessfulPlaybackMetadata($mock, array $fixture): void
+{
+    $mock->shouldReceive('getFileMetadata')
+        ->andReturn([
+            'id' => $fixture['lesson']->google_drive_file_id,
+            'mimeType' => 'video/mp4',
+            'size' => 1024,
+        ]);
+    $mock->shouldReceive('assertPlayableMimeType')->with('video/mp4');
+    $mock->shouldReceive('normalizePlayableMimeType')->with('video/mp4')->andReturn('video/mp4');
 }
 
 it('returns 401 for unauthenticated playback authorization', function () {
@@ -195,6 +271,32 @@ it('rejects invalid playback token on stream endpoint', function () {
 
     $this->getJson("/api/student/lessons/{$fixture['lesson']->id}/stream?token=invalid-token")
         ->assertForbidden();
+});
+
+it('blocks session-gated lesson playback before effective end plus one hour', function (): void {
+    Carbon::setTestNow(Carbon::parse('2026-01-02 11:00:00'));
+
+    $fixture = sessionGatedPlaybackFixture('offline');
+    Sanctum::actingAs($fixture['user'], ['*']);
+
+    $this->postJson("/api/student/lessons/{$fixture['lesson']->id}/playback")
+        ->assertForbidden()
+        ->assertJsonPath('message', 'This lesson is not yet available.');
+});
+
+it('allows session-gated lesson playback after effective end plus one hour', function (): void {
+    Carbon::setTestNow(Carbon::parse('2026-01-02 13:00:00'));
+
+    $fixture = sessionGatedPlaybackFixture('offline');
+    Sanctum::actingAs($fixture['user'], ['*']);
+
+    $this->mock(GoogleDriveStreamingService::class, function ($mock) use ($fixture): void {
+        mockSuccessfulPlaybackMetadata($mock, $fixture);
+    });
+
+    $this->postJson("/api/student/lessons/{$fixture['lesson']->id}/playback")
+        ->assertOk()
+        ->assertJsonPath('data.content_type', 'video/mp4');
 });
 
 it('rejects playback token for wrong user', function () {

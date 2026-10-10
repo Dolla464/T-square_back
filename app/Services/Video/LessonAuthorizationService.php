@@ -7,9 +7,14 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Lesson;
 use App\Models\User;
+use App\Services\User\LessonVisibilityService;
 
 class LessonAuthorizationService
 {
+    public function __construct(
+        private readonly LessonVisibilityService $lessonVisibilityService,
+    ) {}
+
     public function authorize(User $user, Lesson $lesson): AuthorizationResult
     {
         if (! $user->student) {
@@ -48,6 +53,10 @@ class LessonAuthorizationService
             if ($enrollment->order?->status !== 'completed') {
                 return AuthorizationResult::forbidden('Course payment is not completed.');
             }
+        }
+
+        if (! $this->lessonVisibilityService->isLessonAvailable($enrollment, $course, $lesson)) {
+            return AuthorizationResult::forbidden('This lesson is not yet available.');
         }
 
         if (! $lesson->hasGoogleDriveVideo()) {

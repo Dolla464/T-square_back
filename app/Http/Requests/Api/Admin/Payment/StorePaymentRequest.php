@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Admin\Payment;
 
+use App\Models\Course;
 use App\Models\Enrollment;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -18,6 +19,7 @@ class StorePaymentRequest extends FormRequest
         return [
             'student_id' => ['required', 'integer', 'exists:students,id'],
             'course_id' => ['required', 'integer', 'exists:courses,id'],
+            'attendance_type' => ['required', 'string', 'in:online,offline,hybrid'],
             'billing_name' => ['nullable', 'string', 'max:255'],
             'billing_email' => ['nullable', 'string', 'email', 'max:255'],
             'billing_phone' => ['nullable', 'string', 'max:20'],
@@ -44,6 +46,21 @@ class StorePaymentRequest extends FormRequest
                 $validator->errors()->add(
                     'course_id',
                     'This student is already enrolled in the selected course.'
+                );
+
+                return;
+            }
+
+            $course = Course::query()->find($courseId);
+
+            if ($course === null) {
+                return;
+            }
+
+            if (! $course->supportsAttendanceType((string) $this->input('attendance_type'))) {
+                $validator->errors()->add(
+                    'attendance_type',
+                    'The selected attendance type is not supported by this course.'
                 );
             }
         });

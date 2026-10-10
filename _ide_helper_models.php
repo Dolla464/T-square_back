@@ -14,6 +14,42 @@
 namespace App\Models{
 /**
  * @property int $id
+ * @property int|null $user_id
+ * @property string|null $user_name
+ * @property string $role
+ * @property string $http_method
+ * @property string|null $route_name
+ * @property string $path
+ * @property string|null $description
+ * @property string|null $ip_address
+ * @property string|null $user_agent
+ * @property array<array-key, mixed>|null $request_data
+ * @property int|null $response_status
+ * @property \Illuminate\Support\Carbon $created_at
+ * @property-read \App\Models\User|null $user
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog whereHttpMethod($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog whereIpAddress($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog wherePath($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog whereRequestData($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog whereResponseStatus($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog whereRole($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog whereRouteName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog whereUserAgent($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog whereUserId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog whereUserName($value)
+ */
+	class ActivityLog extends \Eloquent {}
+}
+
+namespace App\Models{
+/**
+ * @property int $id
  * @property int $user_id
  * @property string $full_name
  * @property string|null $phone

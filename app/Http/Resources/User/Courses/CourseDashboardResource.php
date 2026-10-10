@@ -21,7 +21,16 @@ class CourseDashboardResource extends JsonResource
         $enrollment = $this->enrollments->first();
         $instructors = CourseInstructorSync::resolveForEnrollment($this->resource, $enrollment);
 
+        $accessStatus = $this->access_status ?? 'active';
+        $isPendingPayment = $accessStatus === 'pending_payment';
+
         return [
+            'access_status' => $accessStatus,
+            'whatsapp_link' => $this->when(
+                $isPendingPayment && is_string($this->whatsapp_link) && $this->whatsapp_link !== '',
+                $this->whatsapp_link
+            ),
+
             // ── بيانات الكورس الأساسية ─────────────────────────────────────
             'id' => $this->id,
             'title' => $this->title,
@@ -30,7 +39,7 @@ class CourseDashboardResource extends JsonResource
             'description' => $this->description,
             'thumbnail' => $this->thumbnail,
             'cover_image' => $this->cover_image,
-            'google_drive_link' => $this->google_drive_link,
+            'google_drive_link' => $this->when(! $isPendingPayment, $this->google_drive_link),
             'instructor_id' => $this->instructor_id,
 
             // ── تفاصيل إضافية (تظهر في صفحة الكورس) ────────────────────────
@@ -73,7 +82,7 @@ class CourseDashboardResource extends JsonResource
 
             'learnings' => $this->whenLoaded('learnings', fn () => $this->learnings->pluck('title'), []),
 
-            'previews' => $this->whenLoaded('previews', fn () => $this->previews->map(fn ($preview) => [
+            'previews' => $this->when(! $isPendingPayment && $this->relationLoaded('previews'), fn () => $this->previews->map(fn ($preview) => [
                 'id' => $preview->id,
                 'title' => $preview->title,
                 'video_url' => $preview->video_url,
@@ -83,10 +92,10 @@ class CourseDashboardResource extends JsonResource
                 'sort_order' => $preview->sort_order,
             ])->values(), []),
 
-            'lessons' => $this->whenLoaded('lessons', fn () => StudentLessonResource::collection($this->lessons)->resolve(), []),
+            'lessons' => $this->when(! $isPendingPayment && $this->relationLoaded('lessons'), fn () => StudentLessonResource::collection($this->lessons)->resolve(), []),
 
             // ── حالة الـ Enrollment ─────────────────────────────────────────
-            'enrollment' => $enrollment ? (function () use ($enrollment) {
+            'enrollment' => $enrollment ? (function () use ($enrollment, $isPendingPayment) {
                 $review = CourseReview::query()
                     ->where('course_id', $this->id)
                     ->where('student_id', $enrollment->student_id)
@@ -95,10 +104,23 @@ class CourseDashboardResource extends JsonResource
                 $hasReview = $review !== null;
                 $certificateService = app(CertificateService::class);
 
+                if ($isPendingPayment) {
+                    return [
+                        'status' => 'pending_payment',
+                        'completed_at' => null,
+                        'group_id' => $enrollment->group_id,
+                        'attendance_type' => $enrollment->attendance_type,
+                        'has_review' => false,
+                        'review_status' => null,
+                        'certificate_available' => false,
+                    ];
+                }
+
                 return [
                     'status' => $enrollment->is_completed ? 'completed' : 'in_progress',
                     'completed_at' => $enrollment->completed_at?->toDateTimeString(),
                     'group_id' => $enrollment->group_id,
+                    'attendance_type' => $enrollment->attendance_type,
                     'has_review' => $hasReview,
                     'review_status' => $review?->review_status,
                     'certificate_available' => $certificateService->enrollmentCanIssueCertificate($enrollment),

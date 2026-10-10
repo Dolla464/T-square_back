@@ -281,6 +281,10 @@ class AdminLearningGroupService
                 ->where('group_id', $group->id)
                 ->where('course_id', $group->course_id)
                 ->where('is_completed', false)
+                ->where(function ($query): void {
+                    $query->whereNull('attendance_type')
+                        ->orWhere('attendance_type', '<>', Course::ATTENDANCE_TYPE_ONLINE);
+                })
                 ->get();
 
             $newlyCompleted = new Collection;
@@ -411,6 +415,12 @@ class AdminLearningGroupService
                 ->first();
 
             if ($enrollment === null) {
+                $skippedStudentIds[] = $studentId;
+
+                continue;
+            }
+
+            if ($this->isOnlineEnrollment($enrollment)) {
                 $skippedStudentIds[] = $studentId;
 
                 continue;
@@ -876,6 +886,10 @@ class AdminLearningGroupService
             ->where('enrollments.course_id', $group->course_id)
             ->whereNull('enrollments.group_id')
             ->where('orders.status', 'completed')
+            ->where(function ($query): void {
+                $query->whereNull('enrollments.attendance_type')
+                    ->orWhere('enrollments.attendance_type', '<>', Course::ATTENDANCE_TYPE_ONLINE);
+            })
             ->select(
                 'students.id',
                 'students.full_name',
@@ -899,13 +913,25 @@ class AdminLearningGroupService
             ->leftJoin('orders', 'enrollments.order_id', '=', 'orders.id')
             ->where('enrollments.course_id', $courseId)
             ->whereIn('enrollments.student_id', $studentIds)
-            ->select('students.id', 'students.full_name', 'orders.status as order_status')
+            ->select(
+                'students.id',
+                'students.full_name',
+                'orders.status as order_status',
+                'enrollments.attendance_type'
+            )
             ->get();
 
         $paidStudentIds = [];
         $unpaidStudents = [];
+        $onlineStudents = [];
 
         foreach ($studentsData as $student) {
+            if ($student->attendance_type === Course::ATTENDANCE_TYPE_ONLINE) {
+                $onlineStudents[] = ['id' => $student->id, 'full_name' => $student->full_name];
+
+                continue;
+            }
+
             if ($student->order_status === 'completed') {
                 $paidStudentIds[] = $student->id;
             } else {
@@ -933,6 +959,7 @@ class AdminLearningGroupService
             'success' => true,
             'assigned_count' => count($paidStudentIds),
             'unpaid_students' => $unpaidStudents,
+            'online_students' => $onlineStudents,
         ];
     }
 
@@ -1008,5 +1035,10 @@ class AdminLearningGroupService
             'group' => $group,
             'students' => $students,
         ];
+    }
+
+    private function isOnlineEnrollment(Enrollment $enrollment): bool
+    {
+        return $enrollment->attendance_type === Course::ATTENDANCE_TYPE_ONLINE;
     }
 }

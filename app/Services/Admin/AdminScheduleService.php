@@ -156,11 +156,15 @@ class AdminScheduleService
     /**
      * Cancel a session: set status to cancelled then notify students + instructor.
      */
-    public function cancelSession(AttendanceSession $session, ?string $reason = null): AttendanceSession
-    {
+    public function cancelSession(
+        AttendanceSession $session,
+        ?string $reason = null,
+        bool $releaseLessonOnCancel = false,
+    ): AttendanceSession {
         $session->update([
             'status' => 'cancelled',
             'cancellation_reason' => $reason,
+            'release_lesson_on_cancel' => $releaseLessonOnCancel,
         ]);
 
         $session->load(['learningGroup.course', 'learningGroup.courseInstructor.instructor.user', 'schedule']);

@@ -2,12 +2,14 @@
 
 namespace App\Services\Admin;
 
+use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Student;
 use App\Traits\HandleImageUploadTrait;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class AdminStudentService
 {
@@ -171,6 +173,12 @@ class AdminStudentService
 
         if (! $enrollment || $enrollment->is_completed) {
             return false;
+        }
+
+        if ($enrollment->attendance_type === Course::ATTENDANCE_TYPE_ONLINE) {
+            throw ValidationException::withMessages([
+                'group_id' => ['Online enrollments cannot be assigned to a learning group.'],
+            ]);
         }
 
         // group_id now belongs to the enrollment, not the student
