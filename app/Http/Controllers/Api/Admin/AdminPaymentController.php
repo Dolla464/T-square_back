@@ -37,6 +37,7 @@ class AdminPaymentController extends Controller
             'status' => 'nullable|string|in:pending,completed,cancelled,refunded',
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
+            'attendance_type' => 'nullable|string|in:online,offline,hybrid,unassigned',
             'per_page' => 'nullable|integer|min:1|max:100',
             'page' => 'nullable|integer|min:1',
         ]);
@@ -48,6 +49,7 @@ class AdminPaymentController extends Controller
             'status' => $validated['status'] ?? '',
             'date_from' => $validated['date_from'] ?? '',
             'date_to' => $validated['date_to'] ?? '',
+            'attendance_type' => $validated['attendance_type'] ?? '',
         ];
 
         $paginator = $this->payments->index($filters, $perPage);
@@ -74,6 +76,7 @@ class AdminPaymentController extends Controller
             'status' => 'nullable|string|in:pending,completed,cancelled,refunded',
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
+            'attendance_type' => 'nullable|string|in:online,offline,hybrid,unassigned',
             'format' => 'nullable|string|in:pdf,excel',
         ]);
 
@@ -82,6 +85,7 @@ class AdminPaymentController extends Controller
             'status' => $validated['status'] ?? '',
             'date_from' => $validated['date_from'] ?? '',
             'date_to' => $validated['date_to'] ?? '',
+            'attendance_type' => $validated['attendance_type'] ?? '',
         ];
 
         $format = $validated['format'] ?? 'pdf';
@@ -209,6 +213,15 @@ class AdminPaymentController extends Controller
 
         if (! empty($filters['status'])) {
             $active[] = ['label' => 'Status', 'value' => ucfirst($filters['status'])];
+        }
+
+        if (! empty($filters['attendance_type'])) {
+            $active[] = [
+                'label' => 'Attendance',
+                'value' => $filters['attendance_type'] === 'unassigned'
+                    ? 'Not assigned'
+                    : ucfirst((string) $filters['attendance_type']),
+            ];
         }
 
         if (! empty($filters['date_from']) && ! empty($filters['date_to'])) {

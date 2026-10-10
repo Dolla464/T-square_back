@@ -129,17 +129,32 @@ class AdminLearningGroupController extends Controller
             (int) $request->course_id
         );
 
-        if (empty($result['unpaid_students'])) {
+        $unpaidStudents = $result['unpaid_students'] ?? [];
+        $onlineStudents = $result['online_students'] ?? [];
+
+        if ($unpaidStudents === [] && $onlineStudents === []) {
             return $this->successResponse(
                 null,
                 "All selected students ({$result['assigned_count']}) have been assigned to the group successfully."
             );
         }
 
-        return $this->successResponse(
-            ['unpaid_students' => $result['unpaid_students']],
-            "Successfully assigned {$result['assigned_count']} students. Some students were skipped due to incomplete payment."
-        );
+        $responseData = array_filter([
+            'unpaid_students' => $unpaidStudents !== [] ? $unpaidStudents : null,
+            'online_students' => $onlineStudents !== [] ? $onlineStudents : null,
+        ]);
+
+        $message = "Successfully assigned {$result['assigned_count']} students.";
+
+        if ($unpaidStudents !== []) {
+            $message .= ' Some students were skipped due to incomplete payment.';
+        }
+
+        if ($onlineStudents !== []) {
+            $message .= ' Some students were skipped because online enrollments cannot be assigned to a learning group.';
+        }
+
+        return $this->successResponse($responseData, $message);
     }
 
     /**

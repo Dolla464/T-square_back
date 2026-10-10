@@ -5,8 +5,8 @@ namespace App\Services\User;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Order;
-use App\Models\Setting;
 use App\Models\Student;
+use App\Support\EnrollmentWhatsAppLink;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -34,11 +34,7 @@ class EnrollmentService
 
         $isPaidCourse = ! (bool) $course->is_free && (float) $course->price > 0;
 
-        // prepare whatsapp
-        $studentName = $student->user->name;
-        $whatsappNumber = Setting::query()->where('key', 'whatsapp')->value('value');
-        $message = "أهلاً، أنا {$studentName}، لقد قمت بالتسجيل للتو في كورس '{$course->title}' وأرغب في استكمال التفاصيل.";
-        $whatsappLink = "https://wa.me/{$whatsappNumber}?text=".urlencode($message);
+        $whatsappLink = EnrollmentWhatsAppLink::build($student, $course);
 
         return DB::transaction(function () use ($student, $payload, $course, $isPaidCourse, $whatsappLink) {
 
@@ -82,6 +78,7 @@ class EnrollmentService
                     'course_id' => $course->id,
                     'order_id' => $order->id,
                     'price_paid' => 0,
+                    'attendance_type' => null,
                     'is_completed' => false,
                     'completed_at' => null,
                 ]);
@@ -110,6 +107,7 @@ class EnrollmentService
                 'course_id' => $course->id,
                 'order_id' => $order->id,
                 'price_paid' => (float) $course->price,
+                'attendance_type' => null,
                 'is_completed' => false,
                 'completed_at' => null,
             ]);

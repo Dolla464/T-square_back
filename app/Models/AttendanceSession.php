@@ -19,11 +19,13 @@ class AttendanceSession extends Model
         'override_start_time',
         'override_end_time',
         'cancellation_reason',
+        'release_lesson_on_cancel',
     ];
 
     protected $casts = [
         'session_date' => 'date',
         'override_date' => 'date',
+        'release_lesson_on_cancel' => 'boolean',
     ];
 
     public function learningGroup()

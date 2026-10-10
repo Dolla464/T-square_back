@@ -78,16 +78,20 @@ class EnrollmentController extends Controller
         }
 
         // Check directly in the enrollments table using the course_id from the path
-        $enrollment = Enrollment::where('student_id', $student->id)
+        $enrollment = Enrollment::query()
+            ->with('order:id,status')
+            ->where('student_id', $student->id)
             ->where('course_id', $courseId)
             ->first();
 
         $isEnrolled = false;
+        $isPending = false;
 
         if ($enrollment) {
-            // Check if the course is paid and has an order_id
             if ($enrollment->order_id) {
-                $isEnrolled = $enrollment->order?->status === 'completed';
+                $orderStatus = $enrollment->order?->status;
+                $isEnrolled = $orderStatus === 'completed';
+                $isPending = $orderStatus === 'pending';
             } else {
                 // Legacy enrollments without an order (run backfill migration)
                 $isEnrolled = true;
@@ -97,6 +101,8 @@ class EnrollmentController extends Controller
         return $this->successResponse(
             data: [
                 'is_enrolled' => $isEnrolled,
+                'is_pending' => $isPending,
+                'course_id' => $enrollment ? (int) $courseId : null,
             ],
             message: 'Enrollment status checked successfully.'
         );

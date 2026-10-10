@@ -21,7 +21,7 @@ class CourseFieldList
             'google_drive_link',
             'google_storage_account_id',
             'google_drive_folder_id',
-            'attendance_type',
+            'attendance_types',
             'price',
             'level',
             'language',

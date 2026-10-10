@@ -27,6 +27,7 @@ class CourseDetailsResource extends JsonResource
             'level' => $this->level,
             'duration_hours' => $this->duration_hours,
             'duration_weeks' => $this->duration_weeks,
+            'attendance_types' => $this->attendance_types,
             'cover_image' => $this->cover_image,
             'price' => [
                 'final' => (int) ($this->price),

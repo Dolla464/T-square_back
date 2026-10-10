@@ -48,6 +48,7 @@ class AdminStudentResource extends JsonResource
                         // get the group id and group name from the enrollment
                         'group_id' => $enrollment->group_id,
                         'group_name' => optional($enrollment->learningGroup)->group_name,
+                        'attendance_type' => $enrollment->attendance_type,
 
                         'is_completed' => (bool) $enrollment->is_completed,
                         'joined_at' => $enrollment->created_at?->format('Y-m-d'),

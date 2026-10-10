@@ -2,6 +2,7 @@
 
 namespace App\Services\Enrollment;
 
+use App\Models\Course;
 use App\Models\Enrollment;
 use Illuminate\Validation\ValidationException;
 
@@ -21,6 +22,10 @@ class EnrollmentCompletionGuard
     public function canComplete(Enrollment $enrollment): bool
     {
         if ($enrollment->is_completed) {
+            return true;
+        }
+
+        if ($enrollment->attendance_type === Course::ATTENDANCE_TYPE_ONLINE) {
             return true;
         }
 

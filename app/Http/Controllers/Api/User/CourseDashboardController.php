@@ -81,7 +81,6 @@ class CourseDashboardController extends Controller
         }
 
         try {
-            // Call the new method from the Service
             $course = $this->dashboardService->getCourseDetails($student->id, $id);
 
             return $this->successResponse(
@@ -89,7 +88,16 @@ class CourseDashboardController extends Controller
                 message: 'Course details fetched successfully'
             );
         } catch (ModelNotFoundException $e) {
-            return $this->errorResponse('Course not found or access denied', 404);
+            try {
+                $course = $this->dashboardService->getPendingCourseDetails($student->id, $id);
+
+                return $this->successResponse(
+                    data: new CourseDashboardResource($course),
+                    message: 'Pending enrollment course details fetched successfully'
+                );
+            } catch (ModelNotFoundException) {
+                return $this->errorResponse('Course not found or access denied', 404);
+            }
         }
     }
 }

@@ -25,6 +25,7 @@ function createEnrollmentForGuardTest(
     Instructor $instructor,
     ?LearningGroup $group = null,
     bool $isCompleted = false,
+    ?string $attendanceType = null,
 ): Enrollment {
     $student = Student::factory()->create();
 
@@ -42,6 +43,7 @@ function createEnrollmentForGuardTest(
         'course_id' => $course->id,
         'order_id' => $order->id,
         'group_id' => $group?->id,
+        'attendance_type' => $attendanceType,
         'price_paid' => 500,
         'is_completed' => $isCompleted,
         'completed_at' => $isCompleted ? now() : null,
@@ -129,6 +131,115 @@ it('does not throw when loading a legacy completed enrollment on an active group
     $loaded->refresh();
 
     expect($loaded->is_completed)->toBeTrue();
+});
+
+it('allows online enrollment completion without a learning group', function (): void {
+    $enrollment = createEnrollmentForGuardTest($this->course, $this->instructor, null, false, 'online');
+
+    $enrollment->markAsCompleted();
+    $enrollment->refresh();
+
+    expect($enrollment->is_completed)->toBeTrue();
+    expect($enrollment->completed_at)->not->toBeNull();
+    expect($enrollment->group_id)->toBeNull();
+});
+
+it('allows online enrollment completion without requiring group status', function (): void {
+    $group = createGroupForGuardTest($this->course, $this->instructor, 'active');
+    $enrollment = createEnrollmentForGuardTest($this->course, $this->instructor, $group, false, 'online');
+
+    $enrollment->markAsCompleted();
+    $enrollment->refresh();
+
+    expect($enrollment->is_completed)->toBeTrue();
+    expect($enrollment->completed_at)->not->toBeNull();
+});
+
+it('keeps already-completed online enrollments idempotent', function (): void {
+    $enrollment = createEnrollmentForGuardTest($this->course, $this->instructor, null, true, 'online');
+
+    $enrollment->markAsCompleted();
+    $enrollment->refresh();
+
+    expect($enrollment->is_completed)->toBeTrue();
+});
+
+it('rejects offline completion when group_id is null', function (): void {
+    $enrollment = createEnrollmentForGuardTest($this->course, $this->instructor, null, false, 'offline');
+
+    expect(fn () => $enrollment->markAsCompleted())
+        ->toThrow(ValidationException::class);
+
+    $enrollment->refresh();
+
+    expect($enrollment->is_completed)->toBeFalse();
+});
+
+it('rejects offline completion when the learning group is active', function (): void {
+    $group = createGroupForGuardTest($this->course, $this->instructor, 'active');
+    $enrollment = createEnrollmentForGuardTest($this->course, $this->instructor, $group, false, 'offline');
+
+    expect(fn () => $enrollment->markAsCompleted())
+        ->toThrow(ValidationException::class);
+
+    $enrollment->refresh();
+
+    expect($enrollment->is_completed)->toBeFalse();
+});
+
+it('allows offline completion when the learning group is completed', function (): void {
+    $group = createGroupForGuardTest($this->course, $this->instructor, 'completed');
+    $enrollment = createEnrollmentForGuardTest($this->course, $this->instructor, $group, false, 'offline');
+
+    $enrollment->markAsCompleted();
+    $enrollment->refresh();
+
+    expect($enrollment->is_completed)->toBeTrue();
+});
+
+it('rejects hybrid completion when group_id is null', function (): void {
+    $enrollment = createEnrollmentForGuardTest($this->course, $this->instructor, null, false, 'hybrid');
+
+    expect(fn () => $enrollment->markAsCompleted())
+        ->toThrow(ValidationException::class);
+
+    $enrollment->refresh();
+
+    expect($enrollment->is_completed)->toBeFalse();
+});
+
+it('rejects hybrid completion when the learning group is active', function (): void {
+    $group = createGroupForGuardTest($this->course, $this->instructor, 'active');
+    $enrollment = createEnrollmentForGuardTest($this->course, $this->instructor, $group, false, 'hybrid');
+
+    expect(fn () => $enrollment->markAsCompleted())
+        ->toThrow(ValidationException::class);
+
+    $enrollment->refresh();
+
+    expect($enrollment->is_completed)->toBeFalse();
+});
+
+it('allows hybrid completion when the learning group is completed', function (): void {
+    $group = createGroupForGuardTest($this->course, $this->instructor, 'completed');
+    $enrollment = createEnrollmentForGuardTest($this->course, $this->instructor, $group, false, 'hybrid');
+
+    $enrollment->markAsCompleted();
+    $enrollment->refresh();
+
+    expect($enrollment->is_completed)->toBeTrue();
+});
+
+it('rejects null attendance_type completion when group_id is null', function (): void {
+    $enrollment = createEnrollmentForGuardTest($this->course, $this->instructor, null, false, null);
+
+    expect(fn () => $enrollment->markAsCompleted())
+        ->toThrow(ValidationException::class);
+
+    $enrollment->refresh();
+
+    expect($enrollment->is_completed)->toBeFalse();
+    expect($enrollment->attendance_type)->toBeNull();
 });
 
 it('allows setting is_completed back to false without invoking the guard', function (): void {

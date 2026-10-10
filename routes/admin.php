@@ -70,6 +70,10 @@ Route::middleware(['auth:sanctum', 'verified', 'role:admin'])
         // Tags (full CRUD)
         Route::apiResource('tags', AdminTagController::class);
 
+        // Attendance devices (hardware QR scanners)
+        Route::apiResource('attendance-devices', AdminAttendanceDeviceController::class)
+            ->except(['show']);
+
         // Categories ───────────────────────────────────────────────────────────
         // Static "tree" segment is declared FIRST so that it is never captured
         // by the {category} wildcard of the apiResource below.

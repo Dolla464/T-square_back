@@ -26,6 +26,8 @@ class StoreEnrollmentRequest extends FormRequest
             'billing_phone' => ['nullable', 'string', 'max:20'],
 
             'notes' => ['nullable', 'string'],
+
+            'attendance_type' => ['prohibited'],
         ];
     }
 

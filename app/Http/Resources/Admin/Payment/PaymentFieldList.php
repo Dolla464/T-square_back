@@ -17,6 +17,8 @@ class PaymentFieldList
             'total_amount',
             'status',
             'enrollments.course.title',
+            'enrollments.course.attendance_types',
+            'enrollments.attendance_type',
             'billing_name',
         ];
     }

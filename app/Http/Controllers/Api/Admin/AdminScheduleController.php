@@ -81,9 +81,14 @@ class AdminScheduleController extends Controller
 
         $validated = $request->validate([
             'reason' => 'nullable|string|max:500',
+            'release_lesson_on_cancel' => 'nullable|boolean',
         ]);
 
-        $session = $this->scheduleService->cancelSession($session, $validated['reason'] ?? null);
+        $session = $this->scheduleService->cancelSession(
+            $session,
+            $validated['reason'] ?? null,
+            (bool) ($validated['release_lesson_on_cancel'] ?? false),
+        );
 
         return $this->successResponse($session, 'Session cancelled successfully. Notifications have been sent.');
     }

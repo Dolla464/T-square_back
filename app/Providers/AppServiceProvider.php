@@ -6,12 +6,10 @@ use App\Models\Category;
 use App\Models\Course;
 use App\Models\CourseReview;
 use App\Models\Enrollment;
-use App\Models\Order;
 use App\Observers\CategoryObserver;
 use App\Observers\CourseObserver;
 use App\Observers\CourseReviewObserver;
 use App\Observers\EnrollmentObserve;
-use App\Observers\OrderObserver;
 use App\Services\Admin\Upload\ChunkRecorder;
 use App\Services\Admin\Upload\CleanupManager;
 use App\Services\Admin\Upload\Finalizer;
@@ -112,7 +110,6 @@ class AppServiceProvider extends ServiceProvider
         // Observers
         Course::observe(CourseObserver::class);
         Category::observe(CategoryObserver::class);
-        Order::observe(OrderObserver::class);
         CourseReview::observe(CourseReviewObserver::class);
 
         // Scramble API Documentation

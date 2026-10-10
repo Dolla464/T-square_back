@@ -6,7 +6,7 @@ use App\Events\StudentEnrolled;
 use App\Models\User;
 use App\Notifications\AdminNewEnrollmentNotification;
 use App\Notifications\InstructorNewEnrollmentNotification;
-use App\Notifications\StudentEnrolledNotification;
+use App\Notifications\StudentEnrollmentPendingNotification;
 use App\Support\CourseInstructorNotifier;
 use Illuminate\Support\Facades\Notification;
 
@@ -18,8 +18,10 @@ class SendEnrollmentNotifications
         $course = $event->course;
         $enrollment = $event->enrollment;
 
-        if ($student->user) {
-            $student->user->notify(new StudentEnrolledNotification($course, $enrollment));
+        $enrollment->loadMissing('order');
+
+        if ($student->user && $enrollment->order?->status === 'pending') {
+            $student->user->notify(new StudentEnrollmentPendingNotification($course, $enrollment));
         }
 
         $admins = User::role('admin')->get();

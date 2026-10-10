@@ -70,7 +70,7 @@ class CourseService
                 'is_free',
                 'category_id',
                 'instructor_id',
-                'attendance_type',
+                'attendance_types',
             ])
             ->with([
                 'category:id,name,slug',

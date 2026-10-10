@@ -4,11 +4,18 @@ namespace App\Services\User;
 
 use App\Models\Course;
 use App\Models\Enrollment;
+use App\Models\Student;
+use App\Support\EnrollmentWhatsAppLink;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class CourseDashboardService
 {
+    public function __construct(
+        private readonly LessonVisibilityService $lessonVisibilityService,
+    ) {}
+
     private const LATEST_LIMIT = 10;
 
     private const STATUS_ALL = 'all';
@@ -93,7 +100,7 @@ class CourseDashboardService
             // ── Enrollment of the current student only ──
             ->with([
                 'enrollments' => fn ($q) => $q
-                    ->select('id', 'course_id', 'student_id', 'order_id', 'group_id', 'is_completed', 'completed_at')
+                    ->select('id', 'course_id', 'student_id', 'order_id', 'group_id', 'attendance_type', 'is_completed', 'completed_at')
                     ->where('student_id', $studentId)
                     ->with(['learningGroup:id,course_id,course_instructor_id']),
             ])
@@ -188,7 +195,7 @@ class CourseDashboardService
      */
     public function getCourseDetails(int $studentId, int $courseId): Course
     {
-        return Course::active()
+        $course = Course::active()
             // Ensure the student has a completed payment for this course
             ->whereHas('enrollments', function ($q) use ($studentId, $courseId) {
                 $q->where('student_id', $studentId)
@@ -212,7 +219,7 @@ class CourseDashboardService
             // Get the enrollment data for this student only to read the completion status and date in the frontend
             ->with([
                 'enrollments' => fn ($q) => $q
-                    ->select('id', 'course_id', 'student_id', 'order_id', 'group_id', 'is_completed', 'completed_at')
+                    ->select('id', 'course_id', 'student_id', 'order_id', 'group_id', 'attendance_type', 'is_completed', 'completed_at')
                     ->where('student_id', $studentId)
                     ->with(['learningGroup:id,course_id,course_instructor_id']),
             ])
@@ -241,6 +248,69 @@ class CourseDashboardService
                 'google_drive_link',
                 'created_at',
             ])
-            ->findOrFail($courseId); // Throws 404 automatically if the course is not found or the student is not enrolled in it
+            ->findOrFail($courseId);
+
+        $course->setAttribute('access_status', 'active');
+        $course->setAttribute('whatsapp_link', null);
+
+        $enrollment = $course->enrollments->first();
+
+        if ($enrollment && $course->relationLoaded('lessons')) {
+            $visibleLessons = $this->lessonVisibilityService->resolveVisibleLessons(
+                $enrollment,
+                $course,
+                $course->lessons,
+            );
+            $course->setRelation('lessons', $visibleLessons);
+        }
+
+        return $course;
+    }
+
+    /**
+     * Limited course view for students with a pending paid enrollment.
+     */
+    public function getPendingCourseDetails(int $studentId, int $courseId): Course
+    {
+        $student = Student::query()->with('user')->findOrFail($studentId);
+
+        $course = Course::active()
+            ->whereHas('enrollments', function ($q) use ($studentId, $courseId) {
+                $q->where('student_id', $studentId)
+                    ->where('course_id', $courseId)
+                    ->whereHas('order', function ($orderQuery) {
+                        $orderQuery->where('status', 'pending');
+                    });
+            })
+            ->with([
+                'instructors:id,full_name,field,bio,avatar,phone',
+                'enrollments' => fn ($q) => $q
+                    ->select('id', 'course_id', 'student_id', 'order_id', 'group_id', 'attendance_type', 'is_completed', 'completed_at')
+                    ->where('student_id', $studentId)
+                    ->with(['order:id,status']),
+            ])
+            ->select([
+                'id',
+                'title',
+                'slug',
+                'short_description',
+                'thumbnail',
+                'cover_image',
+                'price',
+                'is_free',
+                'instructor_id',
+            ])
+            ->findOrFail($courseId);
+
+        $isPaidCourse = ! (bool) $course->is_free && (float) $course->price > 0;
+
+        if (! $isPaidCourse) {
+            throw (new ModelNotFoundException)->setModel(Course::class, [$courseId]);
+        }
+
+        $course->setAttribute('access_status', 'pending_payment');
+        $course->setAttribute('whatsapp_link', EnrollmentWhatsAppLink::build($student, $course));
+
+        return $course;
     }
 }
