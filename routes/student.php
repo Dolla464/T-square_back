@@ -126,7 +126,7 @@ Route::middleware(['auth:sanctum', 'verified', 'role:student'])
             });
     });
 
-Route::middleware(['auth:sanctum', 'verified', 'role:student'])
+Route::middleware(['auth:sanctum', 'verified', 'role:student', 'exam.journey.correlation'])
     ->prefix('exams')
     ->name('exams.')
     ->controller(ExamController::class)
@@ -138,6 +138,9 @@ Route::middleware(['auth:sanctum', 'verified', 'role:student'])
         Route::post('attempts/{attemptId}/integrity-events', 'recordIntegrityEvents')
             ->middleware('throttle:exam-integrity-events')
             ->name('attempts.integrity-events');
+        Route::post('attempts/{attemptId}/journey-events', 'recordJourneyEvents')
+            ->middleware('throttle:exam-journey-events')
+            ->name('attempts.journey-events');
         Route::post('start', 'start')->name('start');
         Route::post('save-answer', 'answer')->name('save-answer');
         Route::post('record-question-time', 'recordQuestionTime')->name('record-question-time');

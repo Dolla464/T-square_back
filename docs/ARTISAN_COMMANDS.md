@@ -781,3 +781,19 @@ routes/console.php                       → inspire + Schedule
 ---
 
 *للتحديث: شغّل `php artisan list` وقارِن بالقائمة أعلاه.*
+
+<!-- التفعيل على الإنتاج
+API (.env):
+
+EXAM_STUDENT_EXAM_LOG=true
+EXAM_STUDENT_EXAM_LOG_CLIENT=true
+php artisan config:cache
+Frontend (اختياري للـ breadcrumbs):
+
+VITE_EXAM_STUDENT_EXAM_LOG=true
+ثم npm run build ونشر dist.
+
+قراءة اللوج:
+
+grep ATTEMPT_STARTED storage/logs/student-exam-*.log
+grep ACCESS_DENIED storage/logs/student-exam-*.log -->
