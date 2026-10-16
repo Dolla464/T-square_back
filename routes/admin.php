@@ -70,9 +70,8 @@ Route::middleware(['auth:sanctum', 'verified', 'role:admin'])
         // Tags (full CRUD)
         Route::apiResource('tags', AdminTagController::class);
 
-        // Attendance devices (hardware QR scanners)
-        Route::apiResource('attendance-devices', AdminAttendanceDeviceController::class)
-            ->except(['show']);
+        // Attendance device administration is not implemented yet.
+        // Keep the shared attendance/scan endpoint enabled.
 
         // Categories ───────────────────────────────────────────────────────────
         // Static "tree" segment is declared FIRST so that it is never captured
