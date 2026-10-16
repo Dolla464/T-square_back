@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Middleware\AssignExamJourneyCorrelationId;
 use App\Http\Middleware\CheckMaintenanceMode;
 use App\Http\Middleware\EnsureActivityLogVerified;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\LogActivityMiddleware;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\ValidateAttendanceDevice;
+use App\Support\StudentExamJourneyLogger;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Middleware\Authorize;
@@ -68,6 +70,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'attendance.device' => ValidateAttendanceDevice::class,
+            'exam.journey.correlation' => AssignExamJourneyCorrelationId::class,
         ]);
 
         //
@@ -78,6 +81,26 @@ return Application::configure(basePath: dirname(__DIR__))
         {
             use ApiResponseTrait;
         };
+
+        $exceptions->report(function (Throwable $e) {
+            if (! request()?->is('api/exams*')) {
+                return;
+            }
+
+            if ($e instanceof HttpException) {
+                return;
+            }
+
+            if ($e instanceof ValidationException) {
+                return;
+            }
+
+            if (request()->attributes->get('exam_journey_deny_logged')) {
+                return;
+            }
+
+            app(StudentExamJourneyLogger::class)->logUnexpected($e);
+        });
 
         // 2. Intercept errors if the request is coming from the API path
         $exceptions->render(function (Throwable $e, Request $request) use ($responder) {

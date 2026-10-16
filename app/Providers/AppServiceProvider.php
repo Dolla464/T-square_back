@@ -78,6 +78,12 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by('exam-integrity-events:'.$userId);
         });
 
+        RateLimiter::for('exam-journey-events', function (Request $request) {
+            $userId = $request->user()?->id ?? $request->ip();
+
+            return Limit::perMinute(30)->by('exam-journey-events:'.$userId);
+        });
+
         // لو إنت في بيئة الـ Local (أو أي بيئة تانية)، افرض الـ HTTPS
         // if (config('app.env') !== 'production') {
         //     URL::forceScheme('https');

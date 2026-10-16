@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Student\RecordQuestionTimeRequest;
 use App\Http\Requests\Api\Student\SaveAnswerRequest;
 use App\Http\Requests\Api\Student\StartExamRequest;
+use App\Http\Requests\Api\Student\StoreExamJourneyEventsRequest;
 use App\Http\Requests\Api\Student\StoreIntegrityEventsRequest;
 use App\Http\Requests\Api\Student\SubmitExamRequest;
 use App\Http\Resources\User\Exam\ExamAttemptResource;
@@ -14,6 +15,7 @@ use App\Http\Resources\User\Exam\ExamListResource;
 use App\Http\Resources\User\Exam\ExamResultResource;
 use App\Models\ExamAttempt;
 use App\Services\Exam\ExamIntegrityService;
+use App\Services\Exam\ExamJourneyClientEventService;
 use App\Services\User\ExamService;
 use App\Support\ExamTimerDiagnostic;
 use App\Traits\ApiResponseTrait;
@@ -32,6 +34,7 @@ class ExamController extends Controller
     public function __construct(
         ExamService $examService,
         private ExamIntegrityService $examIntegrityService,
+        private ExamJourneyClientEventService $examJourneyClientEventService,
     ) {
         $this->examService = $examService;
     }
@@ -106,7 +109,7 @@ class ExamController extends Controller
             return $this->errorResponse('Student profile not found', 404);
         }
 
-        $result = $this->examService->completeAttempt($id, $student->id);
+        $result = $this->examService->completeAttempt($id, $student->id, journeyTrigger: 'student_submit');
 
         $totalMarks = $result['total_marks'] > 0 ? $result['total_marks'] : 1;
         $score = $result['score'];
@@ -214,6 +217,29 @@ class ExamController extends Controller
         return $this->successResponse(
             ['recorded' => $recorded],
             'Integrity events recorded successfully.',
+            201,
+        );
+    }
+
+    public function recordJourneyEvents(StoreExamJourneyEventsRequest $request, int $attemptId)
+    {
+        $student = $request->user()->student;
+
+        if (! $student) {
+            return $this->errorResponse('Student profile not found', 404);
+        }
+
+        $attempt = ExamAttempt::query()->findOrFail($attemptId);
+
+        $recorded = $this->examJourneyClientEventService->recordEvents(
+            $attempt,
+            $student,
+            $request->validated('events'),
+        );
+
+        return $this->successResponse(
+            ['recorded' => $recorded],
+            'Journey events recorded successfully.',
             201,
         );
     }

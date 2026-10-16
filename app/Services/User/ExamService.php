@@ -12,6 +12,7 @@ use App\Models\ExamAttempt;
 use App\Models\Question;
 use App\Services\Exam\ExamAttemptAuthorizationService;
 use App\Support\ExamTimerDiagnostic;
+use App\Support\StudentExamJourneyLogger;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -21,6 +22,7 @@ class ExamService
 {
     public function __construct(
         private ExamAttemptAuthorizationService $attemptAuthorizationService,
+        private StudentExamJourneyLogger $journeyLogger,
     ) {}
 
     /**
@@ -53,7 +55,12 @@ class ExamService
         $exam = Exam::findOrFail($examId);
 
         if (! $this->hasCompletedEnrollment($studentId, $exam->course_id)) {
-            abort(403, 'Sorry, you are not enrolled in this course to take the exam.');
+            $this->journeyDeny(
+                403,
+                'Sorry, you are not enrolled in this course to take the exam.',
+                studentId: $studentId,
+                examId: $examId,
+            );
         }
 
         $bankCount = Question::where('exam_id', $examId)->count();
@@ -107,7 +114,7 @@ class ExamService
         }
 
         if ($this->attemptAuthorizationService->isTimedOut($existingAttempt)) {
-            $this->completeAttempt($existingAttempt->id, $studentId);
+            $this->completeAttempt($existingAttempt->id, $studentId, journeyTrigger: 'timeout_on_resume');
 
             if ($this->studentCanStartNewAttempt($studentId, $exam, $bankCount)) {
                 return $this->createNewAttempt($studentId, $exam->id, $exam, $bankCount);
@@ -125,8 +132,17 @@ class ExamService
                 return $existingAttempt->refresh()->load(['questions.choices', 'answers', 'exam']);
             }
 
-            abort($access->getStatusCode(), $access->getMessage());
+            $this->journeyDeny(
+                $access->getStatusCode(),
+                $access->getMessage(),
+                attempt: $existingAttempt,
+            );
         }
+
+        $this->journeyLogger->logFromAttempt(
+            StudentExamJourneyLogger::EVENT_ATTEMPT_RESUMED,
+            $existingAttempt,
+        );
 
         return $existingAttempt->load(['questions.choices', 'answers', 'exam']);
     }
@@ -138,15 +154,30 @@ class ExamService
         int $bankCount,
     ): ExamAttempt {
         if (! $exam->is_active) {
-            abort(403, 'This exam is not currently available.');
+            $this->journeyDeny(
+                403,
+                'This exam is not currently available.',
+                studentId: $studentId,
+                examId: $examId,
+            );
         }
 
         if (! $this->hasGroupExamAccess($studentId, $examId, $exam->course_id)) {
-            abort(403, 'This exam has not been activated for your group yet.');
+            $this->journeyDeny(
+                403,
+                'This exam has not been activated for your group yet.',
+                studentId: $studentId,
+                examId: $examId,
+            );
         }
 
         if ($bankCount === 0) {
-            abort(422, 'This exam has no questions yet. Please contact the administrator.');
+            $this->journeyDeny(
+                422,
+                'This exam has no questions yet. Please contact the administrator.',
+                studentId: $studentId,
+                examId: $examId,
+            );
         }
 
         $attemptsCount = ExamAttempt::query()
@@ -155,7 +186,12 @@ class ExamService
             ->count();
 
         if ($exam->max_attempts && $attemptsCount >= $exam->max_attempts) {
-            abort(403, 'Sorry, you have exhausted the maximum number of attempts available for this exam!');
+            $this->journeyDeny(
+                403,
+                'Sorry, you have exhausted the maximum number of attempts available for this exam!',
+                studentId: $studentId,
+                examId: $examId,
+            );
         }
 
         try {
@@ -187,13 +223,24 @@ class ExamService
         );
         $this->assertAttemptHasQuestions($attempt);
 
-        return $attempt->load(['questions.choices', 'answers', 'exam']);
+        $attempt = $attempt->load(['questions.choices', 'answers', 'exam']);
+
+        $this->journeyLogger->logFromAttempt(
+            StudentExamJourneyLogger::EVENT_ATTEMPT_STARTED,
+            $attempt,
+        );
+
+        return $attempt;
     }
 
     private function assertAttemptHasQuestions(ExamAttempt $attempt): void
     {
         if ($attempt->questions()->count() === 0) {
-            abort(422, 'This exam has no questions available for this attempt. Please contact the administrator.');
+            $this->journeyDeny(
+                422,
+                'This exam has no questions available for this attempt. Please contact the administrator.',
+                attempt: $attempt,
+            );
         }
     }
 
@@ -270,27 +317,43 @@ class ExamService
                     $this->closeOngoingAttempt($attemptId, $studentId);
                 }
 
-                abort($access->getStatusCode(), $access->getMessage());
+                $this->journeyDeny(
+                    $access->getStatusCode(),
+                    $access->getMessage(),
+                    attempt: $attempt,
+                );
             }
         } elseif ($attempt->status !== ExamAttempt::STATUS_ONGOING) {
-            abort(403, 'This attempt is already closed and cannot be modified.');
+            $this->journeyDeny(
+                403,
+                'This attempt is already closed and cannot be modified.',
+                attempt: $attempt,
+            );
         }
 
         if ($this->attemptAuthorizationService->isTimedOut($attempt)) {
-            $this->completeAttempt($attemptId, $studentId);
+            $this->completeAttempt($attemptId, $studentId, journeyTrigger: 'timeout_on_save');
 
-            abort(403, 'Exam time has expired.');
+            $this->journeyDeny(403, 'Exam time has expired.', attempt: $attempt);
         }
 
         $question = $attempt->questions->firstWhere('id', $questionId);
         if (! $question) {
-            abort(403, 'This question does not belong to this attempt.');
+            $this->journeyDeny(
+                403,
+                'This question does not belong to this attempt.',
+                attempt: $attempt,
+            );
         }
 
         if ($question->isEssay()) {
             $trimmedText = trim((string) $answerText);
             if ($trimmedText === '') {
-                abort(422, 'Essay answer cannot be empty.');
+                $this->journeyDeny(
+                    422,
+                    'Essay answer cannot be empty.',
+                    attempt: $attempt,
+                );
             }
 
             $answer = Answer::updateOrCreate(
@@ -311,12 +374,20 @@ class ExamService
         }
 
         if ($choiceId === null) {
-            abort(422, 'A choice is required for this question.');
+            $this->journeyDeny(
+                422,
+                'A choice is required for this question.',
+                attempt: $attempt,
+            );
         }
 
         $choice = Choice::findOrFail($choiceId);
         if ($choice->question_id != $question->id) {
-            abort(403, 'Selected choice does not belong to this question.');
+            $this->journeyDeny(
+                403,
+                'Selected choice does not belong to this question.',
+                attempt: $attempt,
+            );
         }
 
         $answer = Answer::updateOrCreate(
@@ -354,18 +425,26 @@ class ExamService
                 $this->closeOngoingAttempt($attemptId, $studentId);
             }
 
-            abort($access->getStatusCode(), $access->getMessage());
+            $this->journeyDeny(
+                $access->getStatusCode(),
+                $access->getMessage(),
+                attempt: $attempt,
+            );
         }
 
         if ($this->attemptAuthorizationService->isTimedOut($attempt)) {
-            $this->completeAttempt($attemptId, $studentId);
+            $this->completeAttempt($attemptId, $studentId, journeyTrigger: 'timeout_on_record_time');
 
-            abort(403, 'Exam time has expired.');
+            $this->journeyDeny(403, 'Exam time has expired.', attempt: $attempt);
         }
 
         $question = $attempt->questions->firstWhere('id', $questionId);
         if (! $question) {
-            abort(403, 'This question does not belong to this attempt.');
+            $this->journeyDeny(
+                403,
+                'This question does not belong to this attempt.',
+                attempt: $attempt,
+            );
         }
 
         $seconds = max(0, min(7200, $seconds));
@@ -383,8 +462,12 @@ class ExamService
             ]);
     }
 
-    public function completeAttempt($attemptId, ?int $studentId = null, bool $skipAvailabilityCheck = false): array
-    {
+    public function completeAttempt(
+        $attemptId,
+        ?int $studentId = null,
+        bool $skipAvailabilityCheck = false,
+        ?string $journeyTrigger = null,
+    ): array {
         $result = DB::transaction(function () use ($attemptId, $studentId, $skipAvailabilityCheck) {
             $attempt = ExamAttempt::query()
                 ->with(['exam', 'questions'])
@@ -393,7 +476,12 @@ class ExamService
                 ->firstOrFail();
 
             if ($studentId !== null && $attempt->student_id !== $studentId) {
-                abort(403, 'You do not own this attempt.');
+                $this->journeyDeny(
+                    403,
+                    'You do not own this attempt.',
+                    attempt: $attempt,
+                    studentId: $studentId,
+                );
             }
 
             if ($attempt->status !== ExamAttempt::STATUS_ONGOING) {
@@ -408,7 +496,12 @@ class ExamService
 
                 if (! $authResult->isAllowed()) {
                     if (! $this->attemptAuthorizationService->isExamContextRevoked($authResult)) {
-                        abort($authResult->getStatusCode(), $authResult->getMessage());
+                        $this->journeyDeny(
+                            $authResult->getStatusCode(),
+                            $authResult->getMessage(),
+                            attempt: $attempt,
+                            studentId: $studentId,
+                        );
                     }
                 }
             }
@@ -442,6 +535,7 @@ class ExamService
 
         if ($result['kind'] === 'awaiting_grading') {
             $attempt = $result['attempt']->refresh()->loadMissing(['student.user', 'exam.course']);
+            $this->logAttemptCompletion($attempt, $journeyTrigger, $studentId, $skipAvailabilityCheck);
             StudentExamAttemptAwaitingGrading::dispatch($attempt);
 
             return $result['payload'];
@@ -449,6 +543,7 @@ class ExamService
 
         if ($result['kind'] === 'finalized') {
             $attempt = $result['attempt']->refresh()->loadMissing(['student.user', 'exam.course']);
+            $this->logAttemptCompletion($attempt, $journeyTrigger, $studentId, $skipAvailabilityCheck);
             StudentExamAttemptCompleted::dispatch($attempt);
 
             return $result['payload'];
@@ -529,14 +624,19 @@ class ExamService
         $attempt = ExamAttempt::with('exam')->findOrFail($attemptId);
 
         if ($attempt->student_id !== $studentId) {
-            abort(403, 'This attempt does not belong to the authenticated student.');
+            $this->journeyDeny(
+                403,
+                'This attempt does not belong to the authenticated student.',
+                attempt: $attempt,
+                studentId: $studentId,
+            );
         }
 
         if (
             $attempt->status === ExamAttempt::STATUS_ONGOING
             && $this->attemptAuthorizationService->isTimedOut($attempt)
         ) {
-            $this->completeAttempt($attemptId, $studentId);
+            $this->completeAttempt($attemptId, $studentId, journeyTrigger: 'timeout_on_time_status');
             $attempt->refresh()->load('exam');
         }
 
@@ -741,5 +841,40 @@ class ExamService
         }
 
         return str_contains(strtolower($exception->getMessage()), 'ongoing_slot');
+    }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     */
+    private function journeyDeny(
+        int $status,
+        string $message,
+        ?ExamAttempt $attempt = null,
+        ?int $studentId = null,
+        ?int $examId = null,
+        array $meta = [],
+    ): never {
+        $this->journeyLogger->logAccessDenied($status, $message, $attempt, $studentId, $examId, $meta);
+        abort($status, $message);
+    }
+
+    private function logAttemptCompletion(
+        ExamAttempt $attempt,
+        ?string $journeyTrigger,
+        ?int $studentId,
+        bool $skipAvailabilityCheck,
+    ): void {
+        $trigger = $journeyTrigger ?? ($studentId === null
+            ? 'scheduler'
+            : ($skipAvailabilityCheck ? 'context_revoked' : 'student_submit'));
+
+        $event = $trigger === 'scheduler'
+            ? StudentExamJourneyLogger::EVENT_AUTO_COMPLETE_SCHEDULER
+            : StudentExamJourneyLogger::EVENT_ATTEMPT_COMPLETED;
+
+        $this->journeyLogger->logFromAttempt($event, $attempt, [
+            'completion_trigger' => $trigger,
+            'final_status' => $attempt->status,
+        ]);
     }
 }
