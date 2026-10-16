@@ -10,6 +10,7 @@ use App\Models\Enrollment;
 use App\Models\LearningGroup;
 use App\Models\Student;
 use App\Services\Attendance\AttendanceSessionService;
+use App\Services\Attendance\AutomaticQrStudentGuard;
 use App\Services\Attendance\GroupAttendanceSummaryService;
 use App\Services\Attendance\StudentAttendanceService;
 use Carbon\Carbon;
@@ -25,7 +26,8 @@ class StudentAttendanceController extends Controller
     public function __construct(
         private StudentAttendanceService $studentAttendanceService,
         private GroupAttendanceSummaryService $groupAttendanceSummaryService,
-        private AttendanceSessionService $attendanceSessionService
+        private AttendanceSessionService $attendanceSessionService,
+        private AutomaticQrStudentGuard $automaticQrStudentGuard,
     ) {}
 
     /**
@@ -217,6 +219,14 @@ class StudentAttendanceController extends Controller
             return $this->errorResponse(
                 "Check-in is only available between {$windowStart->format('H:i')} and {$windowEnd->format('H:i')}.",
                 403
+            );
+        }
+
+        if (! $this->automaticQrStudentGuard->isEligibleForAutomaticCheckIn($student)) {
+            return $this->structuredErrorResponse(
+                error: 'Automatic check-in is not available for this student.',
+                code: 'STUDENT_INACTIVE',
+                httpCode: 403,
             );
         }
 

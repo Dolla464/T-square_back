@@ -24,6 +24,8 @@ class RequestDataSanitizer
         'authorization',
         'client_secret',
         'secret',
+        'plain_text_token',
+        'qr_code',
     ];
 
     public function __construct(

@@ -9,7 +9,10 @@ use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\Instructor;
 use App\Models\LearningGroup;
+use App\Services\Attendance\AttendanceDeviceGroupAccessService;
 use App\Services\Attendance\AttendanceSessionService;
+use App\Services\Attendance\AutomaticQrStudentGuard;
+use App\Services\Attendance\PermanentCardScanService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +23,10 @@ use Illuminate\Http\Request;
 class AttendanceController extends Controller
 {
     public function __construct(
-        private AttendanceSessionService $attendanceSessionService
+        private AttendanceSessionService $attendanceSessionService,
+        private PermanentCardScanService $permanentCardScanService,
+        private AutomaticQrStudentGuard $automaticQrStudentGuard,
+        private AttendanceDeviceGroupAccessService $deviceGroupAccessService,
     ) {}
 
     /**
@@ -36,9 +42,12 @@ class AttendanceController extends Controller
 
         $qrCode = $request->input('qr_code');
 
-        // Resolve whether this is a student QR (att_*) or a session QR (sess_*)
         if (str_starts_with($qrCode, 'att_')) {
             return $this->processStudentQr($request, $qrCode);
+        }
+
+        if (str_starts_with($qrCode, 'card_')) {
+            return $this->processPermanentCardQr($request, $qrCode);
         }
 
         return $this->errorResponse('Invalid QR code format.', 400);
@@ -308,6 +317,39 @@ class AttendanceController extends Controller
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
+    private function processPermanentCardQr(Request $request, string $qrCode): JsonResponse
+    {
+        /** @var AttendanceDevice|null $device */
+        $device = $request->attributes->get('attendance_device');
+
+        if (! $device) {
+            return $this->structuredErrorResponse(
+                error: 'Unknown or inactive attendance device.',
+                code: 'FORBIDDEN',
+                httpCode: 403,
+            );
+        }
+
+        $outcome = $this->permanentCardScanService->scan($device, $qrCode);
+
+        if (! $outcome->successful) {
+            return $this->structuredErrorResponse(
+                error: $outcome->error,
+                code: $outcome->code,
+                httpCode: $outcome->httpCode,
+                message: $outcome->message,
+            );
+        }
+
+        $record = $outcome->record;
+
+        return $this->successResponse([
+            'student_id' => $record->student_id,
+            'status' => $record->status,
+            'marked_at' => $record->marked_at->toDateTimeString(),
+        ], 'Attendance recorded successfully');
+    }
+
     private function processStudentQr(Request $request, string $qrCode): JsonResponse
     {
         $record = AttendanceRecord::where('student_qr_code', $qrCode)->first();
@@ -336,6 +378,16 @@ class AttendanceController extends Controller
 
         if ($denied = $this->assertDeviceCanAccessGroup($request, $group)) {
             return $denied;
+        }
+
+        $record->loadMissing('student');
+
+        if (! $this->automaticQrStudentGuard->isEligibleForAutomaticCheckIn($record->student)) {
+            return $this->structuredErrorResponse(
+                error: 'Automatic check-in is not available for this student.',
+                code: 'STUDENT_INACTIVE',
+                httpCode: 403,
+            );
         }
 
         $record->update([
@@ -377,10 +429,18 @@ class AttendanceController extends Controller
             );
         }
 
+        if ($device->branch_id !== null && $group->branch_id !== null && $device->branch_id !== $group->branch_id) {
+            return $this->structuredErrorResponse(
+                error: 'Device not authorized for this branch.',
+                code: 'FORBIDDEN',
+                httpCode: 403,
+            );
+        }
+
         if ($device->instructor_id !== null) {
             $instructor = $device->instructor;
 
-            if (! $instructor || ! $this->instructorCanAccessGroup($group, $instructor)) {
+            if (! $instructor || ! $this->deviceGroupAccessService->instructorCanAccessGroup($group, $instructor)) {
                 return $this->structuredErrorResponse(
                     error: 'Device not authorized for this learning group.',
                     code: 'FORBIDDEN',
@@ -394,12 +454,6 @@ class AttendanceController extends Controller
 
     private function instructorCanAccessGroup(LearningGroup $group, Instructor $instructor): bool
     {
-        $group->loadMissing('course.instructors', 'courseInstructor');
-
-        if ($group->courseInstructor?->instructor_id === $instructor->id) {
-            return true;
-        }
-
-        return (bool) $group->course?->hasInstructor($instructor->id);
+        return $this->deviceGroupAccessService->instructorCanAccessGroup($group, $instructor);
     }
 }

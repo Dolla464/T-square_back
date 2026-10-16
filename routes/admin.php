@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\Admin\AdminQuestionController;
 use App\Http\Controllers\Api\Admin\AdminReviewController;
 use App\Http\Controllers\Api\Admin\AdminScheduleController;
 use App\Http\Controllers\Api\Admin\AdminSolutionController;
+use App\Http\Controllers\Api\Admin\AdminStudentAttendanceCardController;
 use App\Http\Controllers\Api\Admin\AdminStudentController;
 use App\Http\Controllers\Api\Admin\AdminTagController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
@@ -174,6 +175,17 @@ Route::middleware(['auth:sanctum', 'verified', 'role:admin'])
             Route::post('{student}/toggle-verify', [AdminStudentController::class, 'toggleVerify']);
             Route::put('{student}/courses/{course}/group', [AdminStudentController::class, 'updateCourseGroup']);
             Route::put('{student}/courses/{course}/status', [AdminStudentController::class, 'updateCourseStatus']);
+
+            Route::get('{student}/attendance-card', [AdminStudentAttendanceCardController::class, 'show'])
+                ->name('students.attendance-card.show');
+            Route::post('{student}/attendance-card', [AdminStudentAttendanceCardController::class, 'issue'])
+                ->middleware('throttle:20,1')
+                ->name('students.attendance-card.issue');
+            Route::post('{student}/attendance-card/reissue', [AdminStudentAttendanceCardController::class, 'reissue'])
+                ->middleware('throttle:20,1')
+                ->name('students.attendance-card.reissue');
+            Route::post('{student}/attendance-card/revoke', [AdminStudentAttendanceCardController::class, 'revoke'])
+                ->name('students.attendance-card.revoke');
         });
         Route::apiResource('students', AdminStudentController::class)
             ->except(['store', 'update']);

@@ -93,6 +93,18 @@ class Student extends Model
         return $this->hasMany(AttendanceRecord::class);
     }
 
+    public function attendanceCards()
+    {
+        return $this->hasMany(StudentAttendanceCard::class);
+    }
+
+    public function activeAttendanceCard()
+    {
+        return $this->hasOne(StudentAttendanceCard::class)
+            ->whereNull('revoked_at')
+            ->latestOfMany('issued_at');
+    }
+
     // مراجعات الطالب
     public function reviews()
     {
