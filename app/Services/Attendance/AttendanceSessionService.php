@@ -114,6 +114,30 @@ class AttendanceSessionService
         return $now->greaterThanOrEqualTo($completionThreshold);
     }
 
+    /**
+     * Upcoming sessions open for activation from 30 minutes before the effective
+     * start until the completion threshold (effective end + 30 minutes).
+     * Sessions whose start has already passed stay eligible so a late scheduler
+     * run still moves them to active.
+     */
+    public function shouldActivate(AttendanceSession $session, ?Carbon $now = null): bool
+    {
+        if ($session->status !== 'upcoming') {
+            return false;
+        }
+
+        $now = $now ?? Carbon::now();
+
+        if ($this->hasSessionEnded($session, $now)) {
+            return false;
+        }
+
+        $range = $this->getEffectiveDateTimeRange($session);
+        $activationOpensAt = $range['start']->copy()->subMinutes(30);
+
+        return $now->greaterThanOrEqualTo($activationOpensAt);
+    }
+
     public function resolveLifecycleStatus(AttendanceSession $session, ?Carbon $now = null): string
     {
         if ($session->status === 'cancelled') {

@@ -29,12 +29,27 @@ class StudentAttendanceCardLifecycleService
                 throw (new ModelNotFoundException)->setModel(Student::class, [$student->id]);
             }
 
-            if ($this->studentHasActiveCards($lockedStudent)) {
-                throw new InvalidArgumentException('Student already has an active attendance card.');
-            }
-
-            return $this->createAndPersistCard($lockedStudent, $actor);
+            return $this->issueOnLockedStudent($actor, $lockedStudent);
         });
+    }
+
+    /**
+     * Issue within an outer transaction after the student row is locked.
+     *
+     * @param  int|null  $bulkOperationId  Durable link to a bulk operation row when applicable.
+     */
+    public function issueOnLockedStudent(
+        ?User $actor,
+        Student $lockedStudent,
+        ?int $bulkOperationId = null,
+    ): IssuedStudentAttendanceCard {
+        $this->assertAdministrator($actor);
+
+        if ($this->studentHasActiveCards($lockedStudent)) {
+            throw new InvalidArgumentException('Student already has an active attendance card.');
+        }
+
+        return $this->createAndPersistCard($lockedStudent, $actor, $bulkOperationId);
     }
 
     public function revoke(
@@ -79,14 +94,33 @@ class StudentAttendanceCardLifecycleService
                 throw (new ModelNotFoundException)->setModel(Student::class, [$student->id]);
             }
 
-            $this->revokeAllActiveCardsForStudent(
-                $lockedStudent,
+            return $this->reissueOnLockedStudent(
                 $actor,
-                $revokeReason ?? 'Superseded by reissue.'
+                $lockedStudent,
+                $revokeReason,
+                null,
             );
-
-            return $this->createAndPersistCard($lockedStudent, $actor);
         });
+    }
+
+    /**
+     * Reissue within an outer transaction after the student row is locked.
+     */
+    public function reissueOnLockedStudent(
+        ?User $actor,
+        Student $lockedStudent,
+        ?string $revokeReason = null,
+        ?int $bulkOperationId = null,
+    ): IssuedStudentAttendanceCard {
+        $this->assertAdministrator($actor);
+
+        $this->revokeAllActiveCardsForStudent(
+            $lockedStudent,
+            $actor,
+            $revokeReason ?? 'Superseded by reissue.'
+        );
+
+        return $this->createAndPersistCard($lockedStudent, $actor, $bulkOperationId);
     }
 
     public function findActiveCardForStudent(Student $student): ?StudentAttendanceCard
@@ -107,7 +141,8 @@ class StudentAttendanceCardLifecycleService
         Student $student,
         User $actor,
         string $tokenHash,
-        string $tokenSuffix
+        string $tokenSuffix,
+        ?int $bulkOperationId = null,
     ): StudentAttendanceCard {
         return StudentAttendanceCard::query()->create([
             'student_id' => $student->id,
@@ -115,16 +150,20 @@ class StudentAttendanceCardLifecycleService
             'token_suffix' => $tokenSuffix,
             'issued_at' => now(),
             'issued_by_user_id' => $actor->id,
+            'group_attendance_card_bulk_operation_id' => $bulkOperationId,
         ]);
     }
 
-    private function createAndPersistCard(Student $student, User $actor): IssuedStudentAttendanceCard
-    {
+    private function createAndPersistCard(
+        Student $student,
+        User $actor,
+        ?int $bulkOperationId = null,
+    ): IssuedStudentAttendanceCard {
         $plainTextToken = $this->generatePlainTextToken();
         $tokenHash = self::hashPlainToken($plainTextToken);
         $tokenSuffix = mb_substr($plainTextToken, -4);
 
-        $card = $this->persistNewCard($student, $actor, $tokenHash, $tokenSuffix);
+        $card = $this->persistNewCard($student, $actor, $tokenHash, $tokenSuffix, $bulkOperationId);
 
         return new IssuedStudentAttendanceCard($card, $plainTextToken);
     }

@@ -18,6 +18,7 @@ class StudentAttendanceCard extends Model
         'issued_at',
         'revoked_at',
         'issued_by_user_id',
+        'group_attendance_card_bulk_operation_id',
         'revoked_by_user_id',
         'revocation_reason',
     ];

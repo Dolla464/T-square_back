@@ -16,6 +16,7 @@ use App\Models\LearningGroup;
 use App\Models\Student;
 use App\Services\Admin\AdminLearningGroupService;
 use App\Services\Attendance\AttendanceSessionService;
+use App\Services\Attendance\GroupAttendanceCardsPreviewService;
 use App\Services\Attendance\GroupAttendanceSummaryService;
 use App\Services\Exam\GroupExamResultsService;
 use App\Services\Pdf\DompdfExportService;
@@ -36,7 +37,8 @@ class AdminLearningGroupController extends Controller
         private AttendanceSessionService $attendanceSessionService,
         private GroupAttendanceSummaryService $groupAttendanceSummaryService,
         private GroupExamResultsService $groupExamResultsService,
-        private DompdfExportService $pdfExporter
+        private DompdfExportService $pdfExporter,
+        private GroupAttendanceCardsPreviewService $groupAttendanceCardsPreviewService,
     ) {
         $this->adminLearningGroupService = $adminLearningGroupService;
     }
@@ -187,6 +189,17 @@ class AdminLearningGroupController extends Controller
      *
      * Query params: format=pdf|excel
      */
+    /**
+     * GET /api/admin/learning-groups/{learningGroup}/attendance-cards/preview
+     */
+    public function getAttendanceCardsPreview(LearningGroup $learningGroup): JsonResponse
+    {
+        return $this->successResponse(
+            $this->groupAttendanceCardsPreviewService->preview($learningGroup),
+            'Group attendance cards preview retrieved successfully',
+        );
+    }
+
     public function exportStudents(Request $request, LearningGroup $learningGroup): JsonResponse
     {
         $validated = $request->validate([

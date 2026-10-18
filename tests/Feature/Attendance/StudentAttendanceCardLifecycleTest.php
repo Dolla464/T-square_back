@@ -105,7 +105,8 @@ it('rolls back reissue when persistence fails so the prior card stays active', f
             Student $student,
             User $actor,
             string $tokenHash,
-            string $tokenSuffix
+            string $tokenSuffix,
+            ?int $bulkOperationId = null,
         ): StudentAttendanceCard {
             throw new RuntimeException('Simulated persistence failure.');
         }
@@ -185,7 +186,8 @@ it('rolls back all revocations when reissue fails with multiple active cards pre
             Student $student,
             User $actor,
             string $tokenHash,
-            string $tokenSuffix
+            string $tokenSuffix,
+            ?int $bulkOperationId = null,
         ): StudentAttendanceCard {
             throw new RuntimeException('Simulated persistence failure.');
         }

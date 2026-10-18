@@ -15,7 +15,7 @@ Schedule::command('chunks:cleanup')->dailyAt('02:00');
 Schedule::command('previews:cleanup-orphans')->dailyAt('02:30');
 
 // Attendance automation
-// Activate upcoming sessions 30 minutes before start_time — runs every 15 minutes
+// Activate upcoming sessions from 30 minutes before start through the end of the session — runs every 15 minutes
 Schedule::command('attendance:activate')->everyFifteenMinutes()->withoutOverlapping()->appendOutputTo(storage_path('logs/attendance-activate.log'));
 
 // Complete active sessions 30 minutes after end_time and mark absent — runs every 15 minutes
@@ -32,3 +32,6 @@ Schedule::command('enrollments:complete-online')->dailyAt('03:00')->withoutOverl
 
 // Close exam attempts that exceeded their allowed duration — runs every minute
 Schedule::command('exams:close-expired')->everyMinute()->withoutOverlapping()->appendOutputTo(storage_path('logs/exams-close-expired.log'));
+
+// Purge completed group attendance card bulk operation metadata (30-day retention)
+Schedule::command('attendance-cards:cleanup-bulk-operations')->dailyAt('03:30');

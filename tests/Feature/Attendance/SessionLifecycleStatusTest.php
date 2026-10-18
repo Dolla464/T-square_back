@@ -13,6 +13,7 @@ use App\Services\Attendance\AttendanceSessionCompletionService;
 use App\Services\Attendance\AttendanceSessionService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -213,6 +214,74 @@ it('resets active session to upcoming and clears qr when rescheduled to the futu
 
     expect($session->status)->toBe('upcoming')
         ->and($session->qr_code)->toBeNull();
+});
+
+it('activates an upcoming session after its start time has passed', function (): void {
+    Notification::fake();
+
+    $now = Carbon::parse('2026-01-02 11:00:00');
+    Carbon::setTestNow($now);
+
+    ['session' => $session] = createAttendanceFixture([
+        'session_date' => '2026-01-02',
+        'status' => 'upcoming',
+    ], $now);
+
+    $this->artisan('attendance:activate')->assertSuccessful();
+
+    $session->refresh();
+
+    expect($session->status)->toBe('active')
+        ->and($session->qr_code)->toStartWith('sess_');
+});
+
+it('activates an upcoming session within 30 minutes before start', function (): void {
+    Notification::fake();
+
+    $now = Carbon::parse('2026-01-02 09:40:00');
+    Carbon::setTestNow($now);
+
+    ['session' => $session] = createAttendanceFixture([
+        'session_date' => '2026-01-02',
+        'status' => 'upcoming',
+    ], $now);
+
+    $this->artisan('attendance:activate')->assertSuccessful();
+
+    expect($session->fresh()->status)->toBe('active');
+});
+
+it('does not activate an upcoming session more than 30 minutes before start', function (): void {
+    Notification::fake();
+
+    $now = Carbon::parse('2026-01-02 09:00:00');
+    Carbon::setTestNow($now);
+
+    ['session' => $session] = createAttendanceFixture([
+        'session_date' => '2026-01-02',
+        'status' => 'upcoming',
+    ], $now);
+
+    $this->artisan('attendance:activate')->assertSuccessful();
+
+    expect($session->fresh()->status)->toBe('upcoming')
+        ->and($session->fresh()->qr_code)->toBeNull();
+});
+
+it('does not activate an upcoming session that already passed the completion threshold', function (): void {
+    Notification::fake();
+
+    $now = Carbon::parse('2026-01-02 13:00:00');
+    Carbon::setTestNow($now);
+
+    ['session' => $session] = createAttendanceFixture([
+        'session_date' => '2026-01-02',
+        'status' => 'upcoming',
+    ], $now);
+
+    $this->artisan('attendance:activate')->assertSuccessful();
+
+    expect($session->fresh()->status)->toBe('upcoming');
 });
 
 it('repair stale command uses the same completion logic as attendance complete', function (): void {

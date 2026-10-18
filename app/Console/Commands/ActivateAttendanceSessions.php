@@ -17,30 +17,19 @@ class ActivateAttendanceSessions extends Command
 {
     protected $signature = 'attendance:activate';
 
-    protected $description = 'Activate upcoming attendance sessions within the activation window.';
+    protected $description = 'Activate upcoming attendance sessions whose start time has arrived (or is within 30 minutes).';
 
     public function handle(AttendanceSessionService $attendanceSessionService): void
     {
         $now = Carbon::now();
-        $windowStart = $now->copy()->subMinutes(5);
-        $windowEnd = $now->copy()->addMinutes(30);
-        $today = $now->toDateString();
 
         $this->line('=== attendance:activate ===');
-        $this->line("Now: {$now->toDateTimeString()} | Window: {$windowStart->format('H:i:s')} → {$windowEnd->format('H:i:s')}");
+        $this->line("Now: {$now->toDateTimeString()}");
 
         $sessions = AttendanceSession::where('status', 'upcoming')
             ->with('schedule')
             ->get()
-            ->filter(function (AttendanceSession $session) use ($attendanceSessionService, $today, $windowStart, $windowEnd) {
-                $range = $attendanceSessionService->getEffectiveDateTimeRange($session);
-
-                if ($range['session_date'] !== $today) {
-                    return false;
-                }
-
-                return $range['start']->between($windowStart, $windowEnd);
-            });
+            ->filter(fn (AttendanceSession $session) => $attendanceSessionService->shouldActivate($session, $now));
 
         $activated = 0;
 

@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Services\Attendance;
+
+final class GroupAttendanceCardBulkResultCode
+{
+    public const ISSUED = 'ISSUED';
+
+    public const REISSUED = 'REISSUED';
+
+    public const SKIP_NOT_ELIGIBLE = 'SKIP_NOT_ELIGIBLE';
+
+    public const SKIP_NO_ACTION_FOR_MODE = 'SKIP_NO_ACTION_FOR_MODE';
+
+    public const SKIP_ELIGIBILITY_CHANGED = 'SKIP_ELIGIBILITY_CHANGED';
+
+    public const FAILED_VALIDATION = 'FAILED_VALIDATION';
+
+    public const FAILED_PROCESSING = 'FAILED_PROCESSING';
+
+    public const RECOVERY_AMBIGUOUS = 'RECOVERY_AMBIGUOUS';
+
+    public const CURSOR_OUT_OF_ORDER = 'CURSOR_OUT_OF_ORDER';
+
+    public const OPERATION_FINGERPRINT_MISMATCH = 'OPERATION_FINGERPRINT_MISMATCH';
+
+    public const BATCH_SIZE_EXCEEDED = 'BATCH_SIZE_EXCEEDED';
+
+    public const CONFIRM_REISSUE_REQUIRED = 'CONFIRM_REISSUE_REQUIRED';
+
+    public const GROUP_LOCK_UNAVAILABLE = 'GROUP_LOCK_UNAVAILABLE';
+}

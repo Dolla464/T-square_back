@@ -181,7 +181,8 @@ it('preserves the active card when reissue persistence fails', function (): void
             Student $student,
             User $actor,
             string $tokenHash,
-            string $tokenSuffix
+            string $tokenSuffix,
+            ?int $bulkOperationId = null,
         ): StudentAttendanceCard {
             throw new RuntimeException('Simulated persistence failure.');
         }

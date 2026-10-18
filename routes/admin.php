@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\Admin\AdminDiscoveryMediaController;
 use App\Http\Controllers\Api\Admin\AdminExamController;
 use App\Http\Controllers\Api\Admin\AdminInstructorController;
+use App\Http\Controllers\Api\Admin\AdminGroupAttendanceCardBulkController;
 use App\Http\Controllers\Api\Admin\AdminLearningGroupController;
 use App\Http\Controllers\Api\Admin\AdminLessonController;
 use App\Http\Controllers\Api\Admin\AdminMessageController;
@@ -158,6 +159,13 @@ Route::middleware(['auth:sanctum', 'verified', 'role:admin'])
             Route::get('{learningGroup}/students/{student}/attendance', [AdminLearningGroupController::class, 'getStudentCourseAttendance'])->name('learning-groups.students.attendance');
             Route::get('{learningGroup}/attendance', [AdminLearningGroupController::class, 'getAttendanceReport'])->name('learning-groups.attendance');
             Route::get('{learningGroup}/students/export', [AdminLearningGroupController::class, 'exportStudents'])->name('learning-groups.students.export');
+            Route::get('{learningGroup}/attendance-cards/preview', [AdminLearningGroupController::class, 'getAttendanceCardsPreview'])
+                ->name('learning-groups.attendance-cards.preview');
+            Route::post('{learningGroup}/attendance-cards/batch', [AdminGroupAttendanceCardBulkController::class, 'processBatch'])
+                ->middleware('throttle:30,1')
+                ->name('learning-groups.attendance-cards.batch');
+            Route::get('{learningGroup}/attendance-cards/batch/{clientOperationId}', [AdminGroupAttendanceCardBulkController::class, 'showStatus'])
+                ->name('learning-groups.attendance-cards.batch.status');
             // Exam results
             Route::get('{learningGroup}/exams', [AdminLearningGroupController::class, 'getGroupExams'])->name('learning-groups.exams');
             Route::get('{learningGroup}/exams/{exam}/results/export', [AdminLearningGroupController::class, 'exportExamResults'])->name('learning-groups.exams.results.export');
