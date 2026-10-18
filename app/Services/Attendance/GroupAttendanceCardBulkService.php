@@ -327,14 +327,15 @@ class GroupAttendanceCardBulkService
         $plainToken = null;
         $tokenAvailable = false;
 
-        $resultRow = DB::transaction(function () use (
-            $operation,
-            $group,
-            $admin,
-            $sequence,
-            &$plainToken,
-            &$tokenAvailable,
-        ): GroupAttendanceCardBulkOperationStudent {
+        try {
+            $resultRow = DB::transaction(function () use (
+                $operation,
+                $group,
+                $admin,
+                $sequence,
+                &$plainToken,
+                &$tokenAvailable,
+            ): GroupAttendanceCardBulkOperationStudent {
             /** @var GroupAttendanceCardBulkOperationStudent|null $opStudent */
             $opStudent = GroupAttendanceCardBulkOperationStudent::query()
                 ->where('group_attendance_card_bulk_operation_id', $operation->id)
@@ -417,7 +418,9 @@ class GroupAttendanceCardBulkService
                 $card = $issued->card->fresh();
 
                 if ($card->group_attendance_card_bulk_operation_id !== $operation->id) {
-                    throw new RuntimeException('Bulk operation link was not persisted on the card.');
+                    throw new BulkOperationCardLinkInvariantException(
+                        'Bulk operation link was not persisted on the card.',
+                    );
                 }
 
                 $opStudent->update([
@@ -445,13 +448,21 @@ class GroupAttendanceCardBulkService
                     'Unauthorized.',
                     403,
                 );
+            } catch (BulkOperationCardLinkInvariantException $e) {
+                throw $e;
             } catch (Throwable) {
                 return $this->finalizeFailed(
                     $opStudent,
                     GroupAttendanceCardBulkResultCode::FAILED_PROCESSING,
                 );
             }
-        });
+            });
+        } catch (BulkOperationCardLinkInvariantException) {
+            $resultRow = GroupAttendanceCardBulkOperationStudent::query()
+                ->where('group_attendance_card_bulk_operation_id', $operation->id)
+                ->where('sequence', $sequence)
+                ->firstOrFail();
+        }
 
         return $this->formatStudentResult(
             $resultRow,

@@ -3,9 +3,8 @@
 use App\Models\Course;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
-use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 it('supports online attendance type', function (): void {
     $course = new Course(['attendance_types' => ['online']]);
