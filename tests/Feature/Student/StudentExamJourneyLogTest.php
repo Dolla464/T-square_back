@@ -155,6 +155,39 @@ it('accepts client journey events for owned attempt', function (): void {
     expect(journeyFeatureLogContents())->toContain(StudentExamJourneyLogger::EVENT_CLIENT_EVENTS_BATCH);
 });
 
+it('accepts distinguishable client journey event types for exam safeguards', function (): void {
+    ['exam' => $exam] = createJourneyExamContext();
+
+    $attemptId = test()->postJson('/api/exams/start', ['exam_id' => $exam->id])
+        ->assertCreated()
+        ->json('data.attempt_id');
+
+    test()->postJson("/api/exams/attempts/{$attemptId}/journey-events", [
+        'events' => [
+            [
+                'event_id' => (string) Str::uuid(),
+                'type' => 'TIMER_EXPIRY_CHECK',
+                'client_at' => now()->toIso8601String(),
+            ],
+            [
+                'event_id' => (string) Str::uuid(),
+                'type' => 'LEAVE_DURING_INIT',
+                'client_at' => now()->toIso8601String(),
+            ],
+            [
+                'event_id' => (string) Str::uuid(),
+                'type' => 'LEAVE_CONFIRMED',
+                'client_at' => now()->toIso8601String(),
+            ],
+        ],
+    ])->assertCreated();
+
+    $log = journeyFeatureLogContents();
+    expect($log)->toContain('TIMER_EXPIRY_CHECK')
+        ->and($log)->toContain('LEAVE_DURING_INIT')
+        ->and($log)->toContain('LEAVE_CONFIRMED');
+});
+
 it('logs attempt completed on submit', function (): void {
     ['exam' => $exam, 'question' => $question] = createJourneyExamContext();
 
