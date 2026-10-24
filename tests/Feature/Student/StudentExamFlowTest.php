@@ -347,6 +347,22 @@ it('freezes duration_minutes on the attempt at start time', function (): void {
     expect(app(ExamAttemptAuthorizationService::class)->isTimedOut(ExamAttempt::find($attemptId)))->toBeTrue();
 });
 
+it('marks a zero-answer submit as failed when passing mark is not met', function (): void {
+    ['exam' => $exam] = createStudentExamContext(['passing_mark' => 8, 'total_marks' => 15], 15);
+
+    $startResponse = startExam($exam->id);
+    $attemptId = $startResponse->json('data.attempt_id');
+
+    $this->postJson("/api/exams/{$attemptId}/submit")
+        ->assertOk()
+        ->assertJsonPath('results.score', 0)
+        ->assertJsonPath('results.is_passed', false)
+        ->assertJsonPath('results.status', 'failed');
+
+    expect(ExamAttempt::find($attemptId)->status)->toBe('failed');
+    expect(ExamAttempt::find($attemptId)->answers()->count())->toBe(0);
+});
+
 it('returns the same ongoing attempt when start is called twice', function (): void {
     ['student' => $student, 'exam' => $exam] = createStudentExamContext();
 

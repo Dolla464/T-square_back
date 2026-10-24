@@ -24,5 +24,8 @@ return [
         'SUBMIT_CLICK',
         'VISIBILITY_HIDDEN',
         'ERROR_BOUNDARY',
+        'TIMER_EXPIRY_CHECK',
+        'LEAVE_CONFIRMED',
+        'LEAVE_DURING_INIT',
     ],
 ];
